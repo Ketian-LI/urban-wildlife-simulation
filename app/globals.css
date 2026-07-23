@@ -3,6 +3,14 @@
 :root {
   --background: #eef0e9;
   --foreground: #1e2521;
+  /* Background controls */
+  --field-sky: rgba(229, 232, 223, 0.78);
+  --field-horizon: rgba(201, 205, 194, 0.46);
+  --field-ground: rgba(154, 159, 147, 0.35);
+  --field-grid: rgba(51, 62, 55, 0.06);
+  --field-city: #6f7770;
+  --field-shade: rgba(38, 47, 41, 0.12);
+  --feeding-zone-color: rgba(63, 72, 66, 0.16);
 }
 
 @theme inline {
@@ -145,8 +153,17 @@ h2 {
 
 .ecosystem {
   background:
-    linear-gradient(180deg, rgba(229, 232, 223, 0.78), rgba(201, 205, 194, 0.46) 46%, rgba(154, 159, 147, 0.35)),
-    repeating-linear-gradient(90deg, transparent 0 5.7rem, rgba(51, 62, 55, 0.06) 5.7rem 5.8rem);
+    linear-gradient(
+      180deg,
+      var(--field-sky),
+      var(--field-horizon) 46%,
+      var(--field-ground)
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent 0 5.7rem,
+      var(--field-grid) 5.7rem 5.8rem
+    );
   border: 1px solid rgba(30, 37, 33, 0.14);
   border-radius: 8px;
   cursor: crosshair;
@@ -168,7 +185,7 @@ h2 {
 .ecosystem::after {
   background:
     linear-gradient(90deg, rgba(52, 60, 55, 0.12), transparent 10% 90%, rgba(52, 60, 55, 0.1)),
-    linear-gradient(180deg, transparent, rgba(38, 47, 41, 0.12));
+    linear-gradient(180deg, transparent, var(--field-shade));
   bottom: 0;
   content: "";
   height: 42%;
@@ -190,7 +207,7 @@ h2 {
 }
 
 .cityline span {
-  background: #6f7770;
+  background: var(--field-city);
   border-radius: 2px 2px 0 0;
   display: block;
   flex: 1;
@@ -217,7 +234,7 @@ h2 {
 }
 
 .feeding-zone {
-  background: radial-gradient(circle, rgba(63, 72, 66, 0.16), transparent 62%);
+  background: radial-gradient(circle, var(--feeding-zone-color), transparent 62%);
   border: 1px solid rgba(38, 47, 41, 0.12);
   border-radius: 50%;
   bottom: 8%;
@@ -269,6 +286,7 @@ h2 {
   font-variant-ligatures: none;
   font-weight: 560;
   line-height: 1;
+  position: relative;
   text-shadow: 0 1px 0 rgba(255, 255, 252, 0.54);
 }
 
@@ -293,6 +311,28 @@ h2 {
 
 .pigeon-word-shy {
   opacity: 0.66;
+}
+
+.pigeon-word-white .pigeon-word-label {
+  filter: drop-shadow(0 0 1px rgba(44, 50, 47, 0.8));
+}
+
+.pigeon-word-spotted .pigeon-word-label {
+  font-weight: 650;
+}
+
+.pigeon-word-brown .pigeon-word-label {
+  text-shadow: 0 1px 0 rgba(255, 247, 236, 0.72);
+}
+
+.pigeon-feed-count {
+  color: #33433c;
+  font-size: 0.52rem;
+  font-weight: 780;
+  line-height: 1;
+  position: absolute;
+  right: -0.62rem;
+  top: -0.42rem;
 }
 
 .pigeon-word-claiming {
