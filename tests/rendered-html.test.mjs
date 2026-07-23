@@ -79,7 +79,11 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /feedPigeonState/);
   assert.match(simulation, /rejectFoodState/);
   assert.match(simulation, /minimumFeedCount/);
-  assert.match(simulation, /Math\.random\(\) < nearest\.agent\.boldness/);
+  assert.match(simulation, /function selectFoodRecipient/);
+  assert.match(simulation, /const ranked = \[\.\.\.pigeons\]\.sort/);
+  assert.match(simulation, /leftDistance - rightDistance \|\| left\.id - right\.id/);
+  assert.match(simulation, /random\(\) < pigeon\.agent\.boldness/);
+  assert.match(simulation, /declinedBefore/);
   assert.match(simulation, /launchedAt - lastThrowAt\.current < THROW_COOLDOWN_MS/);
   assert.match(simulation, /individual mean acceptance/);
   assert.match(simulation, /pigeons\[parentIndex\]\.hasAcceptedFood = true/);
@@ -94,7 +98,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /phase: "landing"/);
   assert.match(simulation, /flightDuration \+ 860/);
   assert.match(simulation, /window\.requestAnimationFrame/);
-  assert.match(simulation, /const nearest = pigeons\.reduce/);
+  assert.doesNotMatch(simulation, /const nearest = pigeons\.reduce/);
   assert.match(simulation, /pigeon-letter-capital/);
   assert.match(simulation, /data-food-id=\{particle\.id\}/);
   assert.doesNotMatch(
