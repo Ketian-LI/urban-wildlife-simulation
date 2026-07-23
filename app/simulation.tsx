@@ -606,6 +606,7 @@ function feedPigeonState(
       childStyle,
       clamp(parent.boldness + inheritedMutation, 0.05, 0.95),
     ),
+    hasAcceptedFood: true,
     protectedUntil: bornAt + SPLIT_ANIMATION_MS + 100,
     birthX,
     birthY,

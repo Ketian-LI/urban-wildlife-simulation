@@ -413,6 +413,14 @@ h2 {
   z-index: 4;
 }
 
+.pigeon-word-inside .pigeon-word-label {
+  font-size: 1.12rem;
+}
+
+.pigeon-word-inside.pigeon-word-bold .pigeon-word-label {
+  font-size: 1.2rem;
+}
+
 .pigeon-word-outside {
   z-index: 2;
 }

@@ -120,6 +120,10 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /one pellet per click/);
   assert.match(simulation, /individual mean acceptance/);
   assert.match(simulation, /pigeons\[parentIndex\]\.hasAcceptedFood = true/);
+  assert.match(
+    simulation,
+    /const child: PigeonAgent = \{[\s\S]*?hasAcceptedFood: true,[\s\S]*?protectedUntil:/,
+  );
   assert.match(simulation, /hungerClock: 0/);
   assert.match(simulation, /function projectilePosition/);
   assert.match(simulation, /agent\.id \* 137\.508/);
@@ -160,6 +164,10 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.city-building-shard/);
   assert.match(css, /\.city-building-clock/);
   assert.match(css, /\.pigeon-word-inside/);
+  assert.match(css, /\.pigeon-word-inside \.pigeon-word-label/);
+  assert.match(css, /\.pigeon-word-inside\.pigeon-word-bold \.pigeon-word-label/);
+  assert.match(css, /font-size: 1\.12rem/);
+  assert.match(css, /font-size: 1\.2rem/);
   assert.match(css, /\.pigeon-word-outside/);
   assert.match(css, /\.pigeon-word-newborn/);
   assert.match(css, /--field-sky/);
