@@ -17,6 +17,9 @@ type PigeonAgent = {
   plumage: Plumage;
   feedCount: number;
   caseSeed: number;
+  caseMask: number;
+  colorSeed: number;
+  sizeScale: number;
   boldness: number;
   hasAcceptedFood: boolean;
   protectedUntil: number;
@@ -72,10 +75,10 @@ const initialEvents = [
   "A feeding action protects the entire flock from hunger.",
   "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
   "A bird that reaches a pellet divides into a new word-pigeon at the same spot.",
+  "Every initial bird has a distinct casing, letter-color, and size combination.",
 ];
 
-const shyWordForms = ["Pigeon", "piGeon", "pigeoN", "pigeon", "pigEon", "pigeOn"];
-const boldWordForms = ["PIGeon", "PiGeoN", "pIGeON", "PIGEon", "PIGEON"];
+const pigeonLetters = "pigeon";
 const plumageOrder: Plumage[] = ["grey", "white", "spotted", "brown"];
 const featherPalettes: Record<Plumage, string[]> = {
   grey: ["#303737", "#727a79", "#315f5b", "#76566f", "#8d9492", "#3d4544"],
@@ -88,6 +91,50 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
 
+function normalizeCaseMask(value: unknown, fallback = 0) {
+  const numericValue = Number(value);
+  const safeValue = Number.isFinite(numericValue) ? numericValue : fallback;
+  return Math.abs(Math.trunc(safeValue)) % (1 << pigeonLetters.length);
+}
+
+function wordFromCaseMask(caseMask: number) {
+  const normalizedMask = normalizeCaseMask(caseMask);
+  return [...pigeonLetters]
+    .map((letter, letterIndex) =>
+      normalizedMask & (1 << letterIndex) ? letter.toUpperCase() : letter,
+    )
+    .join("");
+}
+
+function pigeonStyleSignature(
+  pigeon: Pick<PigeonAgent, "plumage" | "caseMask" | "colorSeed" | "sizeScale">,
+) {
+  return [
+    pigeon.plumage,
+    normalizeCaseMask(pigeon.caseMask),
+    Math.abs(Math.trunc(pigeon.colorSeed)),
+    Math.round(pigeon.sizeScale * 1000),
+  ].join(":");
+}
+
+function pigeonLetterPalette(
+  pigeon: Pick<PigeonAgent, "plumage" | "caseMask" | "colorSeed">,
+) {
+  const colors = [...featherPalettes[pigeon.plumage]];
+  let seed =
+    (Math.abs(Math.trunc(pigeon.colorSeed)) * 2654435761 +
+      normalizeCaseMask(pigeon.caseMask) * 1013904223) >>>
+    0;
+
+  for (let index = colors.length - 1; index > 0; index -= 1) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const swapIndex = seed % (index + 1);
+    [colors[index], colors[swapIndex]] = [colors[swapIndex], colors[index]];
+  }
+
+  return colors;
+}
+
 function averageBoldness(pigeons: PigeonAgent[]) {
   if (pigeons.length === 0) {
     return 0;
@@ -96,19 +143,104 @@ function averageBoldness(pigeons: PigeonAgent[]) {
   return pigeons.reduce((total, pigeon) => total + pigeon.boldness, 0) / pigeons.length;
 }
 
-function createOuterPigeon(id: number): PigeonAgent {
+function initialPigeonStyle(id: number) {
+  return {
+    plumage: plumageOrder[(id * 5) % plumageOrder.length],
+    caseMask: (id * 37) % (1 << pigeonLetters.length),
+    colorSeed: (id * 53 + 11) % 997,
+    sizeScale: 0.74 + ((id * 7) % 13) * 0.035,
+  };
+}
+
+function createOuterPigeon(
+  id: number,
+  style = initialPigeonStyle(id),
+  boldness = clamp(0.16 + ((id * 37) % 61) / 100, 0.08, 0.92),
+): PigeonAgent {
   return {
     id,
-    plumage: plumageOrder[(id * 5) % plumageOrder.length],
+    plumage: style.plumage,
     feedCount: 0,
     caseSeed: (id * 17) % 97,
-    boldness: clamp(0.16 + ((id * 37) % 61) / 100, 0.08, 0.92),
+    caseMask: normalizeCaseMask(style.caseMask),
+    colorSeed: Math.abs(Math.trunc(style.colorSeed)),
+    sizeScale: clamp(style.sizeScale, 0.72, 1.18),
+    boldness,
     hasAcceptedFood: false,
     protectedUntil: 0,
     birthX: 0,
     birthY: 0,
     bornAt: 0,
   };
+}
+
+function mutatePigeonStyle(
+  template: PigeonAgent,
+  id: number,
+  existingPigeons: PigeonAgent[],
+) {
+  const occupiedStyles = new Set(existingPigeons.map(pigeonStyleSignature));
+
+  for (let attempt = 0; attempt < 96; attempt += 1) {
+    const candidate = {
+      plumage: template.plumage,
+      caseMask: normalizeCaseMask(template.caseMask),
+      colorSeed: Math.abs(Math.trunc(template.colorSeed)),
+      sizeScale: clamp(template.sizeScale, 0.72, 1.18),
+    };
+    const mutationType = (id + attempt) % 3;
+
+    if (mutationType === 0) {
+      const letterIndex = (id * 5 + attempt * 3) % pigeonLetters.length;
+      candidate.caseMask ^= 1 << letterIndex;
+    } else if (mutationType === 1) {
+      candidate.colorSeed =
+        (candidate.colorSeed + 17 + id * 7 + attempt * 11) % 1000003;
+    } else {
+      const step = 0.035 + ((id + attempt) % 3) * 0.012;
+      const direction = (id + attempt) % 2 === 0 ? 1 : -1;
+      const shifted = clamp(candidate.sizeScale + direction * step, 0.72, 1.18);
+      candidate.sizeScale =
+        Math.abs(shifted - template.sizeScale) > 0.001
+          ? shifted
+          : clamp(candidate.sizeScale - direction * step, 0.72, 1.18);
+    }
+
+    if (!occupiedStyles.has(pigeonStyleSignature(candidate))) {
+      return candidate;
+    }
+  }
+
+  return {
+    plumage: template.plumage,
+    caseMask: normalizeCaseMask(template.caseMask) ^ (1 << (id % pigeonLetters.length)),
+    colorSeed: Math.abs(Math.trunc(template.colorSeed)) + id + 1,
+    sizeScale: clamp(template.sizeScale, 0.72, 1.18),
+  };
+}
+
+function createRefreshedOuterPigeon(
+  id: number,
+  pigeons: PigeonAgent[],
+  random = Math.random,
+) {
+  if (pigeons.length === 0) {
+    return createOuterPigeon(id);
+  }
+
+  const templateIndex = Math.min(
+    pigeons.length - 1,
+    Math.floor(random() * pigeons.length),
+  );
+  const template = pigeons[templateIndex];
+  const style = mutatePigeonStyle(template, id, pigeons);
+  const boldnessMutation = (((id * 29) % 9) - 4) * 0.008;
+
+  return createOuterPigeon(
+    id,
+    style,
+    clamp(template.boldness + boldnessMutation, 0.05, 0.95),
+  );
 }
 
 function createInitialPigeons() {
@@ -159,6 +291,22 @@ function generationEvent(before: EcosystemState, after: EcosystemState) {
   return "The flock adjusted quietly; small behavioral differences carried forward.";
 }
 
+function replenishOuterPigeons(state: EcosystemState) {
+  let refreshedCount = 0;
+
+  while (state.pigeons.length < INITIAL_PIGEONS) {
+    const refreshed = createRefreshedOuterPigeon(
+      state.nextPigeonId,
+      state.pigeons,
+    );
+    state.pigeons.push(refreshed);
+    state.nextPigeonId += 1;
+    refreshedCount += 1;
+  }
+
+  return refreshedCount;
+}
+
 function applyHungerDeaths(
   state: EcosystemState,
   elapsedSeconds: number,
@@ -204,15 +352,24 @@ function applyHungerDeaths(
     actualDeaths += 1;
   }
 
+  const refreshedCount =
+    actualDeaths > 0 ? replenishOuterPigeons(state) : 0;
+  const refreshMessage =
+    refreshedCount > 0
+      ? ` ${refreshedCount} new wild ${
+          refreshedCount === 1 ? "bird arrived" : "birds arrived"
+        } outside with style inherited and varied from the current flock.`
+      : "";
+
   if (actualDeaths === 1) {
     pushEvent(
       state,
-      `One city bird died from hunger; ${state.pigeons.length} remain, while wild birds stayed safe.`,
+      `One city bird died from hunger; ${state.pigeons.length} remain, while wild birds stayed safe.${refreshMessage}`,
     );
   } else if (actualDeaths > 0) {
     pushEvent(
       state,
-      `${actualDeaths} city birds died during the feeding pause; wild birds outside were unaffected.`,
+      `${actualDeaths} city birds died during the feeding pause; wild birds outside were unaffected.${refreshMessage}`,
     );
   }
 }
@@ -311,12 +468,49 @@ function loadState() {
     const initial = makeInitialState();
     const pigeons =
       Array.isArray(parsed.pigeons) && parsed.pigeons.length > 0
-        ? parsed.pigeons.slice(0, MAX_PIGEONS).map((pigeon) => ({
-            ...pigeon,
-            birthX: Number(pigeon.birthX) || 0,
-            birthY: Number(pigeon.birthY) || 0,
-            bornAt: Number(pigeon.bornAt) || 0,
-          }))
+        ? parsed.pigeons.slice(0, MAX_PIGEONS).map((pigeon, index) => {
+            const savedPigeon = pigeon as Partial<PigeonAgent>;
+            const numericId = Number(savedPigeon.id);
+            const id = Number.isFinite(numericId) ? Math.trunc(numericId) : index;
+            const fallback = createOuterPigeon(id);
+            const numericCaseSeed = Number(savedPigeon.caseSeed);
+            const caseSeed = Number.isFinite(numericCaseSeed)
+              ? Math.abs(Math.trunc(numericCaseSeed))
+              : fallback.caseSeed;
+            const numericColorSeed = Number(savedPigeon.colorSeed);
+            const numericSizeScale = Number(savedPigeon.sizeScale);
+            const numericBoldness = Number(savedPigeon.boldness);
+            const plumage = plumageOrder.includes(savedPigeon.plumage as Plumage)
+              ? (savedPigeon.plumage as Plumage)
+              : fallback.plumage;
+
+            return {
+              ...fallback,
+              ...savedPigeon,
+              id,
+              plumage,
+              feedCount: Math.max(0, Math.trunc(Number(savedPigeon.feedCount) || 0)),
+              caseSeed,
+              caseMask: normalizeCaseMask(
+                savedPigeon.caseMask,
+                id * 37 + caseSeed,
+              ),
+              colorSeed: Number.isFinite(numericColorSeed)
+                ? Math.abs(Math.trunc(numericColorSeed))
+                : (id * 53 + caseSeed * 11) % 997,
+              sizeScale: Number.isFinite(numericSizeScale)
+                ? clamp(numericSizeScale, 0.72, 1.18)
+                : 0.74 + ((id * 7 + caseSeed) % 13) * 0.035,
+              boldness: Number.isFinite(numericBoldness)
+                ? clamp(numericBoldness, 0.05, 0.95)
+                : fallback.boldness,
+              hasAcceptedFood: Boolean(savedPigeon.hasAcceptedFood),
+              protectedUntil: Number(savedPigeon.protectedUntil) || 0,
+              birthX: Number(savedPigeon.birthX) || 0,
+              birthY: Number(savedPigeon.birthY) || 0,
+              bornAt: Number(savedPigeon.bornAt) || 0,
+            };
+          })
         : initial.pigeons;
     const nextPigeonId = Math.max(
       Number(parsed.nextPigeonId) || 0,
@@ -401,13 +595,17 @@ function feedPigeonState(
   pigeons[parentIndex].protectedUntil = 0;
   const parent = pigeons[parentIndex];
   const inheritedMutation = (((advanced.nextPigeonId * 29) % 9) - 4) * 0.008;
+  const childStyle = mutatePigeonStyle(
+    parent,
+    advanced.nextPigeonId,
+    pigeons,
+  );
   const child: PigeonAgent = {
-    id: advanced.nextPigeonId,
-    plumage: parent.plumage,
-    feedCount: 0,
-    caseSeed: (parent.caseSeed + advanced.nextPigeonId * 13) % 97,
-    boldness: clamp(parent.boldness + inheritedMutation, 0.05, 0.95),
-    hasAcceptedFood: false,
+    ...createOuterPigeon(
+      advanced.nextPigeonId,
+      childStyle,
+      clamp(parent.boldness + inheritedMutation, 0.05, 0.95),
+    ),
     protectedUntil: bornAt + SPLIT_ANIMATION_MS + 100,
     birthX,
     birthY,
@@ -557,9 +755,8 @@ function pigeonVisuals(state: EcosystemState) {
       : clamp(50 + Math.sin(angle) * 38 * radius, 8, 88);
     const isBold = agent.boldness >= 0.5;
     const feedingAcceptance = agent.hasAcceptedFood ? 1 : agent.boldness;
-    const wordForms = isBold ? boldWordForms : shyWordForms;
-    const word = wordForms[(agent.caseSeed + agent.feedCount) % wordForms.length];
-    const individualScale = 0.82 + (agent.caseSeed % 7) * 0.018;
+    const word = wordFromCaseMask(agent.caseMask);
+    const individualScale = clamp(agent.sizeScale, 0.72, 1.18);
     const isNewborn =
       Number(agent.bornAt) > 0 &&
       now - Number(agent.bornAt) < SPLIT_ANIMATION_MS;
@@ -578,7 +775,8 @@ function pigeonVisuals(state: EcosystemState) {
       speed: 6.4 + (agent.caseSeed % 7) * 0.42,
       scale: individualScale,
       word,
-      palette: featherPalettes[agent.plumage],
+      palette: pigeonLetterPalette(agent),
+      styleSignature: pigeonStyleSignature(agent),
       tilt: ((agent.caseSeed % 5) - 2) * 0.9,
     };
   });
@@ -820,13 +1018,18 @@ function PigeonField({
                 pigeon.agent.boldness,
               )}, feeding acceptance ${formatPercent(
                 pigeon.feedingAcceptance,
-              )}, fed ${pigeon.agent.feedCount} times`}
+              )}, individual size ${Math.round(
+                pigeon.scale * 100,
+              )}%, style ${pigeon.styleSignature}, fed ${
+                pigeon.agent.feedCount
+              } times`}
               className={`pigeon-word ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
               } pigeon-word-${pigeon.agent.plumage} pigeon-word-${pigeon.zone} ${
                 claim ? `pigeon-word-claiming pigeon-word-${claim.phase}` : ""
               } ${pigeon.isNewborn ? "pigeon-word-newborn" : ""}`}
               data-pigeon-id={pigeon.id}
+              data-style-signature={pigeon.styleSignature}
               key={pigeon.id}
               role="img"
               style={

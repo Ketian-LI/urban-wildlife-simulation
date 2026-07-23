@@ -32,9 +32,9 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /<title>Urban Pigeon Simulation<\/title>/i);
   assert.match(html, /animated typographic pigeon population/);
   assert.match(html, /pigeon-word pigeon-word-bold/);
-  assert.match(html, /represented by PIGeon/);
-  assert.match(html, /represented by piGeon/);
-  assert.match(html, /represented by pigeoN/);
+  assert.match(html, /represented by PiGeoN/);
+  assert.match(html, /represented by pIgEon/);
+  assert.match(html, /represented by PIGEON/);
   assert.match(html, /Feeding rate/);
   assert.match(html, />Every click</);
   assert.match(html, /one pellet per click/);
@@ -52,6 +52,22 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /Throw food into the animated typographic pigeon population/);
   assert.match(html, /property="og:image"/);
   assert.doesNotMatch(html, /pigeon-body|pigeon-head|>Feed</);
+
+  const styleSignatures = [
+    ...html.matchAll(/data-style-signature="([^"]+)"/g),
+  ].map((match) => match[1]);
+  const renderedWords = [
+    ...html.matchAll(/represented by ([A-Za-z]+),/g),
+  ].map((match) => match[1]);
+  assert.equal(styleSignatures.length, 30);
+  assert.equal(new Set(styleSignatures).size, 30);
+  assert.equal(new Set(renderedWords).size, 30);
+  for (let letterIndex = 0; letterIndex < "pigeon".length; letterIndex += 1) {
+    assert.equal(
+      new Set(renderedWords.map((word) => word[letterIndex])).size,
+      2,
+    );
+  }
 });
 
 test("keeps the word-pigeon visual system in source", async () => {
@@ -62,8 +78,9 @@ test("keeps the word-pigeon visual system in source", async () => {
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(simulation, /const shyWordForms/);
-  assert.match(simulation, /const boldWordForms/);
+  assert.match(simulation, /const pigeonLetters = "pigeon"/);
+  assert.match(simulation, /function wordFromCaseMask/);
+  assert.match(simulation, /1 << letterIndex/);
   assert.match(simulation, /const featherPalettes/);
   assert.match(simulation, /const INITIAL_PIGEONS = 30/);
   assert.match(simulation, /const MAX_PIGEONS = 50/);
@@ -73,9 +90,17 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /function protectFlockFromHunger/);
   assert.match(simulation, /const HUNGER_INTERVAL_SECONDS = 1/);
   assert.match(simulation, /boldness: number/);
+  assert.match(simulation, /caseMask: number/);
+  assert.match(simulation, /colorSeed: number/);
+  assert.match(simulation, /sizeScale: number/);
   assert.match(simulation, /hasAcceptedFood: boolean/);
   assert.match(simulation, /function averageBoldness/);
   assert.match(simulation, /function createOuterPigeon/);
+  assert.match(simulation, /function mutatePigeonStyle/);
+  assert.match(simulation, /function createRefreshedOuterPigeon/);
+  assert.match(simulation, /function replenishOuterPigeons/);
+  assert.match(simulation, /while \(state\.pigeons\.length < INITIAL_PIGEONS\)/);
+  assert.match(simulation, /const template = pigeons\[templateIndex\]/);
   assert.match(simulation, /function applyHungerDeaths/);
   assert.match(simulation, /pigeon\.hasAcceptedFood &&/);
   assert.match(simulation, /feedingProtectedUntil: number/);
@@ -100,6 +125,8 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /agent\.id \* 137\.508/);
   assert.match(simulation, /const radialSeed/);
   assert.match(simulation, /scale: individualScale/);
+  assert.match(simulation, /palette: pigeonLetterPalette\(agent\)/);
+  assert.match(simulation, /data-style-signature=\{pigeon\.styleSignature\}/);
   assert.match(simulation, /speed: 6\.4/);
   assert.doesNotMatch(simulation, /const groupIndex|const densityScale/);
   assert.match(simulation, /phase: "flying"/);
@@ -118,6 +145,7 @@ test("keeps the word-pigeon visual system in source", async () => {
     simulation,
     /MAX_VISITOR_FOOD|FOOD_REGEN_SECONDS|visitorFood|foodClock|foodBudget|food-reserve/,
   );
+  assert.doesNotMatch(simulation, /shyWordForms|boldWordForms/);
   assert.match(css, /\.pigeon-word-label/);
   assert.match(css, /\.pigeon-letter-capital/);
   assert.match(css, /\.food-particle/);
