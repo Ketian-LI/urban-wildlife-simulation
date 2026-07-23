@@ -86,6 +86,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const MAX_PIGEONS = 50/);
   assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
+  assert.match(simulation, /const CITY_FOOD_DETECTION_RADIUS = 24/);
   assert.match(simulation, /function recordFeedActionState/);
   assert.match(simulation, /function protectFlockFromHunger/);
   assert.match(simulation, /const HUNGER_INTERVAL_SECONDS = 1/);
@@ -110,6 +111,12 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /rejectFoodState/);
   assert.match(simulation, /minimumFeedCount/);
   assert.match(simulation, /function selectFoodRecipient/);
+  assert.match(simulation, /function cityPigeonsDetectingFood/);
+  assert.match(simulation, /pigeon\.zone === "inside"/);
+  assert.match(simulation, /CITY_FOOD_DETECTION_RADIUS/);
+  assert.match(simulation, /function foodResponsePosition/);
+  assert.match(simulation, /response: "recipient" \| "observer"/);
+  assert.match(simulation, /const response: FoodClaim\["response"\]/);
   assert.match(simulation, /const ranked = \[\.\.\.pigeons\]\.sort/);
   assert.match(simulation, /leftDistance - rightDistance \|\| left\.id - right\.id/);
   assert.match(simulation, /const feedingAcceptance = agent\.hasAcceptedFood \? 1 : agent\.boldness/);
@@ -135,7 +142,9 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.doesNotMatch(simulation, /const groupIndex|const densityScale/);
   assert.match(simulation, /phase: "flying"/);
   assert.match(simulation, /phase: "landing"/);
-  assert.match(simulation, /flightDuration \+ 860/);
+  assert.match(simulation, /const disappearanceDelay = accepted \? flightDuration : duration \+ 760/);
+  assert.match(simulation, /disappearanceDelay \+ 860/);
+  assert.match(simulation, /data-food-response=\{claim\?\.response\}/);
   assert.match(simulation, /window\.requestAnimationFrame/);
   assert.doesNotMatch(simulation, /const nearest = pigeons\.reduce/);
   assert.match(simulation, /pigeon-letter-capital/);

@@ -9,6 +9,7 @@ const GENERATION_SECONDS = 12;
 const HUNGER_INTERVAL_SECONDS = 1;
 const FEEDING_SAFETY_MS = 5000;
 const SPLIT_ANIMATION_MS = 1800;
+const CITY_FOOD_DETECTION_RADIUS = 24;
 
 type Plumage = "grey" | "white" | "spotted" | "brown";
 
@@ -67,6 +68,7 @@ type FoodClaim = {
   x: number;
   y: number;
   phase: "flying" | "landing";
+  response: "recipient" | "observer";
   flightDuration: number;
 };
 
@@ -807,6 +809,37 @@ function selectFoodRecipient(
   };
 }
 
+function cityPigeonsDetectingFood(
+  pigeons: PigeonVisual[],
+  targetX: number,
+  targetY: number,
+) {
+  return pigeons.filter(
+    (pigeon) =>
+      pigeon.zone === "inside" &&
+      Math.hypot(pigeon.x - targetX, pigeon.y - targetY) <=
+        CITY_FOOD_DETECTION_RADIUS,
+  );
+}
+
+function foodResponsePosition(
+  pigeon: PigeonVisual,
+  targetX: number,
+  targetY: number,
+  isRecipient: boolean,
+) {
+  if (isRecipient) {
+    return { x: targetX, y: targetY };
+  }
+
+  const approachAngle = ((pigeon.id * 137.508) % 360) * (Math.PI / 180);
+  const approachRadius = 3.2 + (pigeon.id % 3) * 0.8;
+  return {
+    x: clamp(targetX + Math.cos(approachAngle) * approachRadius, 4, 96),
+    y: clamp(targetY + Math.sin(approachAngle) * approachRadius, 8, 90),
+  };
+}
+
 function PigeonField({
   state,
   onThrow,
@@ -879,6 +912,19 @@ function PigeonField({
     sequence.current += 1;
     const accepted = Boolean(recipient);
     const targetPigeon = recipient ?? nearest;
+    const disappearanceDelay = accepted ? flightDuration : duration + 760;
+    const nearbyCityPigeons = cityPigeonsDetectingFood(
+      pigeons,
+      targetX,
+      targetY,
+    );
+    const respondingPigeons = [
+      ...(recipient ? [recipient] : []),
+      ...nearbyCityPigeons.filter((pigeon) => pigeon.id !== recipient?.id),
+    ];
+    const respondingIds = new Set(
+      respondingPigeons.map((pigeon) => pigeon.id),
+    );
     const particle: FoodParticle = {
       id: throwId,
       startX,
@@ -892,39 +938,56 @@ function PigeonField({
     };
 
     setParticles((current) => [...current, particle]);
-    if (recipient) {
+    if (respondingPigeons.length > 0) {
       setClaims((current) => [
-        ...current.filter((claim) => claim.pigeonId !== recipient.id),
-        {
-          throwId,
-          pigeonId: recipient.id,
-          x: targetX,
-          y: targetY,
-          phase: "flying",
-          flightDuration,
-        },
+        ...current.filter((claim) => !respondingIds.has(claim.pigeonId)),
+        ...respondingPigeons.map((pigeon) => {
+          const isRecipient = pigeon.id === recipient?.id;
+          const response: FoodClaim["response"] = isRecipient
+            ? "recipient"
+            : "observer";
+          const responsePosition = foodResponsePosition(
+            pigeon,
+            targetX,
+            targetY,
+            isRecipient,
+          );
+
+          return {
+            throwId,
+            pigeonId: pigeon.id,
+            x: responsePosition.x,
+            y: responsePosition.y,
+            phase: "flying" as const,
+            response,
+            flightDuration: disappearanceDelay,
+          };
+        }),
       ]);
     }
     onThrow(targetPigeon.id, accepted ? flightDuration + 100 : 0);
 
-    const claimTimer = window.setTimeout(() => {
+    const resultTimer = window.setTimeout(() => {
       if (recipient) {
-        setParticles((current) => current.filter((item) => item.id !== throwId));
-        setClaims((current) =>
-          current.map((claim) =>
-            claim.throwId === throwId ? { ...claim, phase: "landing" } : claim,
-          ),
-        );
         onFoodClaimed(recipient.id, declinedBefore, targetX, targetY);
       } else {
         onFoodRejected(nearest.id, ranked.length);
       }
     }, flightDuration);
-    const cleanupTimer = window.setTimeout(() => {
+
+    const disappearanceTimer = window.setTimeout(() => {
       setParticles((current) => current.filter((item) => item.id !== throwId));
+      setClaims((current) =>
+        current.map((claim) =>
+          claim.throwId === throwId ? { ...claim, phase: "landing" } : claim,
+        ),
+      );
+    }, disappearanceDelay);
+
+    const cleanupTimer = window.setTimeout(() => {
       setClaims((current) => current.filter((claim) => claim.throwId !== throwId));
-    }, accepted ? flightDuration + 860 : duration + 760);
-    timers.current.push(claimTimer, cleanupTimer);
+    }, disappearanceDelay + 860);
+    timers.current.push(resultTimer, disappearanceTimer, cleanupTimer);
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
@@ -1027,8 +1090,11 @@ function PigeonField({
               className={`pigeon-word ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
               } pigeon-word-${pigeon.agent.plumage} pigeon-word-${pigeon.zone} ${
-                claim ? `pigeon-word-claiming pigeon-word-${claim.phase}` : ""
+                claim
+                  ? `pigeon-word-claiming pigeon-word-${claim.phase} pigeon-word-${claim.response}`
+                  : ""
               } ${pigeon.isNewborn ? "pigeon-word-newborn" : ""}`}
+              data-food-response={claim?.response}
               data-pigeon-id={pigeon.id}
               data-style-signature={pigeon.styleSignature}
               key={pigeon.id}
