@@ -59,9 +59,15 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const featherPalettes/);
   assert.match(simulation, /const INITIAL_PIGEONS = 30/);
   assert.match(simulation, /const MAX_PIGEONS = 50/);
+  assert.match(simulation, /const THROW_COOLDOWN_MS = 1000/);
+  assert.match(simulation, /boldness: number/);
+  assert.match(simulation, /function averageBoldness/);
   assert.match(simulation, /feedPigeonState/);
+  assert.match(simulation, /rejectFoodState/);
   assert.match(simulation, /minimumFeedCount/);
-  assert.match(simulation, /Math\.random/);
+  assert.match(simulation, /Math\.random\(\) < nearest\.agent\.boldness/);
+  assert.match(simulation, /launchedAt - lastThrowAt\.current < THROW_COOLDOWN_MS/);
+  assert.match(simulation, /individual mean acceptance/);
   assert.match(simulation, /function projectilePosition/);
   assert.match(simulation, /window\.requestAnimationFrame/);
   assert.match(simulation, /const nearest = pigeons\.reduce/);
