@@ -72,6 +72,8 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /function averageBoldness/);
   assert.match(simulation, /function createOuterPigeon/);
   assert.match(simulation, /function applyHungerDeaths/);
+  assert.match(simulation, /protectedUntil: number/);
+  assert.match(simulation, /accepted \? flightDuration \+ 100 : 0/);
   assert.match(simulation, /feedPigeonState/);
   assert.match(simulation, /rejectFoodState/);
   assert.match(simulation, /minimumFeedCount/);
@@ -81,6 +83,11 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /pigeons\[parentIndex\]\.hasAcceptedFood = true/);
   assert.match(simulation, /hungerClock: 0/);
   assert.match(simulation, /function projectilePosition/);
+  assert.match(simulation, /agent\.id \* 137\.508/);
+  assert.match(simulation, /const radialSeed/);
+  assert.match(simulation, /scale: individualScale/);
+  assert.match(simulation, /speed: 6\.4/);
+  assert.doesNotMatch(simulation, /const groupIndex|const densityScale/);
   assert.match(simulation, /phase: "flying"/);
   assert.match(simulation, /phase: "landing"/);
   assert.match(simulation, /flightDuration \+ 860/);
