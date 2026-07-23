@@ -88,7 +88,9 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /function selectFoodRecipient/);
   assert.match(simulation, /const ranked = \[\.\.\.pigeons\]\.sort/);
   assert.match(simulation, /leftDistance - rightDistance \|\| left\.id - right\.id/);
-  assert.match(simulation, /random\(\) < pigeon\.agent\.boldness/);
+  assert.match(simulation, /const feedingAcceptance = agent\.hasAcceptedFood \? 1 : agent\.boldness/);
+  assert.match(simulation, /random\(\) < pigeon\.feedingAcceptance/);
+  assert.match(simulation, /feeding acceptance/);
   assert.match(simulation, /declinedBefore/);
   assert.match(simulation, /launchedAt - lastThrowAt\.current < THROW_COOLDOWN_MS/);
   assert.match(simulation, /individual mean acceptance/);

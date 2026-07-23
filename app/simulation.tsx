@@ -557,6 +557,7 @@ function pigeonVisuals(state: EcosystemState) {
       ? clamp(50 + Math.sin(angle) * 26 * radius, 28, 72)
       : clamp(50 + Math.sin(angle) * 38 * radius, 8, 88);
     const isBold = agent.boldness >= 0.5;
+    const feedingAcceptance = agent.hasAcceptedFood ? 1 : agent.boldness;
     const wordForms = isBold ? boldWordForms : shyWordForms;
     const word = wordForms[(agent.caseSeed + agent.feedCount) % wordForms.length];
     const individualScale = 0.82 + (agent.caseSeed % 7) * 0.018;
@@ -568,6 +569,7 @@ function pigeonVisuals(state: EcosystemState) {
       agent,
       id: agent.id,
       isBold,
+      feedingAcceptance,
       zone: agent.hasAcceptedFood ? "inside" : "outside",
       x,
       y,
@@ -597,7 +599,7 @@ function selectFoodRecipient(
     return leftDistance - rightDistance || left.id - right.id;
   });
   const recipientIndex = ranked.findIndex(
-    (pigeon) => random() < pigeon.agent.boldness,
+    (pigeon) => random() < pigeon.feedingAcceptance,
   );
 
   return {
@@ -821,9 +823,11 @@ function PigeonField({
             <div
               aria-label={`${pigeon.agent.plumage} pigeon represented by ${
                 pigeon.word
-              }, boldness ${formatPercent(pigeon.agent.boldness)}, fed ${
-                pigeon.agent.feedCount
-              } times`}
+              }, boldness ${formatPercent(
+                pigeon.agent.boldness,
+              )}, feeding acceptance ${formatPercent(
+                pigeon.feedingAcceptance,
+              )}, fed ${pigeon.agent.feedCount} times`}
               className={`pigeon-word ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
               } pigeon-word-${pigeon.agent.plumage} pigeon-word-${pigeon.zone} ${
