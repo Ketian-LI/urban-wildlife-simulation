@@ -2,13 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const STORAGE_KEY = "urban-pigeon-collective-v3";
+const STORAGE_KEY = "urban-pigeon-collective-v4";
 const INITIAL_PIGEONS = 30;
 const MAX_PIGEONS = 50;
 const MAX_VISITOR_FOOD = 5;
 const FOOD_REGEN_SECONDS = 16;
 const GENERATION_SECONDS = 12;
 const THROW_COOLDOWN_MS = 1000;
+const HUNGER_INTERVAL_SECONDS = 1;
 
 type Plumage = "grey" | "white" | "spotted" | "brown";
 
@@ -18,6 +19,7 @@ type PigeonAgent = {
   feedCount: number;
   caseSeed: number;
   boldness: number;
+  hasAcceptedFood: boolean;
 };
 
 type EcosystemState = {
@@ -27,6 +29,7 @@ type EcosystemState = {
   foraging: number;
   visitorFood: number;
   foodClock: number;
+  hungerClock: number;
   generationClock: number;
   humanFoodSignal: number;
   generations: number;
@@ -61,9 +64,10 @@ type FoodClaim = {
 };
 
 const initialEvents = [
-  "Thirty birds enter the field, each with an individual probability of accepting food.",
+  "Thirty unfed birds begin outside the city circle.",
+  "Without a feeding action, one bird dies from hunger every second.",
   "A bird that reaches a pellet divides, carrying its plumage into a new individual.",
-  "The field holds at most 50 birds; capacity favors individuals fed more often.",
+  "At the 30-bird floor, each hunger death is replaced outside the circle.",
 ];
 
 const shyWordForms = ["Pigeon", "piGeon", "pigeoN", "pigeon", "pigEon", "pigeOn"];
@@ -88,14 +92,19 @@ function averageBoldness(pigeons: PigeonAgent[]) {
   return pigeons.reduce((total, pigeon) => total + pigeon.boldness, 0) / pigeons.length;
 }
 
-function createInitialPigeons() {
-  return Array.from({ length: INITIAL_PIGEONS }, (_, index): PigeonAgent => ({
-    id: index,
-    plumage: plumageOrder[(index * 5) % plumageOrder.length],
+function createOuterPigeon(id: number): PigeonAgent {
+  return {
+    id,
+    plumage: plumageOrder[(id * 5) % plumageOrder.length],
     feedCount: 0,
-    caseSeed: (index * 17) % 97,
-    boldness: clamp(0.16 + ((index * 37) % 61) / 100, 0.08, 0.92),
-  }));
+    caseSeed: (id * 17) % 97,
+    boldness: clamp(0.16 + ((id * 37) % 61) / 100, 0.08, 0.92),
+    hasAcceptedFood: false,
+  };
+}
+
+function createInitialPigeons() {
+  return Array.from({ length: INITIAL_PIGEONS }, (_, index) => createOuterPigeon(index));
 }
 
 function makeInitialState(now = Date.now()): EcosystemState {
@@ -106,6 +115,7 @@ function makeInitialState(now = Date.now()): EcosystemState {
     foraging: 0.76,
     visitorFood: MAX_VISITOR_FOOD,
     foodClock: 0,
+    hungerClock: 0,
     generationClock: 0,
     humanFoodSignal: 0.2,
     generations: 0,
@@ -142,6 +152,59 @@ function generationEvent(before: EcosystemState, after: EcosystemState) {
   return "The flock adjusted quietly; small behavioral differences carried forward.";
 }
 
+function applyHungerDeaths(state: EcosystemState, elapsedSeconds: number) {
+  state.hungerClock += elapsedSeconds;
+  const deathCount = Math.min(
+    240,
+    Math.floor(state.hungerClock / HUNGER_INTERVAL_SECONDS),
+  );
+
+  if (deathCount <= 0) {
+    return;
+  }
+
+  state.hungerClock -= deathCount * HUNGER_INTERVAL_SECONDS;
+  let refreshed = 0;
+  let actualDeaths = 0;
+
+  for (let index = 0; index < deathCount; index += 1) {
+    if (state.pigeons.length === 0) {
+      break;
+    }
+
+    const minimumFeedCount = Math.min(...state.pigeons.map((pigeon) => pigeon.feedCount));
+    const candidates = state.pigeons
+      .map((pigeon, pigeonIndex) => ({ pigeon, pigeonIndex }))
+      .filter(({ pigeon }) => pigeon.feedCount === minimumFeedCount);
+    const selected = candidates[Math.floor(Math.random() * candidates.length)];
+    state.pigeons.splice(selected.pigeonIndex, 1);
+    actualDeaths += 1;
+
+    if (state.pigeons.length < INITIAL_PIGEONS) {
+      state.pigeons.push(createOuterPigeon(state.nextPigeonId));
+      state.nextPigeonId += 1;
+      refreshed += 1;
+    }
+  }
+
+  if (actualDeaths === 1 && refreshed === 0) {
+    pushEvent(
+      state,
+      `One bird died from hunger; ${state.pigeons.length} remain in the field.`,
+    );
+  } else if (actualDeaths === 1) {
+    pushEvent(
+      state,
+      "One bird died from hunger and a new unfed bird arrived outside the city circle.",
+    );
+  } else if (actualDeaths > 0) {
+    pushEvent(
+      state,
+      `${actualDeaths} birds died during the feeding pause; ${refreshed} new birds arrived outside the city circle.`,
+    );
+  }
+}
+
 function advanceState(current: EcosystemState, now = Date.now()): EcosystemState {
   const elapsedSeconds = clamp((now - current.lastUpdated) / 1000, 0, 60 * 60 * 8);
   if (elapsedSeconds <= 0) {
@@ -168,6 +231,8 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
   } else {
     next.foodClock = 0;
   }
+
+  applyHungerDeaths(next, elapsedSeconds);
 
   next.generationClock += elapsedSeconds;
   const cycles = Math.min(240, Math.floor(next.generationClock / GENERATION_SECONDS));
@@ -268,6 +333,7 @@ function reserveFoodState(current: EcosystemState) {
   const next: EcosystemState = {
     ...advanced,
     visitorFood: advanced.visitorFood - 1,
+    hungerClock: 0,
     events: [...advanced.events],
   };
 
@@ -285,6 +351,7 @@ function feedPigeonState(current: EcosystemState, pigeonId: number) {
   const pigeons = advanced.pigeons.map((pigeon) => ({ ...pigeon }));
   pigeons[parentIndex].feedCount += 1;
   pigeons[parentIndex].boldness = clamp(pigeons[parentIndex].boldness + 0.015, 0.05, 0.95);
+  pigeons[parentIndex].hasAcceptedFood = true;
   const parent = pigeons[parentIndex];
   const inheritedMutation = (((advanced.nextPigeonId * 29) % 9) - 4) * 0.008;
   const child: PigeonAgent = {
@@ -293,6 +360,7 @@ function feedPigeonState(current: EcosystemState, pigeonId: number) {
     feedCount: 0,
     caseSeed: (parent.caseSeed + advanced.nextPigeonId * 13) % 97,
     boldness: clamp(parent.boldness + inheritedMutation, 0.05, 0.95),
+    hasAcceptedFood: false,
   };
   pigeons.push(child);
 
@@ -310,6 +378,7 @@ function feedPigeonState(current: EcosystemState, pigeonId: number) {
     ...advanced,
     pigeons,
     nextPigeonId: advanced.nextPigeonId + 1,
+    hungerClock: 0,
     humanFoodSignal: clamp(advanced.humanFoodSignal + 0.28, 0, 1),
     dependency: clamp(advanced.dependency + 0.007, 0.05, 0.95),
     foraging: clamp(advanced.foraging - 0.004, 0.12, 0.96),
@@ -354,19 +423,13 @@ function rejectFoodState(current: EcosystemState, pigeonId: number) {
 
 function metricDetails(state: EcosystemState): Metric[] {
   const meanBoldness = averageBoldness(state.pigeons);
-  const plumageCounts = plumageOrder.reduce(
-    (counts, plumage) => ({
-      ...counts,
-      [plumage]: state.pigeons.filter((pigeon) => pigeon.plumage === plumage).length,
-    }),
-    {} as Record<Plumage, number>,
-  );
+  const insideCount = state.pigeons.filter((pigeon) => pigeon.hasAcceptedFood).length;
 
   return [
     {
       label: "Population",
       value: `${state.pigeons.length}/${MAX_PIGEONS}`,
-      detail: `${plumageCounts.white} white · ${plumageCounts.spotted} spotted · ${plumageCounts.brown} brown`,
+      detail: `${insideCount} inside / ${state.pigeons.length - insideCount} outside`,
       percent: state.pigeons.length / MAX_PIGEONS,
     },
     {
@@ -416,13 +479,29 @@ function projectilePosition(particle: FoodParticle, now: number) {
 
 function pigeonVisuals(state: EcosystemState) {
   const count = state.pigeons.length;
+  const insideCount = state.pigeons.filter((agent) => agent.hasAcceptedFood).length;
+  const outsideCount = count - insideCount;
+  let insideIndex = 0;
+  let outsideIndex = 0;
 
-  return state.pigeons.map((agent, index) => {
-    const angle = ((index * 137.508 + agent.caseSeed * 7) * Math.PI) / 180;
-    const radius = 8 + Math.sqrt((index + 0.5) / count) * 38;
-    const fedPull = clamp(agent.feedCount * 0.035 + agent.boldness * 0.12, 0.04, 0.38);
-    const x = clamp(50 + Math.cos(angle) * radius * (1 - fedPull), 6, 94);
-    const y = clamp(48 + Math.sin(angle) * radius * 0.72 * (1 - fedPull), 12, 84);
+  return state.pigeons.map((agent) => {
+    const groupIndex = agent.hasAcceptedFood ? insideIndex : outsideIndex;
+    const groupCount = agent.hasAcceptedFood ? insideCount : outsideCount;
+    if (agent.hasAcceptedFood) {
+      insideIndex += 1;
+    } else {
+      outsideIndex += 1;
+    }
+
+    const angle = ((groupIndex * 137.508 + agent.caseSeed * 7) * Math.PI) / 180;
+    const density = Math.sqrt((groupIndex + 0.5) / Math.max(1, groupCount));
+    const radius = agent.hasAcceptedFood ? 0.15 + density * 0.7 : 1.05 + density * 0.4;
+    const x = agent.hasAcceptedFood
+      ? clamp(50 + Math.cos(angle) * 18 * radius, 34, 66)
+      : clamp(50 + Math.cos(angle) * 33 * radius, 5, 95);
+    const y = agent.hasAcceptedFood
+      ? clamp(50 + Math.sin(angle) * 26 * radius, 28, 72)
+      : clamp(50 + Math.sin(angle) * 38 * radius, 8, 88);
     const isBold = agent.boldness >= 0.5;
     const wordForms = isBold ? boldWordForms : shyWordForms;
     const word = wordForms[(agent.caseSeed + agent.feedCount) % wordForms.length];
@@ -432,6 +511,7 @@ function pigeonVisuals(state: EcosystemState) {
       agent,
       id: agent.id,
       isBold,
+      zone: agent.hasAcceptedFood ? "inside" : "outside",
       x,
       y,
       speed: isBold
@@ -467,6 +547,9 @@ function PigeonField({
     () => pigeonVisuals(state),
     [state],
   );
+  const cityPigeonCount = state.pigeons.filter(
+    (pigeon) => pigeon.hasAcceptedFood,
+  ).length;
 
   useEffect(() => {
     foodBudget.current = state.visitorFood;
@@ -593,7 +676,14 @@ function PigeonField({
         <span />
         <span />
       </div>
-      <div className="feeding-zone" aria-hidden="true" />
+      <div
+        aria-label={`${cityPigeonCount} pigeons inside the city circle`}
+        className="city-circle"
+        role="status"
+      >
+        <span>City circle</span>
+        <strong>{cityPigeonCount}</strong>
+      </div>
       <div className="pigeon-layer">
         {pigeons.map((pigeon) => {
           const claim = claims.find((item) => item.pigeonId === pigeon.id);
@@ -607,7 +697,7 @@ function PigeonField({
               } times`}
               className={`pigeon-word ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
-              } pigeon-word-${pigeon.agent.plumage} ${
+              } pigeon-word-${pigeon.agent.plumage} pigeon-word-${pigeon.zone} ${
                 claim ? "pigeon-word-claiming" : ""
               }`}
               key={pigeon.id}

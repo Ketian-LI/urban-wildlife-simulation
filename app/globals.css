@@ -10,7 +10,7 @@
   --field-grid: rgba(51, 62, 55, 0.06);
   --field-city: #6f7770;
   --field-shade: rgba(38, 47, 41, 0.12);
-  --feeding-zone-color: rgba(63, 72, 66, 0.16);
+  --city-circle-color: rgba(63, 72, 66, 0.16);
 }
 
 @theme inline {
@@ -233,17 +233,40 @@ h2 {
   height: 38%;
 }
 
-.feeding-zone {
-  background: radial-gradient(circle, var(--feeding-zone-color), transparent 62%);
-  border: 1px solid rgba(38, 47, 41, 0.12);
+.city-circle {
+  align-items: flex-start;
+  aspect-ratio: 1;
+  background: radial-gradient(circle, var(--city-circle-color), transparent 68%);
+  border: 1px dashed rgba(38, 47, 41, 0.34);
   border-radius: 50%;
-  bottom: 8%;
-  height: min(24vw, 15rem);
+  box-shadow: inset 0 0 0 0.55rem rgba(255, 255, 252, 0.08);
+  display: flex;
+  justify-content: center;
   left: 50%;
+  pointer-events: none;
   position: absolute;
-  transform: translateX(-50%);
-  width: min(38vw, 25rem);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(52%, 18rem);
   z-index: 1;
+}
+
+.city-circle span {
+  color: rgba(43, 53, 47, 0.62);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.65rem;
+  font-weight: 720;
+  letter-spacing: 0;
+  margin-top: 0.8rem;
+  text-transform: uppercase;
+}
+
+.city-circle strong {
+  color: rgba(43, 53, 47, 0.68);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  margin-left: 0.38rem;
+  margin-top: 0.75rem;
 }
 
 .pigeon-layer {
@@ -311,6 +334,14 @@ h2 {
 
 .pigeon-word-shy {
   opacity: 0.66;
+}
+
+.pigeon-word-inside {
+  z-index: 4;
+}
+
+.pigeon-word-outside {
+  z-index: 2;
 }
 
 .pigeon-word-white .pigeon-word-label {
