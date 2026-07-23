@@ -355,7 +355,7 @@ h2 {
 }
 
 .pigeon-word {
-  animation: cautious-drift var(--speed) ease-in-out infinite alternate;
+  animation: idle-sway var(--speed) ease-in-out infinite alternate;
   left: var(--claim-x, var(--x));
   position: absolute;
   top: var(--claim-y, var(--y));
@@ -402,7 +402,6 @@ h2 {
 }
 
 .pigeon-word-bold {
-  animation-name: approach-drift;
   z-index: 3;
 }
 
@@ -548,31 +547,13 @@ h2 {
   padding-left: 0.8rem;
 }
 
-@keyframes cautious-drift {
+@keyframes idle-sway {
   from {
-    transform: translate(-56%, -50%) rotate(var(--tilt)) scale(var(--scale));
+    transform: translate(-52%, -50%) rotate(var(--tilt)) scale(var(--scale));
   }
 
   to {
-    transform: translate(-44%, -55%) rotate(var(--tilt)) scale(var(--scale));
-  }
-}
-
-@keyframes approach-drift {
-  0% {
-    transform: translate(-58%, -48%) rotate(var(--tilt)) scale(var(--scale));
-  }
-
-  45% {
-    transform: translate(-46%, -57%) rotate(var(--tilt)) scale(var(--scale));
-  }
-
-  55% {
-    transform: translate(-46%, -50%) rotate(var(--tilt)) scale(var(--scale));
-  }
-
-  100% {
-    transform: translate(-38%, -54%) rotate(var(--tilt)) scale(var(--scale));
+    transform: translate(-48%, -50%) rotate(var(--tilt)) scale(var(--scale));
   }
 }
 

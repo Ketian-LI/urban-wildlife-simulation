@@ -92,6 +92,8 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.food-particle/);
   assert.match(css, /@keyframes pigeon-flight/);
   assert.match(css, /@keyframes pigeon-landing/);
+  assert.match(css, /@keyframes idle-sway/);
+  assert.doesNotMatch(css, /cautious-drift|approach-drift/);
   assert.match(css, /\.pigeon-word-flying/);
   assert.match(css, /\.pigeon-word-landing/);
   assert.match(css, /\.city-circle/);

@@ -517,8 +517,8 @@ function pigeonVisuals(state: EcosystemState) {
       x,
       y,
       speed: isBold
-        ? 2.7 + (agent.caseSeed % 5) * 0.24
-        : 5.7 + (agent.caseSeed % 6) * 0.32,
+        ? 5.8 + (agent.caseSeed % 5) * 0.38
+        : 7.4 + (agent.caseSeed % 6) * 0.42,
       scale: densityScale + (isBold ? state.dependency * 0.2 : state.foraging * 0.08),
       word,
       palette: featherPalettes[agent.plumage],
