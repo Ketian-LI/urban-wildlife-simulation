@@ -445,8 +445,30 @@ h2 {
 }
 
 .pigeon-word-claiming {
-  animation: none;
   z-index: 7;
+}
+
+.pigeon-word-flying {
+  animation: pigeon-flight var(--flight-duration) cubic-bezier(0.2, 0.64, 0.22, 1) both;
+  transition-duration: var(--flight-duration);
+  transition-timing-function: cubic-bezier(0.18, 0.62, 0.24, 1);
+}
+
+.pigeon-word-flying::after {
+  animation: pigeon-flight-shadow var(--flight-duration) ease-in-out both;
+}
+
+.pigeon-word-flying .pigeon-letter:nth-child(odd) {
+  animation: pigeon-letter-flight 220ms ease-in-out infinite alternate;
+}
+
+.pigeon-word-landing {
+  animation: pigeon-landing 760ms cubic-bezier(0.22, 0.74, 0.24, 1) both;
+  transition: none;
+}
+
+.pigeon-word-landing::after {
+  animation: pigeon-landing-shadow 760ms ease-out both;
 }
 
 .food-particle-layer {
@@ -554,8 +576,101 @@ h2 {
   }
 }
 
+@keyframes pigeon-flight {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(var(--scale));
+  }
+
+  42% {
+    transform:
+      translate(-50%, -126%)
+      rotate(calc(var(--tilt) - 4deg))
+      scale(calc(var(--scale) * 1.06));
+  }
+
+  78% {
+    transform:
+      translate(-50%, -94%)
+      rotate(calc(var(--tilt) + 2deg))
+      scale(calc(var(--scale) * 1.03));
+  }
+
+  100% {
+    transform: translate(-50%, -82%) rotate(var(--tilt)) scale(var(--scale));
+  }
+}
+
+@keyframes pigeon-landing {
+  0% {
+    transform: translate(-50%, -82%) rotate(var(--tilt)) scale(var(--scale));
+  }
+
+  54% {
+    transform:
+      translate(-50%, -43%)
+      rotate(calc(var(--tilt) + 1deg))
+      scale(calc(var(--scale) * 0.95));
+  }
+
+  74% {
+    transform:
+      translate(-50%, -59%)
+      rotate(var(--tilt))
+      scale(calc(var(--scale) * 1.03));
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(var(--scale));
+  }
+}
+
+@keyframes pigeon-letter-flight {
+  from {
+    transform: translateY(-0.08em) rotate(-3deg);
+  }
+
+  to {
+    transform: translateY(0.08em) rotate(3deg);
+  }
+}
+
+@keyframes pigeon-flight-shadow {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  55% {
+    opacity: 0.18;
+    transform: scale(0.52) translateY(1.1rem);
+  }
+
+  100% {
+    opacity: 0.3;
+    transform: scale(0.66) translateY(0.7rem);
+  }
+}
+
+@keyframes pigeon-landing-shadow {
+  0% {
+    opacity: 0.3;
+    transform: scale(0.66) translateY(0.7rem);
+  }
+
+  58% {
+    opacity: 1;
+    transform: scale(1.12);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .pigeon-word {
+  .pigeon-word,
+  .pigeon-word-flying .pigeon-letter {
     animation: none;
   }
 }

@@ -61,6 +61,8 @@ type FoodClaim = {
   pigeonId: number;
   x: number;
   y: number;
+  phase: "flying" | "landing";
+  flightDuration: number;
 };
 
 const initialEvents = [
@@ -597,6 +599,7 @@ function PigeonField({
     const startY = 96;
     const distance = Math.hypot(targetX - startX, targetY - startY);
     const duration = clamp(620 + distance * 5.2, 700, 1080);
+    const flightDuration = duration + 440;
     const throwId = sequence.current;
     sequence.current += 1;
     const accepted = Math.random() < nearest.agent.boldness;
@@ -621,6 +624,8 @@ function PigeonField({
           pigeonId: nearest.id,
           x: targetX,
           y: targetY,
+          phase: "flying",
+          flightDuration,
         },
       ]);
     }
@@ -628,15 +633,21 @@ function PigeonField({
 
     const claimTimer = window.setTimeout(() => {
       if (accepted) {
+        setParticles((current) => current.filter((item) => item.id !== throwId));
+        setClaims((current) =>
+          current.map((claim) =>
+            claim.throwId === throwId ? { ...claim, phase: "landing" } : claim,
+          ),
+        );
         onFoodClaimed(nearest.id);
       } else {
         onFoodRejected(nearest.id);
       }
-    }, duration + 440);
+    }, flightDuration);
     const cleanupTimer = window.setTimeout(() => {
       setParticles((current) => current.filter((item) => item.id !== throwId));
       setClaims((current) => current.filter((claim) => claim.throwId !== throwId));
-    }, duration + 760);
+    }, accepted ? flightDuration + 860 : duration + 760);
     timers.current.push(claimTimer, cleanupTimer);
   };
 
@@ -735,7 +746,7 @@ function PigeonField({
               className={`pigeon-word ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
               } pigeon-word-${pigeon.agent.plumage} pigeon-word-${pigeon.zone} ${
-                claim ? "pigeon-word-claiming" : ""
+                claim ? `pigeon-word-claiming pigeon-word-${claim.phase}` : ""
               }`}
               key={pigeon.id}
               role="img"
@@ -746,9 +757,10 @@ function PigeonField({
                   "--claim-x": claim ? `${claim.x}%` : `${pigeon.x}%`,
                   "--claim-y": claim ? `${claim.y}%` : `${pigeon.y}%`,
                   "--speed": `${pigeon.speed}s`,
+                  "--flight-duration": claim ? `${claim.flightDuration}ms` : "620ms",
                   "--scale": pigeon.scale.toFixed(2),
                   "--tilt": `${pigeon.tilt}deg`,
-                  animationDelay: `${-((pigeon.id % 7) * 0.43)}s`,
+                  animationDelay: claim ? "0s" : `${-((pigeon.id % 7) * 0.43)}s`,
                 } as React.CSSProperties
               }
             >
