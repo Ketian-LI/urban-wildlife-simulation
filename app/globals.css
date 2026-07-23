@@ -275,64 +275,60 @@ h2 {
   z-index: 2;
 }
 
-.pigeon {
+.pigeon-word {
   animation: cautious-drift var(--speed) ease-in-out infinite alternate;
-  height: 1.65rem;
   left: var(--x);
   position: absolute;
   top: var(--y);
-  transform: translate(-50%, -50%) scale(var(--scale));
-  width: 2.5rem;
+  transform: translate(-50%, -50%) rotate(var(--tilt)) scale(var(--scale));
+  transform-origin: center;
+  white-space: nowrap;
 }
 
-.pigeon-bold {
+.pigeon-word::after {
+  background: rgba(29, 35, 31, 0.16);
+  border-radius: 50%;
+  bottom: -0.48rem;
+  content: "";
+  filter: blur(2px);
+  height: 0.28rem;
+  left: 12%;
+  position: absolute;
+  right: 12%;
+}
+
+.pigeon-word-label {
+  align-items: baseline;
+  display: flex;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 1rem;
+  font-variant-ligatures: none;
+  font-weight: 560;
+  line-height: 1;
+  text-shadow: 0 1px 0 rgba(255, 255, 252, 0.54);
+}
+
+.pigeon-letter {
+  color: var(--letter-color);
+  display: inline-block;
+}
+
+.pigeon-letter-capital {
+  font-weight: 820;
+  transform: translateY(-0.06em);
+}
+
+.pigeon-word-bold {
   animation-name: approach-drift;
   z-index: 3;
 }
 
-.pigeon-shy {
+.pigeon-word-bold .pigeon-word-label {
+  font-size: 1.08rem;
+}
+
+.pigeon-word-shy {
   opacity: 0.66;
-}
-
-.pigeon-shadow {
-  background: rgba(29, 35, 31, 0.2);
-  border-radius: 50%;
-  bottom: -0.38rem;
-  height: 0.34rem;
-  left: 0.15rem;
-  position: absolute;
-  width: 2.2rem;
-}
-
-.pigeon-body {
-  background: linear-gradient(120deg, #626b67, #303b36);
-  border-radius: 55% 50% 45% 50%;
-  bottom: 0;
-  height: 1.05rem;
-  left: 0.32rem;
-  position: absolute;
-  transform: rotate(-4deg);
-  width: 1.75rem;
-}
-
-.pigeon-head {
-  background: #303b36;
-  border-radius: 50%;
-  height: 0.72rem;
-  position: absolute;
-  right: 0.08rem;
-  top: 0.22rem;
-  width: 0.72rem;
-}
-
-.pigeon-head::after {
-  border-bottom: 0.14rem solid transparent;
-  border-left: 0.3rem solid #5b5541;
-  border-top: 0.14rem solid transparent;
-  content: "";
-  position: absolute;
-  right: -0.22rem;
-  top: 0.2rem;
 }
 
 .changes {
@@ -363,29 +359,35 @@ h2 {
 
 @keyframes cautious-drift {
   from {
-    transform: translate(-56%, -50%) scale(var(--scale));
+    transform: translate(-56%, -50%) rotate(var(--tilt)) scale(var(--scale));
   }
 
   to {
-    transform: translate(-44%, -55%) scale(var(--scale));
+    transform: translate(-44%, -55%) rotate(var(--tilt)) scale(var(--scale));
   }
 }
 
 @keyframes approach-drift {
   0% {
-    transform: translate(-58%, -48%) scale(var(--scale));
+    transform: translate(-58%, -48%) rotate(var(--tilt)) scale(var(--scale));
   }
 
   45% {
-    transform: translate(-46%, -57%) scale(var(--scale));
+    transform: translate(-46%, -57%) rotate(var(--tilt)) scale(var(--scale));
   }
 
   55% {
-    transform: translate(-46%, -50%) scale(var(--scale));
+    transform: translate(-46%, -50%) rotate(var(--tilt)) scale(var(--scale));
   }
 
   100% {
-    transform: translate(-38%, -54%) scale(var(--scale));
+    transform: translate(-38%, -54%) rotate(var(--tilt)) scale(var(--scale));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pigeon-word {
+    animation: none;
   }
 }
 

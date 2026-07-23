@@ -34,6 +34,14 @@ const initialEvents = [
   "Natural foraging remains the main source of resilience.",
 ];
 
+const shyWordForms = ["Pigeon", "piGeon", "pigeoN", "pigeon", "pigEon", "pigeOn"];
+const boldWordForms = ["PIGeon", "PiGeoN", "pIGeON", "PIGEon", "PIGEON"];
+const featherPalettes = [
+  ["#303737", "#727a79", "#315f5b", "#76566f", "#8d9492", "#3d4544"],
+  ["#4a5050", "#8a9190", "#5c536e", "#28645f", "#6d7473", "#333938"],
+  ["#252c2d", "#68706f", "#7b5a75", "#34716a", "#9ba09d", "#505756"],
+];
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
 }
@@ -258,15 +266,19 @@ function PigeonField({ state }: { state: EcosystemState }) {
           : 50 + edgeBias * (centerPull + (lane % 5) * 8);
         const y = isBold ? 62 + (index % 4) * 6 : 22 + (index % 5) * 7;
         const speed = isBold ? 2.8 + (index % 5) * 0.28 : 6.2 + (index % 6) * 0.35;
-        const scale = isBold ? 0.9 + state.dependency * 0.34 : 0.74 + state.foraging * 0.16;
+        const scale = isBold ? 0.94 + state.dependency * 0.38 : 0.78 + state.foraging * 0.15;
+        const wordForms = isBold ? boldWordForms : shyWordForms;
+        const word = wordForms[index % wordForms.length];
+        const palette = featherPalettes[index % featherPalettes.length];
+        const tilt = ((index % 5) - 2) * (isBold ? 0.7 : 1.25);
 
-        return { id: index, isBold, x, y, speed, scale };
+        return { id: index, isBold, x, y, speed, scale, word, palette, tilt };
       }),
     [state.boldness, state.dependency, state.foraging],
   );
 
   return (
-    <section className="ecosystem" aria-label="Animated pigeon population">
+    <section className="ecosystem" aria-label="Animated typographic pigeon population">
       <div className="cityline" aria-hidden="true">
         <span />
         <span />
@@ -278,20 +290,40 @@ function PigeonField({ state }: { state: EcosystemState }) {
       <div className="pigeon-layer">
         {pigeons.map((pigeon) => (
           <div
-            className={`pigeon ${pigeon.isBold ? "pigeon-bold" : "pigeon-shy"}`}
+            aria-label={`${pigeon.isBold ? "Bold" : "Shy"} pigeon represented by the word ${pigeon.word}`}
+            className={`pigeon-word ${
+              pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
+            }`}
             key={pigeon.id}
+            role="img"
             style={
               {
                 "--x": `${pigeon.x}%`,
                 "--y": `${pigeon.y}%`,
                 "--speed": `${pigeon.speed}s`,
                 "--scale": pigeon.scale.toFixed(2),
+                "--tilt": `${pigeon.tilt}deg`,
+                animationDelay: `${-((pigeon.id % 7) * 0.43)}s`,
               } as React.CSSProperties
             }
           >
-            <span className="pigeon-shadow" />
-            <span className="pigeon-body" />
-            <span className="pigeon-head" />
+            <span aria-hidden="true" className="pigeon-word-label">
+              {[...pigeon.word].map((letter, letterIndex) => (
+                <span
+                  className={`pigeon-letter ${
+                    letter === letter.toUpperCase() ? "pigeon-letter-capital" : ""
+                  }`}
+                  key={`${pigeon.id}-${letterIndex}`}
+                  style={
+                    {
+                      "--letter-color": pigeon.palette[letterIndex],
+                    } as React.CSSProperties
+                  }
+                >
+                  {letter}
+                </span>
+              ))}
+            </span>
           </div>
         ))}
       </div>
