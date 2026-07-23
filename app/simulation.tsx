@@ -670,11 +670,48 @@ function PigeonField({
       tabIndex={0}
     >
       <div className="cityline" aria-hidden="true">
-        <span />
-        <span />
-        <span />
-        <span />
-        <span />
+        <div className="city-building city-building-market">
+          <span>MARKET</span>
+          <span>FOOD STREET</span>
+          <span>TRADE PEOPLE</span>
+          <span>MARKET MARKET</span>
+        </div>
+        <div className="city-building city-building-urban">
+          <span>URBAN</span>
+          <span>HOME WORK</span>
+          <span>CITY CITY</span>
+          <span>LIGHT NIGHT</span>
+          <span>STREET STREET</span>
+          <span>URBAN URBAN</span>
+        </div>
+        <div className="city-building city-building-clock">
+          <span>I</span>
+          <span>TIME</span>
+          <span>CITY</span>
+          <span>CLOCK</span>
+          <span>CITY</span>
+        </div>
+        <div className="city-building city-building-shard">
+          <span>S</span>
+          <span>SH</span>
+          <span>SHA</span>
+          <span>SHAR</span>
+          <span>SHARD</span>
+          <span>SHARD</span>
+          <span>SHARD</span>
+        </div>
+        <div className="city-building city-building-housing">
+          <span>HOUSING</span>
+          <span>WINDOW WINDOW</span>
+          <span>NEIGHBOR NEIGHBOR</span>
+          <span>HOME HOME HOME</span>
+          <span>HOUSING HOUSING</span>
+        </div>
+        <div className="city-building city-building-transit">
+          <span>RAIL BUS WALK</span>
+          <span>TRANSIT TRANSIT</span>
+          <span>SIGNAL STREET</span>
+        </div>
       </div>
       <div
         aria-label={`${cityPigeonCount} pigeons inside the city circle`}

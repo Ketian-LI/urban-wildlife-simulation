@@ -198,39 +198,117 @@ h2 {
   align-items: flex-end;
   bottom: 38%;
   display: flex;
-  gap: 0.8rem;
-  left: 4%;
-  opacity: 0.34;
+  gap: clamp(0.22rem, 0.8vw, 0.65rem);
+  justify-content: center;
+  left: 3%;
+  opacity: 0.42;
+  overflow: hidden;
   position: absolute;
-  right: 4%;
-  top: 8%;
+  right: 3%;
+  top: 6%;
 }
 
-.cityline span {
-  background: var(--field-city);
-  border-radius: 2px 2px 0 0;
+.city-building {
+  align-items: center;
+  color: var(--field-city);
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-geist-mono), monospace;
+  justify-content: flex-end;
+  min-width: 0;
+  overflow: hidden;
+  text-shadow: 0 1px 0 rgba(255, 255, 252, 0.22);
+}
+
+.city-building span {
   display: block;
-  flex: 1;
+  flex: 0 0 auto;
+  font-size: clamp(0.34rem, 0.72vw, 0.62rem);
+  font-weight: 720;
+  letter-spacing: 0;
+  line-height: 1.08;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: clip;
+  white-space: nowrap;
 }
 
-.cityline span:nth-child(1) {
-  height: 42%;
+.city-building-market {
+  flex: 1.15;
+  height: 34%;
 }
 
-.cityline span:nth-child(2) {
-  height: 66%;
+.city-building-market span:first-child {
+  font-size: clamp(0.48rem, 1vw, 0.82rem);
+  font-weight: 860;
 }
 
-.cityline span:nth-child(3) {
-  height: 50%;
+.city-building-urban {
+  flex: 1.15;
+  height: 67%;
 }
 
-.cityline span:nth-child(4) {
-  height: 74%;
+.city-building-urban span:first-child {
+  font-size: clamp(0.7rem, 1.55vw, 1.25rem);
+  font-weight: 900;
+  line-height: 0.94;
+  writing-mode: vertical-rl;
 }
 
-.cityline span:nth-child(5) {
-  height: 38%;
+.city-building-clock {
+  flex: 0.58;
+  height: 76%;
+}
+
+.city-building-clock span:first-child {
+  font-size: clamp(0.78rem, 1.5vw, 1.3rem);
+  line-height: 0.7;
+}
+
+.city-building-clock span:nth-child(2) {
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  padding: 0.16rem;
+}
+
+.city-building-clock span:nth-child(n + 3) {
+  font-size: clamp(0.4rem, 0.84vw, 0.68rem);
+  line-height: 1.18;
+}
+
+.city-building-shard {
+  flex: 0.92;
+  height: 94%;
+}
+
+.city-building-shard span {
+  font-size: clamp(0.52rem, 1.08vw, 0.9rem);
+  font-weight: 860;
+  line-height: 1.02;
+}
+
+.city-building-shard span:nth-child(2n) {
+  transform: translateX(0.14rem);
+}
+
+.city-building-housing {
+  flex: 1.45;
+  height: 61%;
+}
+
+.city-building-housing span:first-child {
+  font-size: clamp(0.58rem, 1.2vw, 1rem);
+  font-weight: 880;
+}
+
+.city-building-transit {
+  flex: 1.35;
+  height: 41%;
+}
+
+.city-building-transit span:nth-child(2) {
+  font-size: clamp(0.48rem, 1vw, 0.82rem);
+  font-weight: 860;
 }
 
 .city-circle {

@@ -40,6 +40,9 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /City circle/);
   assert.match(html, /30 outside/);
   assert.match(html, /pigeon-word-outside/);
+  assert.match(html, /URBAN URBAN/);
+  assert.match(html, /SHARD/);
+  assert.match(html, /TRANSIT TRANSIT/);
   assert.match(html, /pigeon-word-white/);
   assert.match(html, /pigeon-word-spotted/);
   assert.match(html, /pigeon-word-brown/);
@@ -85,6 +88,8 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.pigeon-letter-capital/);
   assert.match(css, /\.food-particle/);
   assert.match(css, /\.city-circle/);
+  assert.match(css, /\.city-building-shard/);
+  assert.match(css, /\.city-building-clock/);
   assert.match(css, /\.pigeon-word-inside/);
   assert.match(css, /\.pigeon-word-outside/);
   assert.match(css, /--field-sky/);
