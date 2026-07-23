@@ -178,10 +178,6 @@ h2 {
   box-shadow: 0 0 0 3px rgba(49, 95, 91, 0.3);
 }
 
-.ecosystem-empty {
-  cursor: not-allowed;
-}
-
 .ecosystem::after {
   background:
     linear-gradient(90deg, rgba(52, 60, 55, 0.12), transparent 10% 90%, rgba(52, 60, 55, 0.1)),
@@ -493,32 +489,6 @@ h2 {
 .food-particle-landed {
   opacity: 0.72;
   transform: translate(-50%, -58%) scale(0.86);
-}
-
-.food-reserve {
-  align-items: flex-end;
-  bottom: 0.35rem;
-  display: flex;
-  gap: 0.22rem;
-  height: 1.8rem;
-  justify-content: center;
-  left: 50%;
-  pointer-events: none;
-  position: absolute;
-  transform: translateX(-50%);
-  z-index: 9;
-}
-
-.food-reserve-dot {
-  color: rgba(70, 67, 56, 0.18);
-  font-family: var(--font-geist-mono), monospace;
-  font-size: 1.45rem;
-  font-weight: 850;
-  line-height: 1;
-}
-
-.food-reserve-dot-ready {
-  color: #514834;
 }
 
 .changes {

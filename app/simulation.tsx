@@ -5,8 +5,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const STORAGE_KEY = "urban-pigeon-collective-v4";
 const INITIAL_PIGEONS = 30;
 const MAX_PIGEONS = 50;
-const MAX_VISITOR_FOOD = 5;
-const FOOD_REGEN_SECONDS = 16;
 const GENERATION_SECONDS = 12;
 const THROW_COOLDOWN_MS = 1000;
 const HUNGER_INTERVAL_SECONDS = 1;
@@ -28,8 +26,6 @@ type EcosystemState = {
   nextPigeonId: number;
   dependency: number;
   foraging: number;
-  visitorFood: number;
-  foodClock: number;
   hungerClock: number;
   generationClock: number;
   humanFoodSignal: number;
@@ -117,8 +113,6 @@ function makeInitialState(now = Date.now()): EcosystemState {
     nextPigeonId: INITIAL_PIGEONS,
     dependency: 0.28,
     foraging: 0.76,
-    visitorFood: MAX_VISITOR_FOOD,
-    foodClock: 0,
     hungerClock: 0,
     generationClock: 0,
     humanFoodSignal: 0.2,
@@ -235,21 +229,6 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
     events: [...current.events],
   };
 
-  if (next.visitorFood < MAX_VISITOR_FOOD) {
-    const foodSeconds = next.foodClock + elapsedSeconds;
-    const gained = Math.min(
-      MAX_VISITOR_FOOD - next.visitorFood,
-      Math.floor(foodSeconds / FOOD_REGEN_SECONDS),
-    );
-    next.visitorFood += gained;
-    next.foodClock =
-      next.visitorFood >= MAX_VISITOR_FOOD
-        ? 0
-        : foodSeconds - gained * FOOD_REGEN_SECONDS;
-  } else {
-    next.foodClock = 0;
-  }
-
   applyHungerDeaths(next, elapsedSeconds, now);
 
   next.generationClock += elapsedSeconds;
@@ -340,17 +319,12 @@ function loadState() {
   }
 }
 
-function reserveFoodState(
+function recordFeedActionState(
   current: EcosystemState,
   pigeonId: number,
   protectionDuration: number,
 ) {
   const advanced = advanceState(current);
-
-  if (advanced.visitorFood <= 0) {
-    pushEvent(advanced, "The visitor has no food left; the flock returns to watching and foraging.");
-    return advanced;
-  }
 
   const next: EcosystemState = {
     ...advanced,
@@ -365,7 +339,6 @@ function reserveFoodState(
           }
         : pigeon,
     ),
-    visitorFood: advanced.visitorFood - 1,
     hungerClock: 0,
     events: [...advanced.events],
   };
@@ -498,13 +471,9 @@ function metricDetails(state: EcosystemState): Metric[] {
       percent: state.humanFoodSignal,
     },
     {
-      label: "Food remaining",
-      value: `${state.visitorFood}/${MAX_VISITOR_FOOD}`,
-      detail:
-        state.visitorFood >= MAX_VISITOR_FOOD
-          ? "fully regenerated"
-          : `next unit in ${Math.ceil(FOOD_REGEN_SECONDS - state.foodClock)}s`,
-      percent: state.visitorFood / MAX_VISITOR_FOOD,
+      label: "Feeding rate",
+      value: "1/sec",
+      detail: "no total limit",
     },
   ];
 }
@@ -568,7 +537,6 @@ function PigeonField({
   const [frameTime, setFrameTime] = useState(0);
   const sequence = useRef(0);
   const timers = useRef<number[]>([]);
-  const foodBudget = useRef(state.visitorFood);
   const lastThrowAt = useRef(-Infinity);
   const pigeons = useMemo(
     () => pigeonVisuals(state),
@@ -577,10 +545,6 @@ function PigeonField({
   const cityPigeonCount = state.pigeons.filter(
     (pigeon) => pigeon.hasAcceptedFood,
   ).length;
-
-  useEffect(() => {
-    foodBudget.current = state.visitorFood;
-  }, [state.visitorFood]);
 
   useEffect(() => {
     if (particles.length === 0) {
@@ -606,15 +570,11 @@ function PigeonField({
 
   const throwFood = (targetX: number, targetY: number) => {
     const launchedAt = window.performance.now();
-    if (
-      foodBudget.current <= 0 ||
-      launchedAt - lastThrowAt.current < THROW_COOLDOWN_MS
-    ) {
+    if (launchedAt - lastThrowAt.current < THROW_COOLDOWN_MS) {
       return;
     }
 
     lastThrowAt.current = launchedAt;
-    foodBudget.current -= 1;
     const nearest = pigeons.reduce((closest, pigeon) => {
       const distance = Math.hypot(pigeon.x - targetX, pigeon.y - targetY);
       const closestDistance = Math.hypot(closest.x - targetX, closest.y - targetY);
@@ -677,7 +637,7 @@ function PigeonField({
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
-    if (event.button !== 0 || foodBudget.current <= 0) {
+    if (event.button !== 0) {
       return;
     }
 
@@ -689,7 +649,7 @@ function PigeonField({
   };
 
   const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
-    if ((event.key === "Enter" || event.key === " ") && foodBudget.current > 0) {
+    if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       throwFood(50, 54);
     }
@@ -697,9 +657,8 @@ function PigeonField({
 
   return (
     <section
-      aria-disabled={state.visitorFood <= 0}
       aria-label="Throw food into the animated typographic pigeon population"
-      className={`ecosystem ${state.visitorFood <= 0 ? "ecosystem-empty" : ""}`}
+      className="ecosystem"
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
       role="button"
@@ -824,6 +783,7 @@ function PigeonField({
           return (
             <span
               className={`food-particle ${position.landed ? "food-particle-landed" : ""}`}
+              data-food-id={particle.id}
               key={particle.id}
               style={
                 {
@@ -836,23 +796,6 @@ function PigeonField({
             </span>
           );
         })}
-      </div>
-      <div
-        aria-label={`${state.visitorFood} food pellets ready at the field edge`}
-        className="food-reserve"
-        role="status"
-      >
-        {Array.from({ length: MAX_VISITOR_FOOD }, (_, index) => (
-          <span
-            aria-hidden="true"
-            className={`food-reserve-dot ${
-              index < state.visitorFood ? "food-reserve-dot-ready" : ""
-            }`}
-            key={index}
-          >
-            .
-          </span>
-        ))}
       </div>
     </section>
   );
@@ -928,7 +871,7 @@ export function UrbanPigeonSimulation() {
             }
             onThrow={(pigeonId, protectionDuration) =>
               setState((current) =>
-                reserveFoodState(current, pigeonId, protectionDuration),
+                recordFeedActionState(current, pigeonId, protectionDuration),
               )
             }
             state={state}

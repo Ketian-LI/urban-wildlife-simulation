@@ -35,7 +35,9 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /represented by PIGeon/);
   assert.match(html, /represented by piGeon/);
   assert.match(html, /represented by pigeoN/);
-  assert.match(html, /Food remaining/);
+  assert.match(html, /Feeding rate/);
+  assert.match(html, />1\/sec</);
+  assert.match(html, /no total limit/);
   assert.match(html, />30\/50</);
   assert.match(html, /City circle/);
   assert.match(html, /30 outside/);
@@ -47,7 +49,6 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /pigeon-word-spotted/);
   assert.match(html, /pigeon-word-brown/);
   assert.match(html, /Throw food into the animated typographic pigeon population/);
-  assert.match(html, /food-reserve-dot food-reserve-dot-ready/);
   assert.match(html, /property="og:image"/);
   assert.doesNotMatch(html, /pigeon-body|pigeon-head|>Feed</);
 });
@@ -66,6 +67,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const INITIAL_PIGEONS = 30/);
   assert.match(simulation, /const MAX_PIGEONS = 50/);
   assert.match(simulation, /const THROW_COOLDOWN_MS = 1000/);
+  assert.match(simulation, /function recordFeedActionState/);
   assert.match(simulation, /const HUNGER_INTERVAL_SECONDS = 1/);
   assert.match(simulation, /boldness: number/);
   assert.match(simulation, /hasAcceptedFood: boolean/);
@@ -94,6 +96,11 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /window\.requestAnimationFrame/);
   assert.match(simulation, /const nearest = pigeons\.reduce/);
   assert.match(simulation, /pigeon-letter-capital/);
+  assert.match(simulation, /data-food-id=\{particle\.id\}/);
+  assert.doesNotMatch(
+    simulation,
+    /MAX_VISITOR_FOOD|FOOD_REGEN_SECONDS|visitorFood|foodClock|foodBudget|food-reserve/,
+  );
   assert.match(css, /\.pigeon-word-label/);
   assert.match(css, /\.pigeon-letter-capital/);
   assert.match(css, /\.food-particle/);
@@ -114,6 +121,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.pigeon-word-brown/);
   assert.match(css, /cubic-bezier/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
+  assert.doesNotMatch(css, /\.ecosystem-empty|\.food-reserve/);
   assert.doesNotMatch(css, /\.pigeon-body|\.pigeon-head|\.feed-button/);
   assert.match(layout, /url:\s*"\/og\.png"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
