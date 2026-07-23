@@ -30,14 +30,16 @@ test("server-renders the typographic flock", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Urban Pigeon Simulation<\/title>/i);
-  assert.match(html, /Animated typographic pigeon population/);
+  assert.match(html, /animated typographic pigeon population/);
   assert.match(html, /pigeon-word pigeon-word-bold/);
   assert.match(html, /represented by the word PIGeon/);
   assert.match(html, /represented by the word piGeon/);
   assert.match(html, /represented by the word pigeoN/);
   assert.match(html, /Food remaining/);
+  assert.match(html, /Throw food into the animated typographic pigeon population/);
+  assert.match(html, /food-reserve-dot food-reserve-dot-ready/);
   assert.match(html, /property="og:image"/);
-  assert.doesNotMatch(html, /pigeon-body|pigeon-head/);
+  assert.doesNotMatch(html, /pigeon-body|pigeon-head|>Feed</);
 });
 
 test("keeps the word-pigeon visual system in source", async () => {
@@ -51,11 +53,16 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const shyWordForms/);
   assert.match(simulation, /const boldWordForms/);
   assert.match(simulation, /const featherPalettes/);
+  assert.match(simulation, /function projectilePosition/);
+  assert.match(simulation, /window\.requestAnimationFrame/);
+  assert.match(simulation, /const nearest = pigeons\.reduce/);
   assert.match(simulation, /pigeon-letter-capital/);
   assert.match(css, /\.pigeon-word-label/);
   assert.match(css, /\.pigeon-letter-capital/);
+  assert.match(css, /\.food-particle/);
+  assert.match(css, /cubic-bezier/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
-  assert.doesNotMatch(css, /\.pigeon-body|\.pigeon-head/);
+  assert.doesNotMatch(css, /\.pigeon-body|\.pigeon-head|\.feed-button/);
   assert.match(layout, /url:\s*"\/og\.png"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 

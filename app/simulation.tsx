@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "urban-pigeon-collective-v1";
 const MAX_VISITOR_FOOD = 5;
@@ -26,6 +26,25 @@ type Metric = {
   value: string;
   detail: string;
   percent?: number;
+};
+
+type FoodParticle = {
+  id: number;
+  startX: number;
+  startY: number;
+  targetX: number;
+  targetY: number;
+  launchedAt: number;
+  duration: number;
+  arcHeight: number;
+  pigeonId: number;
+};
+
+type FoodClaim = {
+  throwId: number;
+  pigeonId: number;
+  x: number;
+  y: number;
 };
 
 const initialEvents = [
@@ -203,7 +222,7 @@ function feedState(current: EcosystemState) {
     events: [...advanced.events],
   };
 
-  pushEvent(next, "A small feeding event favored birds already close to the visitor.");
+  pushEvent(next, "A pellet landed in the field; the closest bird reached it first.");
   return next;
 }
 
@@ -252,7 +271,28 @@ function metricDetails(state: EcosystemState): Metric[] {
   ];
 }
 
-function PigeonField({ state }: { state: EcosystemState }) {
+function projectilePosition(particle: FoodParticle, now: number) {
+  const progress = clamp((now - particle.launchedAt) / particle.duration, 0, 1);
+  const x = particle.startX + (particle.targetX - particle.startX) * progress;
+  const linearY = particle.startY + (particle.targetY - particle.startY) * progress;
+  const y = linearY - particle.arcHeight * 4 * progress * (1 - progress);
+
+  return { x, y, landed: progress >= 1 };
+}
+
+function PigeonField({
+  state,
+  onThrow,
+}: {
+  state: EcosystemState;
+  onThrow: () => void;
+}) {
+  const [particles, setParticles] = useState<FoodParticle[]>([]);
+  const [claims, setClaims] = useState<FoodClaim[]>([]);
+  const [frameTime, setFrameTime] = useState(0);
+  const sequence = useRef(0);
+  const timers = useRef<number[]>([]);
+  const foodBudget = useRef(state.visitorFood);
   const pigeons = useMemo(
     () =>
       Array.from({ length: 22 }, (_, index) => {
@@ -277,8 +317,109 @@ function PigeonField({ state }: { state: EcosystemState }) {
     [state.boldness, state.dependency, state.foraging],
   );
 
+  useEffect(() => {
+    foodBudget.current = state.visitorFood;
+  }, [state.visitorFood]);
+
+  useEffect(() => {
+    if (particles.length === 0) {
+      return;
+    }
+
+    let animationFrame = 0;
+    const tick = (now: number) => {
+      setFrameTime(now);
+      animationFrame = window.requestAnimationFrame(tick);
+    };
+
+    animationFrame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [particles.length]);
+
+  useEffect(
+    () => () => {
+      timers.current.forEach((timer) => window.clearTimeout(timer));
+    },
+    [],
+  );
+
+  const throwFood = (targetX: number, targetY: number) => {
+    if (foodBudget.current <= 0) {
+      return;
+    }
+
+    foodBudget.current -= 1;
+    const nearest = pigeons.reduce((closest, pigeon) => {
+      const distance = Math.hypot(pigeon.x - targetX, pigeon.y - targetY);
+      const closestDistance = Math.hypot(closest.x - targetX, closest.y - targetY);
+      return distance < closestDistance ? pigeon : closest;
+    });
+    const startX = clamp(50 + (targetX - 50) * 0.16, 42, 58);
+    const startY = 96;
+    const distance = Math.hypot(targetX - startX, targetY - startY);
+    const duration = clamp(620 + distance * 5.2, 700, 1080);
+    const throwId = sequence.current;
+    sequence.current += 1;
+    const particle: FoodParticle = {
+      id: throwId,
+      startX,
+      startY,
+      targetX,
+      targetY,
+      launchedAt: window.performance.now(),
+      duration,
+      arcHeight: clamp(10 + distance * 0.12, 14, 24),
+      pigeonId: nearest.id,
+    };
+
+    setParticles((current) => [...current, particle]);
+    setClaims((current) => [
+      ...current.filter((claim) => claim.pigeonId !== nearest.id),
+      {
+        throwId,
+        pigeonId: nearest.id,
+        x: targetX,
+        y: targetY,
+      },
+    ]);
+    onThrow();
+
+    const timer = window.setTimeout(() => {
+      setParticles((current) => current.filter((item) => item.id !== throwId));
+      setClaims((current) => current.filter((claim) => claim.throwId !== throwId));
+    }, duration + 760);
+    timers.current.push(timer);
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLElement>) => {
+    if (event.button !== 0 || foodBudget.current <= 0) {
+      return;
+    }
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    throwFood(
+      clamp(((event.clientX - bounds.left) / bounds.width) * 100, 4, 96),
+      clamp(((event.clientY - bounds.top) / bounds.height) * 100, 8, 90),
+    );
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if ((event.key === "Enter" || event.key === " ") && foodBudget.current > 0) {
+      event.preventDefault();
+      throwFood(50, 54);
+    }
+  };
+
   return (
-    <section className="ecosystem" aria-label="Animated typographic pigeon population">
+    <section
+      aria-disabled={state.visitorFood <= 0}
+      aria-label="Throw food into the animated typographic pigeon population"
+      className={`ecosystem ${state.visitorFood <= 0 ? "ecosystem-empty" : ""}`}
+      onKeyDown={handleKeyDown}
+      onPointerDown={handlePointerDown}
+      role="button"
+      tabIndex={0}
+    >
       <div className="cityline" aria-hidden="true">
         <span />
         <span />
@@ -288,43 +429,89 @@ function PigeonField({ state }: { state: EcosystemState }) {
       </div>
       <div className="feeding-zone" aria-hidden="true" />
       <div className="pigeon-layer">
-        {pigeons.map((pigeon) => (
-          <div
-            aria-label={`${pigeon.isBold ? "Bold" : "Shy"} pigeon represented by the word ${pigeon.word}`}
-            className={`pigeon-word ${
-              pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
-            }`}
-            key={pigeon.id}
-            role="img"
-            style={
-              {
-                "--x": `${pigeon.x}%`,
-                "--y": `${pigeon.y}%`,
-                "--speed": `${pigeon.speed}s`,
-                "--scale": pigeon.scale.toFixed(2),
-                "--tilt": `${pigeon.tilt}deg`,
-                animationDelay: `${-((pigeon.id % 7) * 0.43)}s`,
-              } as React.CSSProperties
-            }
-          >
-            <span aria-hidden="true" className="pigeon-word-label">
-              {[...pigeon.word].map((letter, letterIndex) => (
-                <span
-                  className={`pigeon-letter ${
-                    letter === letter.toUpperCase() ? "pigeon-letter-capital" : ""
-                  }`}
-                  key={`${pigeon.id}-${letterIndex}`}
-                  style={
-                    {
-                      "--letter-color": pigeon.palette[letterIndex],
-                    } as React.CSSProperties
-                  }
-                >
-                  {letter}
-                </span>
-              ))}
+        {pigeons.map((pigeon) => {
+          const claim = claims.find((item) => item.pigeonId === pigeon.id);
+
+          return (
+            <div
+              aria-label={`${pigeon.isBold ? "Bold" : "Shy"} pigeon represented by the word ${pigeon.word}`}
+              className={`pigeon-word ${
+                pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
+              } ${claim ? "pigeon-word-claiming" : ""}`}
+              key={pigeon.id}
+              role="img"
+              style={
+                {
+                  "--x": `${pigeon.x}%`,
+                  "--y": `${pigeon.y}%`,
+                  "--claim-x": claim ? `${claim.x}%` : `${pigeon.x}%`,
+                  "--claim-y": claim ? `${claim.y}%` : `${pigeon.y}%`,
+                  "--speed": `${pigeon.speed}s`,
+                  "--scale": pigeon.scale.toFixed(2),
+                  "--tilt": `${pigeon.tilt}deg`,
+                  animationDelay: `${-((pigeon.id % 7) * 0.43)}s`,
+                } as React.CSSProperties
+              }
+            >
+              <span aria-hidden="true" className="pigeon-word-label">
+                {[...pigeon.word].map((letter, letterIndex) => (
+                  <span
+                    className={`pigeon-letter ${
+                      letter === letter.toUpperCase() ? "pigeon-letter-capital" : ""
+                    }`}
+                    key={`${pigeon.id}-${letterIndex}`}
+                    style={
+                      {
+                        "--letter-color": pigeon.palette[letterIndex],
+                      } as React.CSSProperties
+                    }
+                  >
+                    {letter}
+                  </span>
+                ))}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div aria-hidden="true" className="food-particle-layer">
+        {particles.map((particle) => {
+          const position = projectilePosition(
+            particle,
+            frameTime || particle.launchedAt,
+          );
+
+          return (
+            <span
+              className={`food-particle ${position.landed ? "food-particle-landed" : ""}`}
+              key={particle.id}
+              style={
+                {
+                  "--food-x": `${position.x}%`,
+                  "--food-y": `${position.y}%`,
+                } as React.CSSProperties
+              }
+            >
+              .
             </span>
-          </div>
+          );
+        })}
+      </div>
+      <div
+        aria-label={`${state.visitorFood} food pellets ready at the field edge`}
+        className="food-reserve"
+        role="status"
+      >
+        {Array.from({ length: MAX_VISITOR_FOOD }, (_, index) => (
+          <span
+            aria-hidden="true"
+            className={`food-reserve-dot ${
+              index < state.visitorFood ? "food-reserve-dot-ready" : ""
+            }`}
+            key={index}
+          >
+            .
+          </span>
         ))}
       </div>
     </section>
@@ -391,25 +578,11 @@ export function UrbanPigeonSimulation() {
           ))}
         </section>
 
-        <section className="interaction-band">
-          <div className="research-note">
-            <p>
-              Visitors make one small intervention. Repeated feeding changes which traits
-              carry into the next flock.
-            </p>
-          </div>
-          <button
-            className="feed-button"
-            disabled={state.visitorFood <= 0}
-            onClick={() => setState((current) => feedState(current))}
-            type="button"
-          >
-            Feed
-          </button>
-        </section>
-
         <div className="content-grid">
-          <PigeonField state={state} />
+          <PigeonField
+            onThrow={() => setState((current) => feedState(current))}
+            state={state}
+          />
 
           <aside className="changes" aria-label="Recent ecosystem changes">
             <div>
