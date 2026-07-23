@@ -417,6 +417,11 @@ h2 {
   z-index: 2;
 }
 
+.pigeon-word-newborn {
+  animation: pigeon-split-birth 1.8s cubic-bezier(0.18, 0.72, 0.22, 1) both;
+  z-index: 6;
+}
+
 .pigeon-word-white .pigeon-word-label {
   filter: drop-shadow(0 0 1px rgba(44, 50, 47, 0.8));
 }
@@ -427,16 +432,6 @@ h2 {
 
 .pigeon-word-brown .pigeon-word-label {
   text-shadow: 0 1px 0 rgba(255, 247, 236, 0.72);
-}
-
-.pigeon-feed-count {
-  color: #33433c;
-  font-size: 0.52rem;
-  font-weight: 780;
-  line-height: 1;
-  position: absolute;
-  right: -0.62rem;
-  top: -0.42rem;
 }
 
 .pigeon-word-claiming {
@@ -575,6 +570,35 @@ h2 {
   }
 }
 
+@keyframes pigeon-split-birth {
+  0% {
+    left: var(--birth-x);
+    opacity: 0;
+    top: var(--birth-y);
+    transform:
+      translate(-50%, -50%)
+      rotate(var(--tilt))
+      scale(calc(var(--scale) * 0.12));
+  }
+
+  34% {
+    left: var(--birth-x);
+    opacity: 1;
+    top: var(--birth-y);
+    transform:
+      translate(-22%, -58%)
+      rotate(calc(var(--tilt) + 3deg))
+      scale(calc(var(--scale) * 0.72));
+  }
+
+  100% {
+    left: var(--x);
+    opacity: 1;
+    top: var(--y);
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(var(--scale));
+  }
+}
+
 @keyframes pigeon-letter-flight {
   from {
     transform: translateY(-0.08em) rotate(-3deg);
@@ -621,7 +645,8 @@ h2 {
 
 @media (prefers-reduced-motion: reduce) {
   .pigeon-word,
-  .pigeon-word-flying .pigeon-letter {
+  .pigeon-word-flying .pigeon-letter,
+  .pigeon-word-newborn {
     animation: none;
   }
 }

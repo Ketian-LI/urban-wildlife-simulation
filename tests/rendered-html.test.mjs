@@ -38,6 +38,7 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /Feeding rate/);
   assert.match(html, />1\/sec</);
   assert.match(html, /no total limit/);
+  assert.match(html, /only city birds gradually die; wild birds remain safe outside/);
   assert.match(html, />30\/50</);
   assert.match(html, /City circle/);
   assert.match(html, /30 outside/);
@@ -67,13 +68,18 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const INITIAL_PIGEONS = 30/);
   assert.match(simulation, /const MAX_PIGEONS = 50/);
   assert.match(simulation, /const THROW_COOLDOWN_MS = 1000/);
+  assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
+  assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /function recordFeedActionState/);
+  assert.match(simulation, /function protectFlockFromHunger/);
   assert.match(simulation, /const HUNGER_INTERVAL_SECONDS = 1/);
   assert.match(simulation, /boldness: number/);
   assert.match(simulation, /hasAcceptedFood: boolean/);
   assert.match(simulation, /function averageBoldness/);
   assert.match(simulation, /function createOuterPigeon/);
   assert.match(simulation, /function applyHungerDeaths/);
+  assert.match(simulation, /pigeon\.hasAcceptedFood &&/);
+  assert.match(simulation, /feedingProtectedUntil: number/);
   assert.match(simulation, /protectedUntil: number/);
   assert.match(simulation, /accepted \? flightDuration \+ 100 : 0/);
   assert.match(simulation, /feedPigeonState/);
@@ -101,6 +107,11 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.doesNotMatch(simulation, /const nearest = pigeons\.reduce/);
   assert.match(simulation, /pigeon-letter-capital/);
   assert.match(simulation, /data-food-id=\{particle\.id\}/);
+  assert.match(simulation, /birthX: number/);
+  assert.match(simulation, /bornAt: number/);
+  assert.match(simulation, /protectedUntil: bornAt \+ SPLIT_ANIMATION_MS \+ 100/);
+  assert.match(simulation, /pigeon-word-newborn/);
+  assert.doesNotMatch(simulation, /pigeon-feed-count|<sup/);
   assert.doesNotMatch(
     simulation,
     /MAX_VISITOR_FOOD|FOOD_REGEN_SECONDS|visitorFood|foodClock|foodBudget|food-reserve/,
@@ -110,6 +121,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.food-particle/);
   assert.match(css, /@keyframes pigeon-flight/);
   assert.match(css, /@keyframes pigeon-landing/);
+  assert.match(css, /@keyframes pigeon-split-birth/);
   assert.match(css, /@keyframes idle-sway/);
   assert.doesNotMatch(css, /cautious-drift|approach-drift/);
   assert.match(css, /\.pigeon-word-flying/);
@@ -119,6 +131,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.city-building-clock/);
   assert.match(css, /\.pigeon-word-inside/);
   assert.match(css, /\.pigeon-word-outside/);
+  assert.match(css, /\.pigeon-word-newborn/);
   assert.match(css, /--field-sky/);
   assert.match(css, /\.pigeon-word-white/);
   assert.match(css, /\.pigeon-word-spotted/);
@@ -126,6 +139,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /cubic-bezier/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(css, /\.ecosystem-empty|\.food-reserve/);
+  assert.doesNotMatch(css, /\.pigeon-feed-count/);
   assert.doesNotMatch(css, /\.pigeon-body|\.pigeon-head|\.feed-button/);
   assert.match(layout, /url:\s*"\/og\.png"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
