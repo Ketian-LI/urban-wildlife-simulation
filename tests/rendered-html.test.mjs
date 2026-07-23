@@ -36,8 +36,8 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /represented by piGeon/);
   assert.match(html, /represented by pigeoN/);
   assert.match(html, /Feeding rate/);
-  assert.match(html, />1\/sec</);
-  assert.match(html, /no total limit/);
+  assert.match(html, />Every click</);
+  assert.match(html, /one pellet per click/);
   assert.match(html, /only city birds gradually die; wild birds remain safe outside/);
   assert.match(html, />30\/50</);
   assert.match(html, /City circle/);
@@ -67,7 +67,6 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const featherPalettes/);
   assert.match(simulation, /const INITIAL_PIGEONS = 30/);
   assert.match(simulation, /const MAX_PIGEONS = 50/);
-  assert.match(simulation, /const THROW_COOLDOWN_MS = 1000/);
   assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /function recordFeedActionState/);
@@ -92,7 +91,8 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /random\(\) < pigeon\.feedingAcceptance/);
   assert.match(simulation, /feeding acceptance/);
   assert.match(simulation, /declinedBefore/);
-  assert.match(simulation, /launchedAt - lastThrowAt\.current < THROW_COOLDOWN_MS/);
+  assert.doesNotMatch(simulation, /THROW_COOLDOWN_MS|lastThrowAt/);
+  assert.match(simulation, /one pellet per click/);
   assert.match(simulation, /individual mean acceptance/);
   assert.match(simulation, /pigeons\[parentIndex\]\.hasAcceptedFood = true/);
   assert.match(simulation, /hungerClock: 0/);

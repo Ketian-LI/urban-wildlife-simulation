@@ -6,7 +6,6 @@ const STORAGE_KEY = "urban-pigeon-collective-v4";
 const INITIAL_PIGEONS = 30;
 const MAX_PIGEONS = 50;
 const GENERATION_SECONDS = 12;
-const THROW_COOLDOWN_MS = 1000;
 const HUNGER_INTERVAL_SECONDS = 1;
 const FEEDING_SAFETY_MS = 5000;
 const SPLIT_ANIMATION_MS = 1800;
@@ -526,8 +525,8 @@ function metricDetails(state: EcosystemState): Metric[] {
     },
     {
       label: "Feeding rate",
-      value: "1/sec",
-      detail: "no total limit",
+      value: "Every click",
+      detail: "one pellet per click",
     },
   ];
 }
@@ -630,7 +629,6 @@ function PigeonField({
   const [frameTime, setFrameTime] = useState(0);
   const sequence = useRef(0);
   const timers = useRef<number[]>([]);
-  const lastThrowAt = useRef(-Infinity);
   const pigeons = useMemo(
     () => pigeonVisuals(state),
     [state],
@@ -663,11 +661,6 @@ function PigeonField({
 
   const throwFood = (targetX: number, targetY: number) => {
     const launchedAt = window.performance.now();
-    if (launchedAt - lastThrowAt.current < THROW_COOLDOWN_MS) {
-      return;
-    }
-
-    lastThrowAt.current = launchedAt;
     const { ranked, recipient, declinedBefore } = selectFoodRecipient(
       pigeons,
       targetX,
