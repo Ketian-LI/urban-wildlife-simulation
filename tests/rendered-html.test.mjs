@@ -44,7 +44,10 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /30 outside/);
   assert.match(html, /pigeon-word-outside/);
   assert.match(html, /URBAN URBAN/);
-  assert.match(html, /SHARD/);
+  assert.match(html, /ONE/);
+  assert.match(html, /WORLD/);
+  assert.match(html, /TRADE/);
+  assert.match(html, /CENTER/);
   assert.match(html, /TRANSIT TRANSIT/);
   assert.match(html, /pigeon-word-white/);
   assert.match(html, /pigeon-word-spotted/);
@@ -170,8 +173,12 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.pigeon-word-flying/);
   assert.match(css, /\.pigeon-word-landing/);
   assert.match(css, /\.city-circle/);
-  assert.match(css, /\.city-building-shard/);
-  assert.match(css, /\.city-building-clock/);
+  assert.match(css, /\.city-building-one-world/);
+  assert.match(css, /\.city-building-stepped-tower/);
+  assert.match(css, /\.city-building-art-deco/);
+  assert.match(css, /\.city-building-waterfront-east/);
+  assert.match(css, /grid-template-columns/);
+  assert.match(css, /clip-path: polygon/);
   assert.match(css, /\.pigeon-word-inside/);
   assert.match(css, /\.pigeon-word-inside \.pigeon-word-label/);
   assert.match(css, /\.pigeon-word-inside\.pigeon-word-bold \.pigeon-word-label/);

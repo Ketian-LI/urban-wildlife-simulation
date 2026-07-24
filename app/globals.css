@@ -192,118 +192,176 @@ h2 {
 
 .cityline {
   align-items: flex-end;
-  bottom: 38%;
-  display: flex;
-  gap: clamp(0.22rem, 0.8vw, 0.65rem);
-  justify-content: center;
-  left: 3%;
-  opacity: 0.42;
+  bottom: 36%;
+  display: grid;
+  gap: clamp(0.08rem, 0.32vw, 0.28rem);
+  grid-template-columns:
+    0.62fr 0.82fr 0.82fr 0.92fr 1fr 1.08fr
+    0.9fr 1.02fr 0.7fr 1.06fr 0.82fr 0.62fr;
+  left: 1%;
+  opacity: 0.66;
   overflow: hidden;
   position: absolute;
-  right: 3%;
-  top: 6%;
+  right: 1%;
+  top: 7%;
+}
+
+.cityline::after {
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(73, 83, 77, 0.26) 0 4%,
+      transparent 4% 5.5%
+    ),
+    linear-gradient(180deg, rgba(70, 80, 74, 0.12), rgba(70, 80, 74, 0.28));
+  bottom: 0;
+  content: "";
+  height: 9%;
+  left: 0;
+  position: absolute;
+  right: 0;
+  z-index: 0;
 }
 
 .city-building {
   align-items: center;
+  background:
+    linear-gradient(90deg, rgba(255, 255, 252, 0.12), transparent 36% 70%, rgba(39, 49, 43, 0.12)),
+    rgba(73, 83, 77, 0.14);
+  border: 1px solid rgba(75, 85, 79, 0.22);
+  box-sizing: border-box;
   color: var(--field-city);
   display: flex;
   flex-direction: column;
   font-family: var(--font-geist-mono), monospace;
-  justify-content: flex-end;
+  justify-content: space-evenly;
   min-width: 0;
   overflow: hidden;
+  padding: clamp(0.12rem, 0.4vw, 0.34rem) 0.08rem 0.18rem;
+  position: relative;
+  text-align: center;
   text-shadow: 0 1px 0 rgba(255, 255, 252, 0.22);
+  width: 100%;
+  z-index: 1;
 }
 
 .city-building span {
   display: block;
   flex: 0 0 auto;
-  font-size: clamp(0.34rem, 0.72vw, 0.62rem);
+  font-size: clamp(0.26rem, 0.54vw, 0.5rem);
   font-weight: 720;
   letter-spacing: 0;
-  line-height: 1.08;
+  line-height: 1;
   max-width: 100%;
   overflow: hidden;
   text-overflow: clip;
   white-space: nowrap;
 }
 
-.city-building-market {
-  flex: 1.15;
-  height: 34%;
+.city-building-waterfront {
+  clip-path: polygon(0 18%, 20% 18%, 30% 3%, 44% 18%, 68% 18%, 68% 9%, 88% 9%, 88% 18%, 100% 18%, 100% 100%, 0 100%);
+  height: 29%;
 }
 
-.city-building-market span:first-child {
-  font-size: clamp(0.48rem, 1vw, 0.82rem);
-  font-weight: 860;
+.city-building-waterfront-east {
+  clip-path: polygon(0 24%, 18% 24%, 18% 13%, 48% 13%, 48% 0, 72% 0, 72% 20%, 100% 20%, 100% 100%, 0 100%);
+  height: 31%;
 }
 
-.city-building-urban {
-  flex: 1.15;
-  height: 67%;
+.city-building-one-world {
+  clip-path: polygon(49% 0, 51% 0, 52% 10%, 56% 17%, 62% 25%, 82% 100%, 18% 100%, 38% 25%, 44% 17%, 48% 10%);
+  height: 100%;
+  padding-left: 16%;
+  padding-right: 16%;
+  padding-top: 24%;
 }
 
-.city-building-urban span:first-child {
-  font-size: clamp(0.7rem, 1.55vw, 1.25rem);
+.city-building-one-world span:first-child {
+  font-size: clamp(0.42rem, 0.84vw, 0.72rem);
   font-weight: 900;
-  line-height: 0.94;
   writing-mode: vertical-rl;
 }
 
-.city-building-clock {
-  flex: 0.58;
-  height: 76%;
+.city-building-one-world span:nth-child(n + 2) {
+  font-weight: 830;
 }
 
-.city-building-clock span:first-child {
-  font-size: clamp(0.78rem, 1.5vw, 1.3rem);
-  line-height: 0.7;
+.city-building-west-office {
+  clip-path: polygon(0 8%, 18% 8%, 18% 0, 84% 0, 84% 12%, 100% 12%, 100% 100%, 0 100%);
+  height: 38%;
 }
 
-.city-building-clock span:nth-child(2) {
-  border: 1px solid currentColor;
-  border-radius: 50%;
-  padding: 0.16rem;
+.city-building-glass-tower {
+  clip-path: polygon(18% 0, 82% 0, 82% 7%, 92% 7%, 92% 100%, 8% 100%, 8% 15%, 18% 15%);
+  height: 70%;
 }
 
-.city-building-clock span:nth-child(n + 3) {
-  font-size: clamp(0.4rem, 0.84vw, 0.68rem);
-  line-height: 1.18;
+.city-building-glass-tower span:nth-child(odd) {
+  transform: translateX(-0.1rem);
 }
 
-.city-building-shard {
-  flex: 0.92;
-  height: 94%;
+.city-building-stepped-tower {
+  clip-path: polygon(22% 0, 78% 0, 78% 8%, 88% 8%, 88% 20%, 96% 20%, 96% 100%, 4% 100%, 4% 30%, 12% 30%, 12% 13%, 22% 13%);
+  height: 82%;
 }
 
-.city-building-shard span {
-  font-size: clamp(0.52rem, 1.08vw, 0.9rem);
-  font-weight: 860;
-  line-height: 1.02;
+.city-building-stepped-tower span:first-child {
+  font-size: clamp(0.38rem, 0.76vw, 0.66rem);
+  font-weight: 900;
 }
 
-.city-building-shard span:nth-child(2n) {
-  transform: translateX(0.14rem);
+.city-building-mid-block {
+  clip-path: polygon(0 9%, 14% 9%, 14% 2%, 32% 2%, 32% 0, 72% 0, 72% 5%, 100% 5%, 100% 100%, 0 100%);
+  height: 47%;
 }
 
-.city-building-housing {
-  flex: 1.45;
-  height: 61%;
-}
-
-.city-building-housing span:first-child {
-  font-size: clamp(0.58rem, 1.2vw, 1rem);
-  font-weight: 880;
-}
-
-.city-building-transit {
-  flex: 1.35;
+.city-building-civic {
+  clip-path: polygon(0 14%, 12% 14%, 12% 4%, 34% 4%, 34% 0, 60% 0, 60% 8%, 100% 8%, 100% 100%, 0 100%);
   height: 41%;
 }
 
-.city-building-transit span:nth-child(2) {
-  font-size: clamp(0.48rem, 1vw, 0.82rem);
+.city-building-green-roof {
+  clip-path: polygon(0 17%, 38% 17%, 47% 4%, 49% 4%, 50% 0, 51% 4%, 53% 4%, 63% 17%, 100% 17%, 100% 100%, 0 100%);
+  height: 58%;
+  padding-top: 14%;
+}
+
+.city-building-green-roof span:first-child {
+  font-size: clamp(0.42rem, 0.86vw, 0.74rem);
+  font-weight: 900;
+}
+
+.city-building-art-deco {
+  clip-path: polygon(49% 0, 51% 0, 52% 12%, 58% 20%, 58% 28%, 68% 28%, 68% 38%, 80% 38%, 80% 100%, 20% 100%, 20% 38%, 32% 38%, 32% 28%, 42% 28%, 42% 20%, 48% 12%);
+  height: 72%;
+  padding-left: 18%;
+  padding-right: 18%;
+  padding-top: 24%;
+}
+
+.city-building-art-deco span:first-child {
+  font-size: clamp(0.4rem, 0.8vw, 0.7rem);
+  writing-mode: vertical-rl;
+}
+
+.city-building-art-deco span:nth-child(2) {
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  padding: 0.12rem;
+}
+
+.city-building-east-office {
+  clip-path: polygon(0 7%, 70% 7%, 70% 0, 88% 0, 88% 9%, 100% 9%, 100% 100%, 0 100%);
+  height: 56%;
+}
+
+.city-building-ribbed {
+  clip-path: polygon(8% 0, 92% 0, 92% 100%, 8% 100%);
+  height: 49%;
+}
+
+.city-building-ribbed span:first-child {
+  font-size: clamp(0.38rem, 0.76vw, 0.68rem);
   font-weight: 860;
 }
 

@@ -1019,47 +1019,90 @@ function PigeonField({
       tabIndex={0}
     >
       <div className="cityline" aria-hidden="true">
-        <div className="city-building city-building-market">
-          <span>MARKET</span>
-          <span>FOOD STREET</span>
-          <span>TRADE PEOPLE</span>
-          <span>MARKET MARKET</span>
+        <div className="city-building city-building-waterfront">
+          <span>PORT FERRY</span>
+          <span>MARKET STREET</span>
+          <span>DOCK DOCK DOCK</span>
         </div>
-        <div className="city-building city-building-urban">
-          <span>URBAN</span>
-          <span>HOME WORK</span>
-          <span>CITY CITY</span>
-          <span>LIGHT NIGHT</span>
+        <div className="city-building city-building-one-world">
+          <span>I</span>
+          <span>ONE</span>
+          <span>WORLD</span>
+          <span>TRADE</span>
+          <span>CENTER</span>
+          <span>WINDOW WINDOW</span>
+          <span>CITY CITY CITY</span>
           <span>STREET STREET</span>
+        </div>
+        <div className="city-building city-building-west-office">
+          <span>WORK WORK</span>
+          <span>OFFICE OFFICE</span>
+          <span>WINDOW WINDOW</span>
+          <span>AVENUE AVENUE</span>
+        </div>
+        <div className="city-building city-building-glass-tower">
+          <span>LIGHT</span>
+          <span>GLASS GLASS</span>
+          <span>PEOPLE PEOPLE</span>
+          <span>WORK HOME</span>
+          <span>WINDOW WINDOW</span>
           <span>URBAN URBAN</span>
         </div>
-        <div className="city-building city-building-clock">
+        <div className="city-building city-building-stepped-tower">
+          <span>ROOF</span>
+          <span>CITY CITY</span>
+          <span>TOWER TOWER</span>
+          <span>WINDOW WINDOW</span>
+          <span>STREET STREET</span>
+          <span>NEIGHBOR NEIGHBOR</span>
+          <span>HOME WORK HOME</span>
+        </div>
+        <div className="city-building city-building-mid-block">
+          <span>BLOCK BLOCK</span>
+          <span>TRADE TRADE</span>
+          <span>HOME OFFICE</span>
+          <span>CITY CITY CITY</span>
+        </div>
+        <div className="city-building city-building-civic">
+          <span>PUBLIC PUBLIC</span>
+          <span>LIBRARY COURT</span>
+          <span>PEOPLE PEOPLE</span>
+          <span>STREET STREET</span>
+        </div>
+        <div className="city-building city-building-green-roof">
+          <span>^</span>
+          <span>PARK PARK</span>
+          <span>ROOF ROOF</span>
+          <span>WINDOW WINDOW</span>
+          <span>URBAN URBAN</span>
+          <span>TRANSIT TRANSIT</span>
+        </div>
+        <div className="city-building city-building-art-deco">
           <span>I</span>
           <span>TIME</span>
           <span>CITY</span>
           <span>CLOCK</span>
-          <span>CITY</span>
+          <span>LIGHT LIGHT</span>
+          <span>STREET STREET</span>
         </div>
-        <div className="city-building city-building-shard">
-          <span>S</span>
-          <span>SH</span>
-          <span>SHA</span>
-          <span>SHAR</span>
-          <span>SHARD</span>
-          <span>SHARD</span>
-          <span>SHARD</span>
-        </div>
-        <div className="city-building city-building-housing">
-          <span>HOUSING</span>
+        <div className="city-building city-building-east-office">
+          <span>OFFICE OFFICE</span>
           <span>WINDOW WINDOW</span>
-          <span>NEIGHBOR NEIGHBOR</span>
-          <span>HOME HOME HOME</span>
-          <span>HOUSING HOUSING</span>
+          <span>WORK WORK WORK</span>
+          <span>AVENUE AVENUE</span>
+          <span>CITY CITY CITY</span>
         </div>
-        <div className="city-building city-building-transit">
+        <div className="city-building city-building-ribbed">
+          <span>||||||||</span>
+          <span>HOUSING</span>
+          <span>HOME HOME</span>
+          <span>NEIGHBOR</span>
           <span>RAIL BUS WALK</span>
-          <span>TRANSIT TRANSIT</span>
-          <span>SIGNAL STREET</span>
+        </div>
+        <div className="city-building city-building-waterfront city-building-waterfront-east">
+          <span>PIER PIER</span>
+          <span>FERRY FERRY</span>
+          <span>RIVER CITY</span>
         </div>
       </div>
       <div
