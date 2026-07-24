@@ -87,6 +87,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const featherPalettes/);
   assert.match(simulation, /const INITIAL_PIGEONS = 30/);
   assert.match(simulation, /const MAX_PIGEONS = 50/);
+  assert.match(simulation, /const MIN_STYLE_VARIETIES = 6/);
   assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /const CITY_FOOD_DETECTION_RADIUS = 24/);
@@ -100,7 +101,16 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /hasAcceptedFood: boolean/);
   assert.match(simulation, /function averageBoldness/);
   assert.match(simulation, /function createOuterPigeon/);
-  assert.match(simulation, /function mutatePigeonStyle/);
+  assert.match(simulation, /function inheritedPigeonStyle/);
+  assert.match(simulation, /const childStyle = inheritedPigeonStyle\(parent\)/);
+  assert.match(simulation, /const style = inheritedPigeonStyle\(template\)/);
+  assert.doesNotMatch(simulation, /mutatePigeonStyle/);
+  assert.match(simulation, /function pigeonStyleVarietyCount/);
+  assert.match(simulation, /new Set\(pigeons\.map\(pigeonStyleSignature\)\)\.size/);
+  assert.match(simulation, /function restartIfStyleVarietyTooLow/);
+  assert.match(simulation, /varietyCount >= MIN_STYLE_VARIETIES/);
+  assert.match(simulation, /restarted with \$\{INITIAL_PIGEONS\} distinct birds/);
+  assert.match(simulation, /return restartIfStyleVarietyTooLow\(next, bornAt\)/);
   assert.match(simulation, /function createRefreshedOuterPigeon/);
   assert.match(simulation, /function replenishOuterPigeons/);
   assert.match(simulation, /while \(state\.pigeons\.length < INITIAL_PIGEONS\)/);
@@ -129,6 +139,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.doesNotMatch(simulation, /THROW_COOLDOWN_MS|lastThrowAt/);
   assert.match(simulation, /one pellet per click/);
   assert.match(simulation, /individual mean acceptance/);
+  assert.match(simulation, /\$\{styleVarietyCount\} styles/);
   assert.match(simulation, /pigeons\[parentIndex\]\.hasAcceptedFood = true/);
   assert.match(
     simulation,

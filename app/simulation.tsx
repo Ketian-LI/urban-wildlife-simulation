@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 const STORAGE_KEY = "urban-pigeon-collective-v4";
 const INITIAL_PIGEONS = 30;
 const MAX_PIGEONS = 50;
+const MIN_STYLE_VARIETIES = 6;
 const GENERATION_SECONDS = 12;
 const HUNGER_INTERVAL_SECONDS = 1;
 const FEEDING_SAFETY_MS = 5000;
@@ -76,8 +77,9 @@ const initialEvents = [
   "Thirty unfed birds begin outside the city circle.",
   "A feeding action protects the entire flock from hunger.",
   "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
-  "A bird that reaches a pellet divides into a new word-pigeon at the same spot.",
+  "A bird that reaches a pellet divides into a matching word-pigeon at the same spot.",
   "Every initial bird has a distinct casing, letter-color, and size combination.",
+  "If fewer than six visual varieties remain, the ecosystem restarts with thirty distinct birds.",
 ];
 
 const pigeonLetters = "pigeon";
@@ -117,6 +119,10 @@ function pigeonStyleSignature(
     Math.abs(Math.trunc(pigeon.colorSeed)),
     Math.round(pigeon.sizeScale * 1000),
   ].join(":");
+}
+
+function pigeonStyleVarietyCount(pigeons: PigeonAgent[]) {
+  return new Set(pigeons.map(pigeonStyleSignature)).size;
 }
 
 function pigeonLetterPalette(
@@ -176,47 +182,11 @@ function createOuterPigeon(
   };
 }
 
-function mutatePigeonStyle(
-  template: PigeonAgent,
-  id: number,
-  existingPigeons: PigeonAgent[],
-) {
-  const occupiedStyles = new Set(existingPigeons.map(pigeonStyleSignature));
-
-  for (let attempt = 0; attempt < 96; attempt += 1) {
-    const candidate = {
-      plumage: template.plumage,
-      caseMask: normalizeCaseMask(template.caseMask),
-      colorSeed: Math.abs(Math.trunc(template.colorSeed)),
-      sizeScale: clamp(template.sizeScale, 0.72, 1.18),
-    };
-    const mutationType = (id + attempt) % 3;
-
-    if (mutationType === 0) {
-      const letterIndex = (id * 5 + attempt * 3) % pigeonLetters.length;
-      candidate.caseMask ^= 1 << letterIndex;
-    } else if (mutationType === 1) {
-      candidate.colorSeed =
-        (candidate.colorSeed + 17 + id * 7 + attempt * 11) % 1000003;
-    } else {
-      const step = 0.035 + ((id + attempt) % 3) * 0.012;
-      const direction = (id + attempt) % 2 === 0 ? 1 : -1;
-      const shifted = clamp(candidate.sizeScale + direction * step, 0.72, 1.18);
-      candidate.sizeScale =
-        Math.abs(shifted - template.sizeScale) > 0.001
-          ? shifted
-          : clamp(candidate.sizeScale - direction * step, 0.72, 1.18);
-    }
-
-    if (!occupiedStyles.has(pigeonStyleSignature(candidate))) {
-      return candidate;
-    }
-  }
-
+function inheritedPigeonStyle(template: PigeonAgent) {
   return {
     plumage: template.plumage,
-    caseMask: normalizeCaseMask(template.caseMask) ^ (1 << (id % pigeonLetters.length)),
-    colorSeed: Math.abs(Math.trunc(template.colorSeed)) + id + 1,
+    caseMask: normalizeCaseMask(template.caseMask),
+    colorSeed: Math.abs(Math.trunc(template.colorSeed)),
     sizeScale: clamp(template.sizeScale, 0.72, 1.18),
   };
 }
@@ -235,7 +205,7 @@ function createRefreshedOuterPigeon(
     Math.floor(random() * pigeons.length),
   );
   const template = pigeons[templateIndex];
-  const style = mutatePigeonStyle(template, id, pigeons);
+  const style = inheritedPigeonStyle(template);
   const boldnessMutation = (((id * 29) % 9) - 4) * 0.008;
 
   return createOuterPigeon(
@@ -263,6 +233,23 @@ function makeInitialState(now = Date.now()): EcosystemState {
     lastUpdated: now,
     events: initialEvents,
   };
+}
+
+function restartIfStyleVarietyTooLow(
+  state: EcosystemState,
+  now = Date.now(),
+) {
+  const varietyCount = pigeonStyleVarietyCount(state.pigeons);
+  if (varietyCount >= MIN_STYLE_VARIETIES) {
+    return state;
+  }
+
+  const restarted = makeInitialState(now);
+  restarted.events = [
+    `Style diversity fell to ${varietyCount}; the ecosystem restarted with ${INITIAL_PIGEONS} distinct birds.`,
+    ...initialEvents,
+  ].slice(0, 6);
+  return restarted;
 }
 
 function formatPercent(value: number) {
@@ -360,7 +347,7 @@ function applyHungerDeaths(
     refreshedCount > 0
       ? ` ${refreshedCount} new wild ${
           refreshedCount === 1 ? "bird arrived" : "birds arrived"
-        } outside with style inherited and varied from the current flock.`
+        } outside with a style inherited from the current flock.`
       : "";
 
   if (actualDeaths === 1) {
@@ -377,6 +364,11 @@ function applyHungerDeaths(
 }
 
 function advanceState(current: EcosystemState, now = Date.now()): EcosystemState {
+  const diversityChecked = restartIfStyleVarietyTooLow(current, now);
+  if (diversityChecked !== current) {
+    return diversityChecked;
+  }
+
   const elapsedSeconds = clamp((now - current.lastUpdated) / 1000, 0, 60 * 60 * 8);
   if (elapsedSeconds <= 0) {
     return { ...current, lastUpdated: now };
@@ -452,7 +444,7 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
   }
 
   next.lastUpdated = now;
-  return next;
+  return restartIfStyleVarietyTooLow(next, now);
 }
 
 function loadState() {
@@ -597,11 +589,7 @@ function feedPigeonState(
   pigeons[parentIndex].protectedUntil = 0;
   const parent = pigeons[parentIndex];
   const inheritedMutation = (((advanced.nextPigeonId * 29) % 9) - 4) * 0.008;
-  const childStyle = mutatePigeonStyle(
-    parent,
-    advanced.nextPigeonId,
-    pigeons,
-  );
+  const childStyle = inheritedPigeonStyle(parent);
   const child: PigeonAgent = {
     ...createOuterPigeon(
       advanced.nextPigeonId,
@@ -661,7 +649,7 @@ function feedPigeonState(
     );
   }
 
-  return next;
+  return restartIfStyleVarietyTooLow(next, bornAt);
 }
 
 function rejectFoodState(
@@ -692,12 +680,15 @@ function rejectFoodState(
 function metricDetails(state: EcosystemState): Metric[] {
   const meanBoldness = averageBoldness(state.pigeons);
   const insideCount = state.pigeons.filter((pigeon) => pigeon.hasAcceptedFood).length;
+  const styleVarietyCount = pigeonStyleVarietyCount(state.pigeons);
 
   return [
     {
       label: "Population",
       value: `${state.pigeons.length}/${MAX_PIGEONS}`,
-      detail: `${insideCount} inside / ${state.pigeons.length - insideCount} outside`,
+      detail: `${insideCount} inside / ${
+        state.pigeons.length - insideCount
+      } outside · ${styleVarietyCount} styles`,
       percent: state.pigeons.length / MAX_PIGEONS,
     },
     {
