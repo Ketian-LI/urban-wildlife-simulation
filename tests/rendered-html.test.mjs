@@ -52,6 +52,11 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /pigeon-word-white/);
   assert.match(html, /pigeon-word-spotted/);
   assert.match(html, /pigeon-word-brown/);
+  assert.match(html, /pigeon-word-blue-grey/);
+  assert.match(html, /pigeon-word-charcoal/);
+  assert.match(html, /pigeon-word-silver/);
+  assert.match(html, /pigeon-word-rust/);
+  assert.match(html, /8\/8 colors/);
   assert.match(html, /Throw food into the animated typographic pigeon population/);
   assert.match(html, /property="og:image"/);
   assert.doesNotMatch(html, /pigeon-body|pigeon-head|>Feed</);
@@ -64,6 +69,10 @@ test("server-renders the typographic flock", async () => {
   ].map((match) => match[1]);
   assert.equal(styleSignatures.length, 30);
   assert.equal(new Set(styleSignatures).size, 30);
+  assert.equal(
+    new Set(styleSignatures.map((signature) => signature.split(":")[0])).size,
+    8,
+  );
   assert.equal(new Set(renderedWords).size, 30);
   for (let letterIndex = 0; letterIndex < "pigeon".length; letterIndex += 1) {
     assert.equal(
@@ -87,7 +96,9 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const featherPalettes/);
   assert.match(simulation, /const INITIAL_PIGEONS = 30/);
   assert.match(simulation, /const MAX_PIGEONS = 50/);
-  assert.match(simulation, /const MIN_STYLE_VARIETIES = 6/);
+  assert.match(simulation, /const STORAGE_KEY = "urban-pigeon-collective-v5"/);
+  assert.match(simulation, /const TOTAL_COLOR_VARIETIES = 8/);
+  assert.match(simulation, /const MIN_COLOR_VARIETIES = 4/);
   assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /const CITY_FOOD_DETECTION_RADIUS = 24/);
@@ -105,12 +116,12 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const childStyle = inheritedPigeonStyle\(parent\)/);
   assert.match(simulation, /const style = inheritedPigeonStyle\(template\)/);
   assert.doesNotMatch(simulation, /mutatePigeonStyle/);
-  assert.match(simulation, /function pigeonStyleVarietyCount/);
-  assert.match(simulation, /new Set\(pigeons\.map\(pigeonStyleSignature\)\)\.size/);
-  assert.match(simulation, /function restartIfStyleVarietyTooLow/);
-  assert.match(simulation, /varietyCount >= MIN_STYLE_VARIETIES/);
-  assert.match(simulation, /restarted with \$\{INITIAL_PIGEONS\} distinct birds/);
-  assert.match(simulation, /return restartIfStyleVarietyTooLow\(next, bornAt\)/);
+  assert.match(simulation, /function pigeonColorVarietyCount/);
+  assert.match(simulation, /new Set\(pigeons\.map\(\(pigeon\) => pigeon\.plumage\)\)\.size/);
+  assert.match(simulation, /function restartIfColorVarietyTooLow/);
+  assert.match(simulation, /colorVarietyCount >= MIN_COLOR_VARIETIES/);
+  assert.match(simulation, /spanning all \$\{TOTAL_COLOR_VARIETIES\} colors/);
+  assert.match(simulation, /return restartIfColorVarietyTooLow\(next, bornAt\)/);
   assert.match(simulation, /function createRefreshedOuterPigeon/);
   assert.match(simulation, /function replenishOuterPigeons/);
   assert.match(simulation, /while \(state\.pigeons\.length < INITIAL_PIGEONS\)/);
@@ -139,7 +150,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.doesNotMatch(simulation, /THROW_COOLDOWN_MS|lastThrowAt/);
   assert.match(simulation, /one pellet per click/);
   assert.match(simulation, /individual mean acceptance/);
-  assert.match(simulation, /\$\{styleVarietyCount\} styles/);
+  assert.match(simulation, /\$\{colorVarietyCount\}\/\$\{TOTAL_COLOR_VARIETIES\} colors/);
   assert.match(simulation, /pigeons\[parentIndex\]\.hasAcceptedFood = true/);
   assert.match(
     simulation,
@@ -201,6 +212,10 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.pigeon-word-white/);
   assert.match(css, /\.pigeon-word-spotted/);
   assert.match(css, /\.pigeon-word-brown/);
+  assert.match(css, /\.pigeon-word-blue-grey/);
+  assert.match(css, /\.pigeon-word-charcoal/);
+  assert.match(css, /\.pigeon-word-silver/);
+  assert.match(css, /\.pigeon-word-rust/);
   assert.match(css, /cubic-bezier/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(css, /\.ecosystem-empty|\.food-reserve/);

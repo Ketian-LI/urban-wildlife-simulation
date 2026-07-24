@@ -2,17 +2,26 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const STORAGE_KEY = "urban-pigeon-collective-v4";
+const STORAGE_KEY = "urban-pigeon-collective-v5";
 const INITIAL_PIGEONS = 30;
 const MAX_PIGEONS = 50;
-const MIN_STYLE_VARIETIES = 6;
+const TOTAL_COLOR_VARIETIES = 8;
+const MIN_COLOR_VARIETIES = 4;
 const GENERATION_SECONDS = 12;
 const HUNGER_INTERVAL_SECONDS = 1;
 const FEEDING_SAFETY_MS = 5000;
 const SPLIT_ANIMATION_MS = 1800;
 const CITY_FOOD_DETECTION_RADIUS = 24;
 
-type Plumage = "grey" | "white" | "spotted" | "brown";
+type Plumage =
+  | "grey"
+  | "white"
+  | "spotted"
+  | "brown"
+  | "blue-grey"
+  | "charcoal"
+  | "silver"
+  | "rust";
 
 type PigeonAgent = {
   id: number;
@@ -78,17 +87,30 @@ const initialEvents = [
   "A feeding action protects the entire flock from hunger.",
   "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
   "A bird that reaches a pellet divides into a matching word-pigeon at the same spot.",
-  "Every initial bird has a distinct casing, letter-color, and size combination.",
-  "If fewer than six visual varieties remain, the ecosystem restarts with thirty distinct birds.",
+  "The initial flock spans eight feather colors; casing and size vary within each color.",
+  "If fewer than four color varieties remain, the ecosystem restarts with all eight colors.",
 ];
 
 const pigeonLetters = "pigeon";
-const plumageOrder: Plumage[] = ["grey", "white", "spotted", "brown"];
+const plumageOrder: Plumage[] = [
+  "grey",
+  "white",
+  "spotted",
+  "brown",
+  "blue-grey",
+  "charcoal",
+  "silver",
+  "rust",
+];
 const featherPalettes: Record<Plumage, string[]> = {
   grey: ["#303737", "#727a79", "#315f5b", "#76566f", "#8d9492", "#3d4544"],
   white: ["#f8f7f0", "#dedfd9", "#f3f2ec", "#c9cfca", "#ffffff", "#d9dbd5"],
   spotted: ["#363c3c", "#f1f0e9", "#777d7a", "#292f30", "#e4e3dc", "#666c69"],
   brown: ["#563e34", "#8b6650", "#a57a5d", "#67483a", "#b18b6f", "#755445"],
+  "blue-grey": ["#334650", "#5f7780", "#2f5d62", "#6f5a78", "#8ea2a8", "#43545c"],
+  charcoal: ["#161b1d", "#343c3f", "#26343a", "#4a5960", "#23272a", "#5c6466"],
+  silver: ["#c5ccca", "#9ea9aa", "#dce0dc", "#7e8c90", "#b6c0c2", "#eef0eb"],
+  rust: ["#6e362c", "#a14f38", "#c16d4d", "#7f4a3b", "#d18a64", "#59352f"],
 };
 
 function clamp(value: number, min: number, max: number) {
@@ -121,8 +143,8 @@ function pigeonStyleSignature(
   ].join(":");
 }
 
-function pigeonStyleVarietyCount(pigeons: PigeonAgent[]) {
-  return new Set(pigeons.map(pigeonStyleSignature)).size;
+function pigeonColorVarietyCount(pigeons: PigeonAgent[]) {
+  return new Set(pigeons.map((pigeon) => pigeon.plumage)).size;
 }
 
 function pigeonLetterPalette(
@@ -235,18 +257,18 @@ function makeInitialState(now = Date.now()): EcosystemState {
   };
 }
 
-function restartIfStyleVarietyTooLow(
+function restartIfColorVarietyTooLow(
   state: EcosystemState,
   now = Date.now(),
 ) {
-  const varietyCount = pigeonStyleVarietyCount(state.pigeons);
-  if (varietyCount >= MIN_STYLE_VARIETIES) {
+  const colorVarietyCount = pigeonColorVarietyCount(state.pigeons);
+  if (colorVarietyCount >= MIN_COLOR_VARIETIES) {
     return state;
   }
 
   const restarted = makeInitialState(now);
   restarted.events = [
-    `Style diversity fell to ${varietyCount}; the ecosystem restarted with ${INITIAL_PIGEONS} distinct birds.`,
+    `Color diversity fell to ${colorVarietyCount}; the ecosystem restarted with ${INITIAL_PIGEONS} birds spanning all ${TOTAL_COLOR_VARIETIES} colors.`,
     ...initialEvents,
   ].slice(0, 6);
   return restarted;
@@ -364,7 +386,7 @@ function applyHungerDeaths(
 }
 
 function advanceState(current: EcosystemState, now = Date.now()): EcosystemState {
-  const diversityChecked = restartIfStyleVarietyTooLow(current, now);
+  const diversityChecked = restartIfColorVarietyTooLow(current, now);
   if (diversityChecked !== current) {
     return diversityChecked;
   }
@@ -444,7 +466,7 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
   }
 
   next.lastUpdated = now;
-  return restartIfStyleVarietyTooLow(next, now);
+  return restartIfColorVarietyTooLow(next, now);
 }
 
 function loadState() {
@@ -649,7 +671,7 @@ function feedPigeonState(
     );
   }
 
-  return restartIfStyleVarietyTooLow(next, bornAt);
+  return restartIfColorVarietyTooLow(next, bornAt);
 }
 
 function rejectFoodState(
@@ -680,7 +702,7 @@ function rejectFoodState(
 function metricDetails(state: EcosystemState): Metric[] {
   const meanBoldness = averageBoldness(state.pigeons);
   const insideCount = state.pigeons.filter((pigeon) => pigeon.hasAcceptedFood).length;
-  const styleVarietyCount = pigeonStyleVarietyCount(state.pigeons);
+  const colorVarietyCount = pigeonColorVarietyCount(state.pigeons);
 
   return [
     {
@@ -688,7 +710,7 @@ function metricDetails(state: EcosystemState): Metric[] {
       value: `${state.pigeons.length}/${MAX_PIGEONS}`,
       detail: `${insideCount} inside / ${
         state.pigeons.length - insideCount
-      } outside · ${styleVarietyCount} styles`,
+      } outside · ${colorVarietyCount}/${TOTAL_COLOR_VARIETIES} colors`,
       percent: state.pigeons.length / MAX_PIGEONS,
     },
     {

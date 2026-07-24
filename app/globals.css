@@ -500,6 +500,22 @@ h2 {
   text-shadow: 0 1px 0 rgba(255, 247, 236, 0.72);
 }
 
+.pigeon-word-blue-grey .pigeon-word-label {
+  text-shadow: 0 1px 0 rgba(228, 238, 239, 0.5);
+}
+
+.pigeon-word-charcoal .pigeon-word-label {
+  font-weight: 680;
+}
+
+.pigeon-word-silver .pigeon-word-label {
+  filter: drop-shadow(0 0 1px rgba(44, 50, 47, 0.55));
+}
+
+.pigeon-word-rust .pigeon-word-label {
+  text-shadow: 0 1px 0 rgba(255, 236, 224, 0.58);
+}
+
 .pigeon-word-claiming {
   z-index: 7;
 }
