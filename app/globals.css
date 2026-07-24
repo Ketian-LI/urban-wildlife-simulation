@@ -594,6 +594,84 @@ h2 {
   padding-left: 0.8rem;
 }
 
+.restart-dialog-backdrop {
+  align-items: center;
+  background: rgba(24, 30, 27, 0.52);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 50;
+}
+
+.restart-dialog {
+  background: #f7f8f3;
+  border: 1px solid rgba(30, 37, 33, 0.24);
+  border-radius: 8px;
+  box-shadow: 0 1.4rem 4rem rgba(22, 28, 24, 0.24);
+  color: #1e2521;
+  max-width: 30rem;
+  padding: clamp(1.35rem, 4vw, 2rem);
+  width: 100%;
+}
+
+.restart-dialog h2 {
+  font-size: clamp(1.65rem, 5vw, 2.25rem);
+  font-weight: 620;
+  line-height: 1.05;
+  margin: 0.55rem 0 1.5rem;
+}
+
+.restart-dialog > p:not(.eyebrow) {
+  color: #56625c;
+  line-height: 1.55;
+  margin: 1.25rem 0 1.5rem;
+}
+
+.restart-diversity-readout {
+  align-items: baseline;
+  border-bottom: 1px solid rgba(30, 37, 33, 0.14);
+  border-top: 1px solid rgba(30, 37, 33, 0.14);
+  display: flex;
+  gap: 0.7rem;
+  padding: 0.9rem 0;
+}
+
+.restart-diversity-readout strong {
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 2rem;
+  font-weight: 650;
+}
+
+.restart-diversity-readout span {
+  color: #65716b;
+  font-size: 0.82rem;
+}
+
+.restart-dialog button {
+  background: #26342d;
+  border: 1px solid #26342d;
+  border-radius: 6px;
+  color: #f8faf5;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  min-height: 2.8rem;
+  padding: 0.7rem 1rem;
+  width: 100%;
+}
+
+.restart-dialog button:hover {
+  background: #34473d;
+}
+
+.restart-dialog button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(93, 117, 106, 0.35);
+  outline: 2px solid #f7f8f3;
+  outline-offset: 1px;
+}
+
 @keyframes idle-sway {
   from {
     transform: translate(-52%, -50%) rotate(var(--tilt)) scale(var(--scale));

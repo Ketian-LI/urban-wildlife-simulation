@@ -118,10 +118,15 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.doesNotMatch(simulation, /mutatePigeonStyle/);
   assert.match(simulation, /function pigeonColorVarietyCount/);
   assert.match(simulation, /new Set\(pigeons\.map\(\(pigeon\) => pigeon\.plumage\)\)\.size/);
-  assert.match(simulation, /function restartIfColorVarietyTooLow/);
+  assert.match(simulation, /restartColorVarietyCount: number \| null/);
+  assert.match(simulation, /function markRestartRequiredIfColorVarietyTooLow/);
   assert.match(simulation, /colorVarietyCount >= MIN_COLOR_VARIETIES/);
-  assert.match(simulation, /spanning all \$\{TOTAL_COLOR_VARIETIES\} colors/);
-  assert.match(simulation, /return restartIfColorVarietyTooLow\(next, bornAt\)/);
+  assert.match(simulation, /function restartEcosystemState/);
+  assert.match(simulation, /Genetic diversity is too low/);
+  assert.match(simulation, /role="alertdialog"/);
+  assert.match(simulation, /Restart ecosystem/);
+  assert.match(simulation, /restartButtonRef\.current\?\.focus\(\)/);
+  assert.match(simulation, /return markRestartRequiredIfColorVarietyTooLow\(next\)/);
   assert.match(simulation, /function createRefreshedOuterPigeon/);
   assert.match(simulation, /function replenishOuterPigeons/);
   assert.match(simulation, /while \(state\.pigeons\.length < INITIAL_PIGEONS\)/);
@@ -216,6 +221,9 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.pigeon-word-charcoal/);
   assert.match(css, /\.pigeon-word-silver/);
   assert.match(css, /\.pigeon-word-rust/);
+  assert.match(css, /\.restart-dialog-backdrop/);
+  assert.match(css, /\.restart-dialog/);
+  assert.match(css, /\.restart-diversity-readout/);
   assert.match(css, /cubic-bezier/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(css, /\.ecosystem-empty|\.food-reserve/);

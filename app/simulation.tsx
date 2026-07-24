@@ -51,6 +51,7 @@ type EcosystemState = {
   generations: number;
   lastUpdated: number;
   events: string[];
+  restartColorVarietyCount: number | null;
 };
 
 type Metric = {
@@ -254,21 +255,42 @@ function makeInitialState(now = Date.now()): EcosystemState {
     generations: 0,
     lastUpdated: now,
     events: initialEvents,
+    restartColorVarietyCount: null,
   };
 }
 
-function restartIfColorVarietyTooLow(
-  state: EcosystemState,
-  now = Date.now(),
-) {
+function markRestartRequiredIfColorVarietyTooLow(state: EcosystemState) {
   const colorVarietyCount = pigeonColorVarietyCount(state.pigeons);
   if (colorVarietyCount >= MIN_COLOR_VARIETIES) {
+    return state.restartColorVarietyCount === null
+      ? state
+      : { ...state, restartColorVarietyCount: null };
+  }
+
+  if (state.restartColorVarietyCount === colorVarietyCount) {
     return state;
   }
 
+  return {
+    ...state,
+    restartColorVarietyCount: colorVarietyCount,
+    events: [
+      `Genetic diversity is too low: only ${colorVarietyCount} color varieties remain.`,
+      ...state.events,
+    ].slice(0, 6),
+  };
+}
+
+function restartEcosystemState(
+  current: EcosystemState,
+  now = Date.now(),
+) {
+  const colorVarietyCount =
+    current.restartColorVarietyCount ??
+    pigeonColorVarietyCount(current.pigeons);
   const restarted = makeInitialState(now);
   restarted.events = [
-    `Color diversity fell to ${colorVarietyCount}; the ecosystem restarted with ${INITIAL_PIGEONS} birds spanning all ${TOTAL_COLOR_VARIETIES} colors.`,
+    `The ecosystem restarted after color diversity fell to ${colorVarietyCount} of ${TOTAL_COLOR_VARIETIES} varieties.`,
     ...initialEvents,
   ].slice(0, 6);
   return restarted;
@@ -386,27 +408,34 @@ function applyHungerDeaths(
 }
 
 function advanceState(current: EcosystemState, now = Date.now()): EcosystemState {
-  const diversityChecked = restartIfColorVarietyTooLow(current, now);
-  if (diversityChecked !== current) {
-    return diversityChecked;
+  const diversityChecked = markRestartRequiredIfColorVarietyTooLow(current);
+  if (diversityChecked.restartColorVarietyCount !== null) {
+    return { ...diversityChecked, lastUpdated: now };
   }
 
-  const elapsedSeconds = clamp((now - current.lastUpdated) / 1000, 0, 60 * 60 * 8);
+  const elapsedSeconds = clamp(
+    (now - diversityChecked.lastUpdated) / 1000,
+    0,
+    60 * 60 * 8,
+  );
   if (elapsedSeconds <= 0) {
-    return { ...current, lastUpdated: now };
+    return { ...diversityChecked, lastUpdated: now };
   }
 
   const next: EcosystemState = {
-    ...current,
-    pigeons: current.pigeons.map((pigeon) => ({ ...pigeon })),
-    events: [...current.events],
+    ...diversityChecked,
+    pigeons: diversityChecked.pigeons.map((pigeon) => ({ ...pigeon })),
+    events: [...diversityChecked.events],
   };
 
   const feedingProtectedUntil = Number(next.feedingProtectedUntil) || 0;
   if (now <= feedingProtectedUntil) {
     next.hungerClock = 0;
   } else {
-    const hungerStart = Math.max(current.lastUpdated, feedingProtectedUntil);
+    const hungerStart = Math.max(
+      diversityChecked.lastUpdated,
+      feedingProtectedUntil,
+    );
     const hungerElapsedSeconds = clamp(
       (now - hungerStart) / 1000,
       0,
@@ -466,7 +495,7 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
   }
 
   next.lastUpdated = now;
-  return restartIfColorVarietyTooLow(next, now);
+  return markRestartRequiredIfColorVarietyTooLow(next);
 }
 
 function loadState() {
@@ -539,6 +568,12 @@ function loadState() {
       pigeons,
       nextPigeonId,
       events: Array.isArray(parsed.events) ? parsed.events.slice(0, 6) : initialEvents,
+      restartColorVarietyCount:
+        parsed.restartColorVarietyCount !== null &&
+        typeof parsed.restartColorVarietyCount !== "undefined" &&
+        Number.isFinite(Number(parsed.restartColorVarietyCount))
+          ? Math.max(0, Math.trunc(Number(parsed.restartColorVarietyCount)))
+          : null,
     });
   } catch {
     return makeInitialState();
@@ -671,7 +706,7 @@ function feedPigeonState(
     );
   }
 
-  return restartIfColorVarietyTooLow(next, bornAt);
+  return markRestartRequiredIfColorVarietyTooLow(next);
 }
 
 function rejectFoodState(
@@ -1226,6 +1261,7 @@ function PigeonField({
 export function UrbanPigeonSimulation() {
   const [state, setState] = useState<EcosystemState>(() => makeInitialState());
   const [hydrated, setHydrated] = useState(false);
+  const restartButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     setState(loadState());
@@ -1252,76 +1288,121 @@ export function UrbanPigeonSimulation() {
     return () => window.clearInterval(timer);
   }, [hydrated]);
 
+  useEffect(() => {
+    if (state.restartColorVarietyCount !== null) {
+      restartButtonRef.current?.focus();
+    }
+  }, [state.restartColorVarietyCount]);
+
   const metrics = metricDetails(state);
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[#eef0e9] text-[#1e2521]">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
-        <header className="site-header">
-          <div>
-            <p className="eyebrow">Participatory research prototype</p>
-            <h1>Urban Pigeon Simulation</h1>
-          </div>
-          <div className="generation-marker">
-            <span>Observed generations</span>
-            <strong>{state.generations}</strong>
-          </div>
-        </header>
-
-        <section className="metrics-grid" aria-label="Ecosystem variables">
-          {metrics.map((metric) => (
-            <article className="metric" key={metric.label}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-              {typeof metric.percent === "number" ? (
-                <div className="meter" aria-hidden="true">
-                  <i style={{ width: `${clamp(metric.percent, 0, 1) * 100}%` }} />
-                </div>
-              ) : null}
-              <small>{metric.detail}</small>
-            </article>
-          ))}
-        </section>
-
-        <div className="content-grid">
-          <PigeonField
-            onFoodClaimed={(pigeonId, declinedBefore, birthX, birthY) =>
-              setState((current) =>
-                feedPigeonState(
-                  current,
-                  pigeonId,
-                  declinedBefore,
-                  birthX,
-                  birthY,
-                ),
-              )
-            }
-            onFoodRejected={(pigeonId, attemptedCount) =>
-              setState((current) =>
-                rejectFoodState(current, pigeonId, attemptedCount),
-              )
-            }
-            onThrow={(pigeonId, protectionDuration) =>
-              setState((current) =>
-                recordFeedActionState(current, pigeonId, protectionDuration),
-              )
-            }
-            state={state}
-          />
-
-          <aside className="changes" aria-label="Recent ecosystem changes">
+    <>
+      <main
+        aria-hidden={
+          state.restartColorVarietyCount !== null ? true : undefined
+        }
+        className="min-h-screen overflow-hidden bg-[#eef0e9] text-[#1e2521]"
+      >
+        <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
+          <header className="site-header">
             <div>
-              <p className="eyebrow">Recent ecosystem changes</p>
-              <h2>Behavioral drift</h2>
+              <p className="eyebrow">Participatory research prototype</p>
+              <h1>Urban Pigeon Simulation</h1>
             </div>
-            <ol>
-              {state.events.map((event, index) => (
-                <li key={`${event}-${index}`}>{event}</li>
-              ))}
-            </ol>
-          </aside>
+            <div className="generation-marker">
+              <span>Observed generations</span>
+              <strong>{state.generations}</strong>
+            </div>
+          </header>
+
+          <section className="metrics-grid" aria-label="Ecosystem variables">
+            {metrics.map((metric) => (
+              <article className="metric" key={metric.label}>
+                <span>{metric.label}</span>
+                <strong>{metric.value}</strong>
+                {typeof metric.percent === "number" ? (
+                  <div className="meter" aria-hidden="true">
+                    <i style={{ width: `${clamp(metric.percent, 0, 1) * 100}%` }} />
+                  </div>
+                ) : null}
+                <small>{metric.detail}</small>
+              </article>
+            ))}
+          </section>
+
+          <div className="content-grid">
+            <PigeonField
+              onFoodClaimed={(pigeonId, declinedBefore, birthX, birthY) =>
+                setState((current) =>
+                  feedPigeonState(
+                    current,
+                    pigeonId,
+                    declinedBefore,
+                    birthX,
+                    birthY,
+                  ),
+                )
+              }
+              onFoodRejected={(pigeonId, attemptedCount) =>
+                setState((current) =>
+                  rejectFoodState(current, pigeonId, attemptedCount),
+                )
+              }
+              onThrow={(pigeonId, protectionDuration) =>
+                setState((current) =>
+                  recordFeedActionState(current, pigeonId, protectionDuration),
+                )
+              }
+              state={state}
+            />
+
+            <aside className="changes" aria-label="Recent ecosystem changes">
+              <div>
+                <p className="eyebrow">Recent ecosystem changes</p>
+                <h2>Behavioral drift</h2>
+              </div>
+              <ol>
+                {state.events.map((event, index) => (
+                  <li key={`${event}-${index}`}>{event}</li>
+                ))}
+              </ol>
+            </aside>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+
+      {state.restartColorVarietyCount !== null ? (
+        <div className="restart-dialog-backdrop">
+          <section
+            aria-describedby="restart-dialog-description"
+            aria-labelledby="restart-dialog-title"
+            aria-modal="true"
+            className="restart-dialog"
+            role="alertdialog"
+          >
+            <p className="eyebrow">Ecosystem restart required</p>
+            <h2 id="restart-dialog-title">Genetic diversity is too low</h2>
+            <div className="restart-diversity-readout">
+              <strong>{state.restartColorVarietyCount}/8</strong>
+              <span>color varieties remain</span>
+            </div>
+            <p id="restart-dialog-description">
+              Color is the genetic-diversity proxy in this prototype. Restart
+              the ecosystem to restore thirty pigeons spanning all eight colors.
+            </p>
+            <button
+              onClick={() =>
+                setState((current) => restartEcosystemState(current))
+              }
+              ref={restartButtonRef}
+              type="button"
+            >
+              Restart ecosystem
+            </button>
+          </section>
+        </div>
+      ) : null}
+    </>
   );
 }
