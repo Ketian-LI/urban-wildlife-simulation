@@ -23,14 +23,14 @@ async function render() {
   );
 }
 
-test("server-renders the typographic flock", async () => {
+test("server-renders the illustrated flock", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
   assert.match(html, /<title>Urban Pigeon Simulation<\/title>/i);
-  assert.match(html, /animated typographic pigeon population/);
+  assert.match(html, /animated illustrated pigeon population/);
   assert.match(html, /pigeon-word pigeon-word-bold/);
   assert.match(html, /represented by PiGeoN/);
   assert.match(html, /represented by pIgEon/);
@@ -43,6 +43,7 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /Wild park/);
   assert.match(html, /30 wild/);
   assert.match(html, /pigeon-word-outside/);
+  assert.match(html, /pigeon-bird-sprite/);
   assert.match(html, /URBAN URBAN/);
   assert.match(html, /ONE/);
   assert.match(html, /WORLD/);
@@ -57,7 +58,7 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /pigeon-word-silver/);
   assert.match(html, /pigeon-word-rust/);
   assert.match(html, /8\/8 colors/);
-  assert.match(html, /Throw food into the animated typographic pigeon population/);
+  assert.match(html, /Throw food into the animated illustrated pigeon population/);
   assert.match(html, /property="og:image"/);
   assert.doesNotMatch(html, /pigeon-body|pigeon-head|>Feed</);
 
@@ -82,7 +83,7 @@ test("server-renders the typographic flock", async () => {
   }
 });
 
-test("keeps the word-pigeon visual system in source", async () => {
+test("keeps the pigeon simulation visual system in source", async () => {
   const [
     simulation,
     css,
@@ -197,6 +198,7 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /const radialSeed/);
   assert.match(simulation, /scale: individualScale/);
   assert.match(simulation, /palette: pigeonLetterPalette\(agent\)/);
+  assert.match(simulation, /spriteIndex: plumageOrder\.indexOf\(agent\.plumage\)/);
   assert.match(simulation, /data-style-signature=\{pigeon\.styleSignature\}/);
   assert.match(simulation, /speed: 6\.4/);
   assert.doesNotMatch(simulation, /const groupIndex|const densityScale/);
@@ -220,6 +222,11 @@ test("keeps the word-pigeon visual system in source", async () => {
   );
   assert.doesNotMatch(simulation, /shyWordForms|boldWordForms/);
   assert.match(css, /\.pigeon-word-label/);
+  assert.match(css, /\.pigeon-bird-sprite/);
+  assert.match(css, /url\("\/pigeon-idle-atlas\.webp"\)/);
+  assert.match(css, /url\("\/pigeon-flight-atlas\.webp"\)/);
+  assert.match(css, /url\("\/pigeon-landing-atlas\.webp"\)/);
+  assert.match(css, /@keyframes pigeon-bird-dissolve/);
   assert.match(css, /\.pigeon-letter-capital/);
   assert.match(css, /\.food-particle/);
   assert.match(css, /@keyframes pigeon-flight/);
@@ -281,4 +288,7 @@ test("keeps the word-pigeon visual system in source", async () => {
 
   await access(new URL("../public/og.png", import.meta.url));
   await access(new URL("../public/equestrian-monument.png", import.meta.url));
+  await access(new URL("../public/pigeon-idle-atlas.webp", import.meta.url));
+  await access(new URL("../public/pigeon-flight-atlas.webp", import.meta.url));
+  await access(new URL("../public/pigeon-landing-atlas.webp", import.meta.url));
 });

@@ -91,6 +91,8 @@ type FoodClaim = {
 type PigeonDeathEffect = {
   id: number;
   pigeonId: number;
+  plumage: Plumage;
+  spriteIndex: number;
   word: string;
   palette: string[];
   x: number;
@@ -103,7 +105,7 @@ const initialEvents = [
   "Thirty unfed birds begin in the wild park outside the marble city plaza.",
   "A feeding action protects the entire flock from hunger.",
   "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
-  "A bird that reaches a pellet divides into a matching word-pigeon at the same spot.",
+  "A bird that reaches a pellet divides into a matching pigeon at the same spot.",
   "The initial flock spans eight feather colors; casing and size vary within each color.",
   "If fewer than four color varieties remain, the ecosystem restarts with all eight colors.",
 ];
@@ -1005,6 +1007,7 @@ function pigeonVisuals(state: EcosystemState) {
       isNewborn,
       speed: 6.4 + (agent.caseSeed % 7) * 0.42,
       scale: individualScale,
+      spriteIndex: plumageOrder.indexOf(agent.plumage),
       word,
       palette: pigeonLetterPalette(agent),
       styleSignature: pigeonStyleSignature(agent),
@@ -1292,6 +1295,8 @@ function PigeonField({
       {
         id: effectId,
         pigeonId: pigeon.id,
+        plumage: pigeon.agent.plumage,
+        spriteIndex: pigeon.spriteIndex,
         word: pigeon.word,
         palette: pigeon.palette,
         x: pigeon.x,
@@ -1315,7 +1320,7 @@ function PigeonField({
 
   return (
     <section
-      aria-label="Throw food into the animated typographic pigeon population"
+      aria-label="Throw food into the animated illustrated pigeon population"
       className="ecosystem"
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
@@ -1560,6 +1565,8 @@ function PigeonField({
                   "--claim-y": claim ? `${claim.y}%` : `${pigeon.y}%`,
                   "--speed": `${pigeon.speed}s`,
                   "--flight-duration": claim ? `${claim.flightDuration}ms` : "620ms",
+                  "--sprite-x": `${(pigeon.spriteIndex % 4) * 33.333333}%`,
+                  "--sprite-y": `${Math.floor(pigeon.spriteIndex / 4) * 100}%`,
                   "--scale": pigeon.scale.toFixed(2),
                   "--tilt": `${pigeon.tilt}deg`,
                   animationDelay:
@@ -1569,7 +1576,11 @@ function PigeonField({
                 } as React.CSSProperties
               }
             >
-              <span aria-hidden="true" className="pigeon-word-label">
+              <span aria-hidden="true" className="pigeon-bird-sprite" />
+              <span
+                aria-hidden="true"
+                className="pigeon-word-label pigeon-word-label-source"
+              >
                 {[...pigeon.word].map((letter, letterIndex) => (
                   <span
                     className={`pigeon-letter ${
@@ -1602,9 +1613,15 @@ function PigeonField({
                 "--death-y": `${effect.y}%`,
                 "--death-scale": effect.scale,
                 "--death-tilt": `${effect.tilt}deg`,
+                "--sprite-x": `${(effect.spriteIndex % 4) * 33.333333}%`,
+                "--sprite-y": `${Math.floor(effect.spriteIndex / 4) * 100}%`,
               } as React.CSSProperties
             }
           >
+            <span
+              aria-hidden="true"
+              className={`pigeon-death-bird pigeon-death-bird-${effect.plumage}`}
+            />
             <span className="pigeon-death-word">
               {[...effect.word].map((letter, letterIndex) => {
                 const letterAngle =

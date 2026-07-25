@@ -20,13 +20,13 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Urban Pigeon Simulation",
     description:
-      "A participatory simulation of feeding pressure and behavioral change, represented as a moving typographic flock.",
+      "A participatory simulation of feeding pressure and behavioral change, represented as a moving illustrated flock.",
     images: [
       {
         url: "/og.png",
         width: 1536,
         height: 1024,
-        alt: "Urban Pigeon Simulation typographic flock",
+        alt: "Urban Pigeon Simulation illustrated flock",
       },
     ],
   },
