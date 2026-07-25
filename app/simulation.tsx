@@ -3,6 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "urban-pigeon-collective-v5";
+const PRESENCE_STORAGE_KEY = "urban-pigeon-presence-id-v1";
+const PRESENCE_HEARTBEAT_MS = 15_000;
+const PRESENCE_RETRY_MS = 5_000;
+const MAX_FEED_COOLDOWN_MS = 3_000;
 const INITIAL_PIGEONS = 30;
 const MAX_PIGEONS = 50;
 const TOTAL_COLOR_VARIETIES = 8;
@@ -734,7 +738,111 @@ function rejectFoodState(
   return next;
 }
 
-function metricDetails(state: EcosystemState): Metric[] {
+function feedCooldownMsForOnlineCount(onlineCount: number) {
+  const visitorCount = Math.max(1, Math.trunc(onlineCount));
+
+  if (visitorCount === 1) {
+    return 0;
+  }
+
+  if (visitorCount === 2) {
+    return 500;
+  }
+
+  return Math.min(MAX_FEED_COOLDOWN_MS, visitorCount * 200);
+}
+
+function formatFeedCooldown(cooldownMs: number) {
+  const seconds = cooldownMs / 1000;
+  return `${seconds.toFixed(Number.isInteger(seconds) ? 0 : 1)}s`;
+}
+
+function useOnlinePresence() {
+  const [onlineCount, setOnlineCount] = useState(1);
+
+  useEffect(() => {
+    let stopped = false;
+    let inFlight = false;
+    let heartbeatTimer = 0;
+    let sessionId = "";
+
+    try {
+      sessionId = window.localStorage.getItem(PRESENCE_STORAGE_KEY) ?? "";
+      if (!/^[a-zA-Z0-9_-]{16,128}$/.test(sessionId)) {
+        sessionId = window.crypto.randomUUID();
+        window.localStorage.setItem(PRESENCE_STORAGE_KEY, sessionId);
+      }
+    } catch {
+      sessionId = window.crypto.randomUUID();
+    }
+
+    const scheduleHeartbeat = (delay: number) => {
+      window.clearTimeout(heartbeatTimer);
+      heartbeatTimer = window.setTimeout(() => {
+        void heartbeat();
+      }, delay);
+    };
+
+    async function heartbeat() {
+      if (stopped || inFlight) {
+        return;
+      }
+
+      window.clearTimeout(heartbeatTimer);
+      inFlight = true;
+      let nextDelay = PRESENCE_HEARTBEAT_MS;
+
+      try {
+        const response = await fetch("/api/presence", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+          cache: "no-store",
+        });
+
+        if (!response.ok) {
+          throw new Error("Presence heartbeat failed.");
+        }
+
+        const payload = (await response.json()) as { onlineCount?: unknown };
+        const nextOnlineCount = Number(payload.onlineCount);
+        if (!stopped && Number.isFinite(nextOnlineCount)) {
+          setOnlineCount(Math.max(1, Math.trunc(nextOnlineCount)));
+        }
+      } catch {
+        nextDelay = PRESENCE_RETRY_MS;
+      } finally {
+        inFlight = false;
+        if (!stopped) {
+          scheduleHeartbeat(nextDelay);
+        }
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void heartbeat();
+      }
+    };
+
+    void heartbeat();
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      stopped = true;
+      window.clearTimeout(heartbeatTimer);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  return onlineCount;
+}
+
+function metricDetails(
+  state: EcosystemState,
+  onlineCount: number,
+  feedCooldownMs: number,
+): Metric[] {
   const meanBoldness = averageBoldness(state.pigeons);
   const insideCount = state.pigeons.filter((pigeon) => pigeon.hasAcceptedFood).length;
   const colorVarietyCount = pigeonColorVarietyCount(state.pigeons);
@@ -773,9 +881,12 @@ function metricDetails(state: EcosystemState): Metric[] {
       percent: state.humanFoodSignal,
     },
     {
-      label: "Feeding rate",
-      value: "Every click",
-      detail: "one pellet per click",
+      label: "Online now",
+      value: `${onlineCount}`,
+      detail:
+        feedCooldownMs === 0
+          ? "feeding unrestricted"
+          : `feeding every ${formatFeedCooldown(feedCooldownMs)} per visitor`,
     },
   ];
 }
@@ -890,11 +1001,13 @@ function foodResponsePosition(
 
 function PigeonField({
   state,
+  feedCooldownMs,
   onThrow,
   onFoodClaimed,
   onFoodRejected,
 }: {
   state: EcosystemState;
+  feedCooldownMs: number;
   onThrow: (pigeonId: number, protectionDuration: number) => void;
   onFoodClaimed: (
     pigeonId: number,
@@ -907,6 +1020,7 @@ function PigeonField({
   const [particles, setParticles] = useState<FoodParticle[]>([]);
   const [claims, setClaims] = useState<FoodClaim[]>([]);
   const [frameTime, setFrameTime] = useState(0);
+  const [lastThrowAt, setLastThrowAt] = useState(0);
   const sequence = useRef(0);
   const timers = useRef<number[]>([]);
   const pigeons = useMemo(
@@ -916,21 +1030,31 @@ function PigeonField({
   const cityPigeonCount = state.pigeons.filter(
     (pigeon) => pigeon.hasAcceptedFood,
   ).length;
+  const cooldownUntil =
+    feedCooldownMs > 0 && lastThrowAt > 0
+      ? lastThrowAt + feedCooldownMs
+      : 0;
+  const cooldownRemainingMs = Math.max(0, cooldownUntil - frameTime);
 
   useEffect(() => {
-    if (particles.length === 0) {
+    if (
+      particles.length === 0 &&
+      cooldownUntil <= window.performance.now()
+    ) {
       return;
     }
 
     let animationFrame = 0;
     const tick = (now: number) => {
       setFrameTime(now);
-      animationFrame = window.requestAnimationFrame(tick);
+      if (particles.length > 0 || now < cooldownUntil) {
+        animationFrame = window.requestAnimationFrame(tick);
+      }
     };
 
     animationFrame = window.requestAnimationFrame(tick);
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [particles.length]);
+  }, [cooldownUntil, particles.length]);
 
   useEffect(
     () => () => {
@@ -941,6 +1065,14 @@ function PigeonField({
 
   const throwFood = (targetX: number, targetY: number) => {
     const launchedAt = window.performance.now();
+    const nextAllowedAt = lastThrowAt + feedCooldownMs;
+    setFrameTime(launchedAt);
+
+    if (feedCooldownMs > 0 && lastThrowAt > 0 && launchedAt < nextAllowedAt) {
+      return;
+    }
+
+    setLastThrowAt(launchedAt);
     const { ranked, recipient, declinedBefore } = selectFoodRecipient(
       pigeons,
       targetX,
@@ -1066,6 +1198,22 @@ function PigeonField({
       role="button"
       tabIndex={0}
     >
+      {feedCooldownMs > 0 ? (
+        <div
+          aria-live="polite"
+          className={`feed-cooldown-status ${
+            cooldownRemainingMs > 0 ? "is-cooling" : ""
+          }`}
+          role="status"
+        >
+          <span>Next feed</span>
+          <strong>
+            {cooldownRemainingMs > 0
+              ? `${(Math.ceil(cooldownRemainingMs / 100) / 10).toFixed(1)}s`
+              : "ready"}
+          </strong>
+        </div>
+      ) : null}
       <div className="cityline" aria-hidden="true">
         <div className="city-building city-building-waterfront">
           <span>PORT FERRY</span>
@@ -1262,6 +1410,8 @@ export function UrbanPigeonSimulation() {
   const [state, setState] = useState<EcosystemState>(() => makeInitialState());
   const [hydrated, setHydrated] = useState(false);
   const restartButtonRef = useRef<HTMLButtonElement>(null);
+  const onlineCount = useOnlinePresence();
+  const feedCooldownMs = feedCooldownMsForOnlineCount(onlineCount);
 
   useEffect(() => {
     setState(loadState());
@@ -1294,7 +1444,7 @@ export function UrbanPigeonSimulation() {
     }
   }, [state.restartColorVarietyCount]);
 
-  const metrics = metricDetails(state);
+  const metrics = metricDetails(state, onlineCount, feedCooldownMs);
 
   return (
     <>
@@ -1333,6 +1483,7 @@ export function UrbanPigeonSimulation() {
 
           <div className="content-grid">
             <PigeonField
+              feedCooldownMs={feedCooldownMs}
               onFoodClaimed={(pigeonId, declinedBefore, birthX, birthY) =>
                 setState((current) =>
                   feedPigeonState(

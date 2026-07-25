@@ -1,4 +1,10 @@
-// Intentionally empty by default.
-// Add Drizzle tables here when the site actually needs a database.
-// See examples/d1/db/schema.ts for an opt-in example.
-export {};
+import { index, integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
+
+export const presenceSessions = sqliteTable(
+  "presence_sessions",
+  {
+    id: text("id").primaryKey(),
+    lastSeen: integer("last_seen").notNull(),
+  },
+  (table) => [index("presence_sessions_last_seen_idx").on(table.lastSeen)],
+);

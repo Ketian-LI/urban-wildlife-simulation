@@ -35,9 +35,8 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /represented by PiGeoN/);
   assert.match(html, /represented by pIgEon/);
   assert.match(html, /represented by PIGEON/);
-  assert.match(html, /Feeding rate/);
-  assert.match(html, />Every click</);
-  assert.match(html, /one pellet per click/);
+  assert.match(html, /Online now/);
+  assert.match(html, /feeding unrestricted/);
   assert.match(html, /only city birds gradually die; wild birds remain safe outside/);
   assert.match(html, />30\/50</);
   assert.match(html, /City circle/);
@@ -83,11 +82,22 @@ test("server-renders the typographic flock", async () => {
 });
 
 test("keeps the word-pigeon visual system in source", async () => {
-  const [simulation, css, layout, packageJson] = await Promise.all([
+  const [
+    simulation,
+    css,
+    layout,
+    packageJson,
+    presenceRoute,
+    databaseSchema,
+    hostingConfig,
+  ] = await Promise.all([
     readFile(new URL("../app/simulation.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/presence/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
+    readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
   ]);
 
   assert.match(simulation, /const pigeonLetters = "pigeon"/);
@@ -152,8 +162,19 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /random\(\) < pigeon\.feedingAcceptance/);
   assert.match(simulation, /feeding acceptance/);
   assert.match(simulation, /declinedBefore/);
-  assert.doesNotMatch(simulation, /THROW_COOLDOWN_MS|lastThrowAt/);
-  assert.match(simulation, /one pellet per click/);
+  assert.match(simulation, /function feedCooldownMsForOnlineCount/);
+  assert.match(simulation, /visitorCount === 1/);
+  assert.match(simulation, /visitorCount === 2[\s\S]*?return 500/);
+  assert.match(simulation, /visitorCount \* 200/);
+  assert.match(simulation, /const MAX_FEED_COOLDOWN_MS = 3_000/);
+  assert.match(simulation, /const PRESENCE_HEARTBEAT_MS = 15_000/);
+  assert.match(simulation, /window\.crypto\.randomUUID\(\)/);
+  assert.match(simulation, /fetch\("\/api\/presence"/);
+  assert.match(simulation, /feeding unrestricted/);
+  assert.match(simulation, /feeding every \$\{formatFeedCooldown\(feedCooldownMs\)\} per visitor/);
+  assert.match(simulation, /const \[lastThrowAt, setLastThrowAt\]/);
+  assert.match(simulation, /launchedAt < nextAllowedAt/);
+  assert.match(simulation, /feedCooldownMs=\{feedCooldownMs\}/);
   assert.match(simulation, /individual mean acceptance/);
   assert.match(simulation, /\$\{colorVarietyCount\}\/\$\{TOTAL_COLOR_VARIETIES\} colors/);
   assert.match(simulation, /pigeons\[parentIndex\]\.hasAcceptedFood = true/);
@@ -224,6 +245,8 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.restart-dialog-backdrop/);
   assert.match(css, /\.restart-dialog/);
   assert.match(css, /\.restart-diversity-readout/);
+  assert.match(css, /\.feed-cooldown-status/);
+  assert.match(css, /\.feed-cooldown-status\.is-cooling/);
   assert.match(css, /cubic-bezier/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(css, /\.ecosystem-empty|\.food-reserve/);
@@ -231,6 +254,13 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.doesNotMatch(css, /\.pigeon-body|\.pigeon-head|\.feed-button/);
   assert.match(layout, /url:\s*"\/og\.png"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+  assert.match(presenceRoute, /const ACTIVE_WINDOW_MS = 45_000/);
+  assert.match(presenceRoute, /heartbeatMs: 15_000/);
+  assert.match(presenceRoute, /\.onConflictDoUpdate/);
+  assert.match(presenceRoute, /Cache-Control": "no-store"/);
+  assert.match(databaseSchema, /presenceSessions/);
+  assert.match(databaseSchema, /lastSeen: integer\("last_seen"\)/);
+  assert.equal(JSON.parse(hostingConfig).d1, "DB");
 
   await access(new URL("../public/og.png", import.meta.url));
 });

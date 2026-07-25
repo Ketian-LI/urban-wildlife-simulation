@@ -178,6 +178,40 @@ h2 {
   box-shadow: 0 0 0 3px rgba(49, 95, 91, 0.3);
 }
 
+.feed-cooldown-status {
+  align-items: center;
+  background: rgba(247, 248, 242, 0.9);
+  border: 1px solid rgba(30, 37, 33, 0.18);
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  height: 3rem;
+  justify-content: center;
+  pointer-events: none;
+  position: absolute;
+  right: 0.75rem;
+  top: 0.75rem;
+  width: 6.5rem;
+  z-index: 8;
+}
+
+.feed-cooldown-status span {
+  color: rgba(30, 37, 33, 0.68);
+  font-size: 0.68rem;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.feed-cooldown-status strong {
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.35;
+}
+
+.feed-cooldown-status.is-cooling strong {
+  color: #8b3f31;
+}
+
 .ecosystem::after {
   background:
     linear-gradient(90deg, rgba(52, 60, 55, 0.12), transparent 10% 90%, rgba(52, 60, 55, 0.1)),
