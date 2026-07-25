@@ -39,8 +39,9 @@ test("server-renders the typographic flock", async () => {
   assert.match(html, /feeding unrestricted/);
   assert.match(html, /only city birds gradually die; wild birds remain safe outside/);
   assert.match(html, />30\/50</);
-  assert.match(html, /City circle/);
-  assert.match(html, /30 outside/);
+  assert.match(html, /Marble city plaza/);
+  assert.match(html, /Wild park/);
+  assert.match(html, /30 wild/);
   assert.match(html, /pigeon-word-outside/);
   assert.match(html, /URBAN URBAN/);
   assert.match(html, /ONE/);
@@ -148,6 +149,14 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(simulation, /accepted \? flightDuration \+ 100 : 0/);
   assert.match(simulation, /feedPigeonState/);
   assert.match(simulation, /rejectFoodState/);
+  assert.match(simulation, /function killPigeonState/);
+  assert.match(simulation, /PIGEON_DEATH_ANIMATION_MS = 1400/);
+  assert.match(simulation, /onContextMenu=\{\(event\) =>/);
+  assert.match(simulation, /handlePigeonContextMenu\(event, pigeon\)/);
+  assert.match(simulation, /const \[deathEffects, setDeathEffects\]/);
+  assert.match(simulation, /className="pigeon-death-effect"/);
+  assert.match(simulation, /className="pigeon-feather"/);
+  assert.match(simulation, /Array\.from\(\{ length: 12 \}/);
   assert.match(simulation, /minimumFeedCount/);
   assert.match(simulation, /function selectFoodRecipient/);
   assert.match(simulation, /function cityPigeonsDetectingFood/);
@@ -247,6 +256,14 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.match(css, /\.restart-diversity-readout/);
   assert.match(css, /\.feed-cooldown-status/);
   assert.match(css, /\.feed-cooldown-status\.is-cooling/);
+  assert.match(css, /\.wild-park/);
+  assert.match(css, /\.park-tree/);
+  assert.match(css, /\.plaza-monument/);
+  assert.match(css, /url\("\/equestrian-monument\.png"\)/);
+  assert.match(css, /\.plaza-metric/);
+  assert.match(css, /\.pigeon-death-effect/);
+  assert.match(css, /@keyframes pigeon-letter-disperse/);
+  assert.match(css, /@keyframes pigeon-feather-disperse/);
   assert.match(css, /cubic-bezier/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.doesNotMatch(css, /\.ecosystem-empty|\.food-reserve/);
@@ -263,4 +280,5 @@ test("keeps the word-pigeon visual system in source", async () => {
   assert.equal(JSON.parse(hostingConfig).d1, "DB");
 
   await access(new URL("../public/og.png", import.meta.url));
+  await access(new URL("../public/equestrian-monument.png", import.meta.url));
 });

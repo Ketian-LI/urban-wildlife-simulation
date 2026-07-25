@@ -15,6 +15,7 @@ const GENERATION_SECONDS = 12;
 const HUNGER_INTERVAL_SECONDS = 1;
 const FEEDING_SAFETY_MS = 5000;
 const SPLIT_ANIMATION_MS = 1800;
+const PIGEON_DEATH_ANIMATION_MS = 1400;
 const CITY_FOOD_DETECTION_RADIUS = 24;
 
 type Plumage =
@@ -87,8 +88,19 @@ type FoodClaim = {
   flightDuration: number;
 };
 
+type PigeonDeathEffect = {
+  id: number;
+  pigeonId: number;
+  word: string;
+  palette: string[];
+  x: number;
+  y: number;
+  scale: number;
+  tilt: number;
+};
+
 const initialEvents = [
-  "Thirty unfed birds begin outside the city circle.",
+  "Thirty unfed birds begin in the wild park outside the marble city plaza.",
   "A feeding action protects the entire flock from hunger.",
   "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
   "A bird that reaches a pellet divides into a matching word-pigeon at the same spot.",
@@ -117,6 +129,44 @@ const featherPalettes: Record<Plumage, string[]> = {
   silver: ["#c5ccca", "#9ea9aa", "#dce0dc", "#7e8c90", "#b6c0c2", "#eef0eb"],
   rust: ["#6e362c", "#a14f38", "#c16d4d", "#7f4a3b", "#d18a64", "#59352f"],
 };
+
+const parkTrees = [
+  { x: 3, y: 35, size: 0.9, tone: 0 },
+  { x: 8, y: 31, size: 1.12, tone: 1 },
+  { x: 14, y: 34, size: 0.78, tone: 2 },
+  { x: 21, y: 30, size: 0.92, tone: 0 },
+  { x: 28, y: 33, size: 0.72, tone: 1 },
+  { x: 72, y: 32, size: 0.76, tone: 2 },
+  { x: 79, y: 30, size: 0.96, tone: 0 },
+  { x: 86, y: 34, size: 0.8, tone: 1 },
+  { x: 92, y: 31, size: 1.08, tone: 2 },
+  { x: 97, y: 37, size: 0.86, tone: 0 },
+  { x: 3, y: 52, size: 1.04, tone: 2 },
+  { x: 7, y: 67, size: 0.8, tone: 0 },
+  { x: 4, y: 84, size: 1.15, tone: 1 },
+  { x: 11, y: 91, size: 0.74, tone: 2 },
+  { x: 19, y: 94, size: 0.92, tone: 0 },
+  { x: 29, y: 92, size: 0.7, tone: 1 },
+  { x: 71, y: 93, size: 0.72, tone: 2 },
+  { x: 81, y: 92, size: 0.96, tone: 0 },
+  { x: 90, y: 91, size: 0.76, tone: 1 },
+  { x: 97, y: 84, size: 1.12, tone: 2 },
+  { x: 94, y: 66, size: 0.82, tone: 0 },
+  { x: 97, y: 50, size: 1.02, tone: 1 },
+] as const;
+
+const parkShrubs = [
+  { x: 13, y: 39, size: 0.9 },
+  { x: 25, y: 36, size: 0.72 },
+  { x: 76, y: 37, size: 0.82 },
+  { x: 88, y: 40, size: 0.68 },
+  { x: 9, y: 75, size: 0.76 },
+  { x: 16, y: 86, size: 0.92 },
+  { x: 28, y: 88, size: 0.66 },
+  { x: 73, y: 88, size: 0.72 },
+  { x: 85, y: 86, size: 0.88 },
+  { x: 91, y: 76, size: 0.7 },
+] as const;
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(max, Math.max(min, value));
@@ -738,6 +788,25 @@ function rejectFoodState(
   return next;
 }
 
+function killPigeonState(current: EcosystemState, pigeonId: number) {
+  const pigeon = current.pigeons.find((candidate) => candidate.id === pigeonId);
+  if (!pigeon) {
+    return current;
+  }
+
+  const next: EcosystemState = {
+    ...current,
+    pigeons: current.pigeons.filter((candidate) => candidate.id !== pigeonId),
+    events: [...current.events],
+  };
+  const habitat = pigeon.hasAcceptedFood ? "city plaza" : "wild park";
+  pushEvent(
+    next,
+    `A ${pigeon.plumage} pigeon died after direct human action in the ${habitat}; ${next.pigeons.length} birds remain.`,
+  );
+  return markRestartRequiredIfColorVarietyTooLow(next);
+}
+
 function feedCooldownMsForOnlineCount(onlineCount: number) {
   const visitorCount = Math.max(1, Math.trunc(onlineCount));
 
@@ -851,9 +920,9 @@ function metricDetails(
     {
       label: "Population",
       value: `${state.pigeons.length}/${MAX_PIGEONS}`,
-      detail: `${insideCount} inside / ${
+      detail: `${insideCount} city / ${
         state.pigeons.length - insideCount
-      } outside · ${colorVarietyCount}/${TOTAL_COLOR_VARIETIES} colors`,
+      } wild / ${colorVarietyCount}/${TOTAL_COLOR_VARIETIES} colors`,
       percent: state.pigeons.length / MAX_PIGEONS,
     },
     {
@@ -869,13 +938,13 @@ function metricDetails(
       percent: state.dependency,
     },
     {
-      label: "Natural foraging",
+      label: "Foraging",
       value: formatPercent(state.foraging),
       detail: "non-human food ability",
       percent: state.foraging,
     },
     {
-      label: "Human food signal",
+      label: "Human food",
       value: formatPercent(state.humanFoodSignal),
       detail: "recent feeding pressure",
       percent: state.humanFoodSignal,
@@ -907,14 +976,14 @@ function pigeonVisuals(state: EcosystemState) {
     const angle = ((agent.id * 137.508 + agent.caseSeed * 7) * Math.PI) / 180;
     const radialSeed = ((agent.id * 47 + agent.caseSeed * 19) % 101) / 100;
     const radius = agent.hasAcceptedFood
-      ? 0.18 + radialSeed * 0.64
-      : 1.08 + radialSeed * 0.34;
+      ? 0.22 + radialSeed * 0.72
+      : 1.02 + radialSeed * 0.2;
     const x = agent.hasAcceptedFood
-      ? clamp(50 + Math.cos(angle) * 18 * radius, 34, 66)
-      : clamp(50 + Math.cos(angle) * 33 * radius, 5, 95);
+      ? clamp(50 + Math.cos(angle) * 28 * radius, 22, 78)
+      : clamp(50 + Math.cos(angle) * 45 * radius, 4, 96);
     const y = agent.hasAcceptedFood
-      ? clamp(50 + Math.sin(angle) * 26 * radius, 28, 72)
-      : clamp(50 + Math.sin(angle) * 38 * radius, 8, 88);
+      ? clamp(65 + Math.sin(angle) * 22 * radius, 43, 86)
+      : clamp(64 + Math.sin(angle) * 31 * radius, 30, 95);
     const isBold = agent.boldness >= 0.5;
     const feedingAcceptance = agent.hasAcceptedFood ? 1 : agent.boldness;
     const word = wordFromCaseMask(agent.caseMask);
@@ -1001,12 +1070,15 @@ function foodResponsePosition(
 
 function PigeonField({
   state,
+  metrics,
   feedCooldownMs,
   onThrow,
   onFoodClaimed,
   onFoodRejected,
+  onPigeonKilled,
 }: {
   state: EcosystemState;
+  metrics: Metric[];
   feedCooldownMs: number;
   onThrow: (pigeonId: number, protectionDuration: number) => void;
   onFoodClaimed: (
@@ -1016,12 +1088,15 @@ function PigeonField({
     birthY: number,
   ) => void;
   onFoodRejected: (pigeonId: number, attemptedCount: number) => void;
+  onPigeonKilled: (pigeonId: number) => void;
 }) {
   const [particles, setParticles] = useState<FoodParticle[]>([]);
   const [claims, setClaims] = useState<FoodClaim[]>([]);
+  const [deathEffects, setDeathEffects] = useState<PigeonDeathEffect[]>([]);
   const [frameTime, setFrameTime] = useState(0);
   const [lastThrowAt, setLastThrowAt] = useState(0);
   const sequence = useRef(0);
+  const deathSequence = useRef(0);
   const timers = useRef<number[]>([]);
   const pigeons = useMemo(
     () => pigeonVisuals(state),
@@ -1030,6 +1105,10 @@ function PigeonField({
   const cityPigeonCount = state.pigeons.filter(
     (pigeon) => pigeon.hasAcceptedFood,
   ).length;
+  const wildPigeonCount = state.pigeons.length - cityPigeonCount;
+  const populationMetric = metrics[0];
+  const habitatMetrics = metrics.slice(1, 5);
+  const onlineMetric = metrics[5];
   const cooldownUntil =
     feedCooldownMs > 0 && lastThrowAt > 0
       ? lastThrowAt + feedCooldownMs
@@ -1189,6 +1268,49 @@ function PigeonField({
     }
   };
 
+  const handlePigeonContextMenu = (
+    event: React.MouseEvent<HTMLDivElement>,
+    pigeon: PigeonVisual,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (
+      deathEffects.some(
+        (effect) => effect.pigeonId === pigeon.id,
+      )
+    ) {
+      return;
+    }
+
+    const effectId = deathSequence.current;
+    deathSequence.current += 1;
+    setDeathEffects((current) => [
+      ...current,
+      {
+        id: effectId,
+        pigeonId: pigeon.id,
+        word: pigeon.word,
+        palette: pigeon.palette,
+        x: pigeon.x,
+        y: pigeon.y,
+        scale: pigeon.scale,
+        tilt: pigeon.tilt,
+      },
+    ]);
+    setClaims((current) =>
+      current.filter((claim) => claim.pigeonId !== pigeon.id),
+    );
+    onPigeonKilled(pigeon.id);
+
+    const cleanupTimer = window.setTimeout(() => {
+      setDeathEffects((current) =>
+        current.filter((effect) => effect.id !== effectId),
+      );
+    }, PIGEON_DEATH_ANIMATION_MS);
+    timers.current.push(cleanupTimer);
+  };
+
   return (
     <section
       aria-label="Throw food into the animated typographic pigeon population"
@@ -1214,6 +1336,11 @@ function PigeonField({
           </strong>
         </div>
       ) : null}
+      <div className="sky-language" aria-hidden="true">
+        <span>AIR AIR AIR</span>
+        <span>WEATHER WEATHER</span>
+        <span>SKY ABOVE CITY</span>
+      </div>
       <div className="cityline" aria-hidden="true">
         <div className="city-building city-building-waterfront">
           <span>PORT FERRY</span>
@@ -1301,13 +1428,86 @@ function PigeonField({
           <span>RIVER CITY</span>
         </div>
       </div>
+      <div className="wild-park" aria-hidden="true">
+        <div className="wild-path wild-path-west" />
+        <div className="wild-path wild-path-east" />
+        {parkTrees.map((tree, index) => (
+          <i
+            className={`park-tree park-tree-tone-${tree.tone}`}
+            key={`tree-${index}`}
+            style={
+              {
+                "--tree-x": `${tree.x}%`,
+                "--tree-y": `${tree.y}%`,
+                "--tree-scale": tree.size,
+              } as React.CSSProperties
+            }
+          />
+        ))}
+        {parkShrubs.map((shrub, index) => (
+          <i
+            className="park-shrub"
+            key={`shrub-${index}`}
+            style={
+              {
+                "--shrub-x": `${shrub.x}%`,
+                "--shrub-y": `${shrub.y}%`,
+                "--shrub-scale": shrub.size,
+              } as React.CSSProperties
+            }
+          />
+        ))}
+      </div>
+      <div className="plaza-monument" aria-hidden="true" />
       <div
-        aria-label={`${cityPigeonCount} pigeons inside the city circle`}
+        aria-label={`${cityPigeonCount} pigeons inside the marble city plaza`}
         className="city-circle"
         role="status"
       >
-        <span>City circle</span>
+        <span className="sr-only">Marble city plaza</span>
+      </div>
+      <div className="habitat-label habitat-label-wild">
+        <span>Wild park</span>
+        <strong>{wildPigeonCount}</strong>
+      </div>
+      <div className="habitat-label habitat-label-city">
+        <span>Marble city plaza</span>
         <strong>{cityPigeonCount}</strong>
+      </div>
+      <div className="online-marker" role="status">
+        <span>{onlineMetric.label}</span>
+        <strong>{onlineMetric.value}</strong>
+        <small>{onlineMetric.detail}</small>
+      </div>
+      <div className="plaza-population" role="status">
+        <span>{populationMetric.label}</span>
+        <strong>{populationMetric.value}</strong>
+        <small>{populationMetric.detail}</small>
+      </div>
+      <div className="plaza-metrics" aria-label="Ecosystem variables">
+        {habitatMetrics.map((metric, index) => (
+          <div
+            className={`plaza-metric plaza-metric-${index + 1}`}
+            key={metric.label}
+            style={
+              {
+                "--metric-value": `${clamp(metric.percent ?? 0, 0, 1) * 100}%`,
+              } as React.CSSProperties
+            }
+          >
+            <span>{metric.label}</span>
+            <strong>{metric.value}</strong>
+            <i aria-hidden="true" />
+          </div>
+        ))}
+      </div>
+      <div className="plaza-events" aria-label="Recent ecosystem changes">
+        <span>Recent field notes</span>
+        {state.events.slice(0, 4).map((event, index) => (
+          <i key={`${event}-${index}`} title={event}>
+            {event}
+          </i>
+        ))}
       </div>
       <div className="pigeon-layer">
         {pigeons.map((pigeon) => {
@@ -1337,6 +1537,9 @@ function PigeonField({
               data-pigeon-id={pigeon.id}
               data-style-signature={pigeon.styleSignature}
               key={pigeon.id}
+              onContextMenu={(event) =>
+                handlePigeonContextMenu(event, pigeon)
+              }
               role="img"
               style={
                 {
@@ -1377,6 +1580,79 @@ function PigeonField({
             </div>
           );
         })}
+      </div>
+      <div aria-hidden="true" className="pigeon-death-layer">
+        {deathEffects.map((effect) => (
+          <div
+            className="pigeon-death-effect"
+            data-pigeon-death-id={effect.pigeonId}
+            key={effect.id}
+            style={
+              {
+                "--death-x": `${effect.x}%`,
+                "--death-y": `${effect.y}%`,
+                "--death-scale": effect.scale,
+                "--death-tilt": `${effect.tilt}deg`,
+              } as React.CSSProperties
+            }
+          >
+            <span className="pigeon-death-word">
+              {[...effect.word].map((letter, letterIndex) => {
+                const letterAngle =
+                  ((effect.pigeonId * 41 + letterIndex * 61) * Math.PI) / 180;
+                const letterDistance = 18 + letterIndex * 3;
+
+                return (
+                  <i
+                    key={`${effect.id}-letter-${letterIndex}`}
+                    style={
+                      {
+                        "--death-letter-color": effect.palette[letterIndex],
+                        "--letter-dx": `${Math.cos(letterAngle) * letterDistance}px`,
+                        "--letter-dy": `${
+                          Math.sin(letterAngle) * letterDistance - 18
+                        }px`,
+                        "--letter-rotation": `${(letterIndex - 2.5) * 18}deg`,
+                        "--letter-delay": `${letterIndex * 28}ms`,
+                      } as React.CSSProperties
+                    }
+                  >
+                    {letter}
+                  </i>
+                );
+              })}
+            </span>
+            {Array.from({ length: 12 }, (_, featherIndex) => {
+              const featherAngle =
+                ((effect.pigeonId * 29 + featherIndex * 137.508) * Math.PI) /
+                180;
+              const featherDistance = 34 + (featherIndex % 4) * 12;
+
+              return (
+                <i
+                  className="pigeon-feather"
+                  key={`${effect.id}-feather-${featherIndex}`}
+                  style={
+                    {
+                      "--feather-color":
+                        effect.palette[featherIndex % effect.palette.length],
+                      "--feather-dx": `${
+                        Math.cos(featherAngle) * featherDistance
+                      }px`,
+                      "--feather-dy": `${
+                        Math.sin(featherAngle) * featherDistance - 28
+                      }px`,
+                      "--feather-rotation": `${
+                        (featherIndex * 47) % 240 - 120
+                      }deg`,
+                      "--feather-delay": `${(featherIndex % 5) * 36}ms`,
+                    } as React.CSSProperties
+                  }
+                />
+              );
+            })}
+          </div>
+        ))}
       </div>
       <div aria-hidden="true" className="food-particle-layer">
         {particles.map((particle) => {
@@ -1452,12 +1728,12 @@ export function UrbanPigeonSimulation() {
         aria-hidden={
           state.restartColorVarietyCount !== null ? true : undefined
         }
-        className="min-h-screen overflow-hidden bg-[#eef0e9] text-[#1e2521]"
+        className="min-h-screen overflow-hidden bg-[#e8eee6] text-[#1e2521]"
       >
         <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
           <header className="site-header">
             <div>
-              <p className="eyebrow">Participatory research prototype</p>
+              <p className="eyebrow">Wild park / marble city study</p>
               <h1>Urban Pigeon Simulation</h1>
             </div>
             <div className="generation-marker">
@@ -1466,24 +1742,10 @@ export function UrbanPigeonSimulation() {
             </div>
           </header>
 
-          <section className="metrics-grid" aria-label="Ecosystem variables">
-            {metrics.map((metric) => (
-              <article className="metric" key={metric.label}>
-                <span>{metric.label}</span>
-                <strong>{metric.value}</strong>
-                {typeof metric.percent === "number" ? (
-                  <div className="meter" aria-hidden="true">
-                    <i style={{ width: `${clamp(metric.percent, 0, 1) * 100}%` }} />
-                  </div>
-                ) : null}
-                <small>{metric.detail}</small>
-              </article>
-            ))}
-          </section>
-
           <div className="content-grid">
             <PigeonField
               feedCooldownMs={feedCooldownMs}
+              metrics={metrics}
               onFoodClaimed={(pigeonId, declinedBefore, birthX, birthY) =>
                 setState((current) =>
                   feedPigeonState(
@@ -1505,20 +1767,13 @@ export function UrbanPigeonSimulation() {
                   recordFeedActionState(current, pigeonId, protectionDuration),
                 )
               }
+              onPigeonKilled={(pigeonId) =>
+                setState((current) =>
+                  killPigeonState(current, pigeonId),
+                )
+              }
               state={state}
             />
-
-            <aside className="changes" aria-label="Recent ecosystem changes">
-              <div>
-                <p className="eyebrow">Recent ecosystem changes</p>
-                <h2>Behavioral drift</h2>
-              </div>
-              <ol>
-                {state.events.map((event, index) => (
-                  <li key={`${event}-${index}`}>{event}</li>
-                ))}
-              </ol>
-            </aside>
           </div>
         </div>
       </main>
