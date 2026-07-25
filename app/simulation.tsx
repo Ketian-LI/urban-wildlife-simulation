@@ -1071,6 +1071,7 @@ function foodResponsePosition(
 function PigeonField({
   state,
   metrics,
+  generations,
   feedCooldownMs,
   onThrow,
   onFoodClaimed,
@@ -1079,6 +1080,7 @@ function PigeonField({
 }: {
   state: EcosystemState;
   metrics: Metric[];
+  generations: number;
   feedCooldownMs: number;
   onThrow: (pigeonId: number, protectionDuration: number) => void;
   onFoodClaimed: (
@@ -1320,6 +1322,13 @@ function PigeonField({
       role="button"
       tabIndex={0}
     >
+      <header className="scene-header">
+        <h1>Urban Pigeon Simulation</h1>
+        <div className="scene-generation">
+          <span>Generation</span>
+          <strong>{String(generations).padStart(2, "0")}</strong>
+        </div>
+      </header>
       {feedCooldownMs > 0 ? (
         <div
           aria-live="polite"
@@ -1678,6 +1687,11 @@ function PigeonField({
           );
         })}
       </div>
+      <div aria-hidden="true" className="feed-launcher">
+        {Array.from({ length: 11 }, (_, pelletIndex) => (
+          <i key={`launcher-pellet-${pelletIndex}`} />
+        ))}
+      </div>
     </section>
   );
 }
@@ -1730,21 +1744,11 @@ export function UrbanPigeonSimulation() {
         }
         className="min-h-screen overflow-hidden bg-[#e8eee6] text-[#1e2521]"
       >
-        <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-4 sm:px-6 lg:px-8">
-          <header className="site-header">
-            <div>
-              <p className="eyebrow">Wild park / marble city study</p>
-              <h1>Urban Pigeon Simulation</h1>
-            </div>
-            <div className="generation-marker">
-              <span>Observed generations</span>
-              <strong>{state.generations}</strong>
-            </div>
-          </header>
-
+        <div className="simulation-stage">
           <div className="content-grid">
             <PigeonField
               feedCooldownMs={feedCooldownMs}
+              generations={state.generations}
               metrics={metrics}
               onFoodClaimed={(pigeonId, declinedBefore, birthX, birthY) =>
                 setState((current) =>
