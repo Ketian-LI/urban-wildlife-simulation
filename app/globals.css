@@ -2064,11 +2064,11 @@ body {
 }
 
 .pigeon-word-flying .pigeon-bird-sprite {
-  background-image: url("/pigeon-flight-atlas.webp");
+  animation: pigeon-flight-sprite-frames var(--flight-duration) linear both;
 }
 
 .pigeon-word-landing .pigeon-bird-sprite {
-  background-image: url("/pigeon-landing-atlas.webp");
+  animation: pigeon-landing-sprite-frames 760ms linear both;
 }
 
 .pigeon-word-label-source {
@@ -2137,7 +2137,86 @@ body {
   }
 }
 
+@keyframes pigeon-flight-sprite-frames {
+  0%,
+  6.9% {
+    background-image: url("/pigeon-idle-atlas.webp");
+  }
+
+  7%,
+  15.9% {
+    background-image: url("/pigeon-crouch-atlas.webp");
+  }
+
+  16%,
+  27.9% {
+    background-image: url("/pigeon-half-open-atlas.webp");
+  }
+
+  28%,
+  43.9% {
+    background-image: url("/pigeon-flight-atlas.webp");
+  }
+
+  44%,
+  59.9% {
+    background-image: url("/pigeon-downstroke-atlas.webp");
+  }
+
+  60%,
+  75.9% {
+    background-image: url("/pigeon-flight-atlas.webp");
+  }
+
+  76%,
+  89.9% {
+    background-image: url("/pigeon-downstroke-atlas.webp");
+  }
+
+  90%,
+  100% {
+    background-image: url("/pigeon-flight-atlas.webp");
+  }
+}
+
+@keyframes pigeon-landing-sprite-frames {
+  0%,
+  13.9% {
+    background-image: url("/pigeon-flight-atlas.webp");
+  }
+
+  14%,
+  31.9% {
+    background-image: url("/pigeon-half-open-atlas.webp");
+  }
+
+  32%,
+  56.9% {
+    background-image: url("/pigeon-landing-atlas.webp");
+  }
+
+  57%,
+  81.9% {
+    background-image: url("/pigeon-settle-atlas.webp");
+  }
+
+  82%,
+  100% {
+    background-image: url("/pigeon-idle-atlas.webp");
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .pigeon-word-flying .pigeon-bird-sprite {
+    animation: none;
+    background-image: url("/pigeon-flight-atlas.webp");
+  }
+
+  .pigeon-word-landing .pigeon-bird-sprite {
+    animation: none;
+    background-image: url("/pigeon-idle-atlas.webp");
+  }
+
   .pigeon-death-bird {
     animation: none;
     opacity: 0;
