@@ -20,6 +20,7 @@ const SPLIT_ANIMATION_MS = 1800;
 const PIGEON_DEATH_ANIMATION_MS = 1400;
 const CITY_FOOD_DETECTION_RADIUS = 24;
 const CLOUD_SAVE_INTERVAL_MS = 5_000;
+const ACCESSORY_SPAWN_CHANCE_PER_SECOND = 0.004;
 
 type Plumage =
   | "grey"
@@ -37,6 +38,108 @@ type AccountInfo = {
   displayName: string;
 };
 
+const accessoryCatalog = [
+  {
+    id: "crown",
+    symbol: "♛",
+    names: { en: "Crown", zh: "皇冠" },
+  },
+  {
+    id: "red-leg-band",
+    symbol: "═",
+    names: { en: "Red leg band", zh: "红色脚环" },
+  },
+  {
+    id: "gold-ring",
+    symbol: "○",
+    names: { en: "Gold ring", zh: "金色脚环" },
+  },
+  {
+    id: "ribbon",
+    symbol: "⋈",
+    names: { en: "Crimson ribbon", zh: "绯红彩带" },
+  },
+  {
+    id: "blue-scarf",
+    symbol: "≋",
+    names: { en: "Blue scarf", zh: "蓝色围巾" },
+  },
+  {
+    id: "round-glasses",
+    symbol: "∞",
+    names: { en: "Round glasses", zh: "圆框眼镜" },
+  },
+  {
+    id: "flower",
+    symbol: "✿",
+    names: { en: "Park flower", zh: "公园小花" },
+  },
+  {
+    id: "star-medal",
+    symbol: "★",
+    names: { en: "Star medal", zh: "星星勋章" },
+  },
+  {
+    id: "moon-charm",
+    symbol: "☾",
+    names: { en: "Moon charm", zh: "月亮吊坠" },
+  },
+  {
+    id: "pearl-collar",
+    symbol: "•••",
+    names: { en: "Pearl collar", zh: "珍珠项圈" },
+  },
+  {
+    id: "green-beret",
+    symbol: "●",
+    names: { en: "Green beret", zh: "绿色贝雷帽" },
+  },
+  {
+    id: "feather-plume",
+    symbol: "❯",
+    names: { en: "Feather plume", zh: "羽毛头饰" },
+  },
+  {
+    id: "messenger-tag",
+    symbol: "▰",
+    names: { en: "Messenger tag", zh: "信使牌" },
+  },
+  {
+    id: "silver-bell",
+    symbol: "♢",
+    names: { en: "Silver bell", zh: "银铃" },
+  },
+  {
+    id: "rainbow-streamer",
+    symbol: "≈",
+    names: { en: "Rainbow streamer", zh: "彩虹飘带" },
+  },
+  {
+    id: "laurel-pin",
+    symbol: "◆",
+    names: { en: "Laurel pin", zh: "月桂徽章" },
+  },
+] as const;
+
+type AccessoryId = (typeof accessoryCatalog)[number]["id"];
+
+const accessoryIds = accessoryCatalog.map(
+  (accessory) => accessory.id,
+) as AccessoryId[];
+
+function isAccessoryId(value: unknown): value is AccessoryId {
+  return (
+    typeof value === "string" &&
+    accessoryIds.includes(value as AccessoryId)
+  );
+}
+
+function accessoryDefinition(accessoryId: AccessoryId) {
+  return accessoryCatalog.find(
+    (accessory) => accessory.id === accessoryId,
+  )!;
+}
+
 const uiCopy = {
   en: {
     brand: "Urban Pigeon Simulation",
@@ -52,6 +155,16 @@ const uiCopy = {
     favoriteFeeds: "feeds",
     favoriteProtected: "Protected from natural deaths",
     favoriteEmpty: "No favorite yet",
+    wardrobe: "Accessory collection",
+    wardrobeOpen: "Open accessory collection",
+    wardrobeClose: "Close accessory collection",
+    wardrobeEmpty: "No accessories collected",
+    wardrobeNoFavorite: "No host favorite yet",
+    wardrobeUnequip: "Wear nothing",
+    wardrobeEquipped: "Equipped",
+    wardrobeUnlocked: "Unlocked",
+    wardrobeLocked: "Locked",
+    rareAccessoryCarrier: "carries a rare accessory",
     signInWithChatGPT: "Sign in with ChatGPT",
     signOut: "Sign out",
     cloudSave: "Cloud save",
@@ -91,6 +204,16 @@ const uiCopy = {
     favoriteFeeds: "次投喂",
     favoriteProtected: "不会自然死亡",
     favoriteEmpty: "尚未选出",
+    wardrobe: "配饰收藏",
+    wardrobeOpen: "打开配饰收藏",
+    wardrobeClose: "关闭配饰收藏",
+    wardrobeEmpty: "尚未收藏配饰",
+    wardrobeNoFavorite: "尚无主机最爱",
+    wardrobeUnequip: "不佩戴",
+    wardrobeEquipped: "已佩戴",
+    wardrobeUnlocked: "已解锁",
+    wardrobeLocked: "未解锁",
+    rareAccessoryCarrier: "携带一件稀有配饰",
     signInWithChatGPT: "使用 ChatGPT 登录",
     signOut: "退出登录",
     cloudSave: "云端存档",
@@ -132,6 +255,10 @@ const tutorialSteps = {
       title: "Protect color diversity",
       body: "The flock begins with eight feather colors. If fewer than seven remain, the simulation pauses and asks you to restart the ecosystem.",
     },
+    {
+      title: "Discover rare accessories",
+      body: "A rare accessory can occasionally appear on one pigeon. Feed that carrier to unlock the piece, then equip it on your host favorite from the collection.",
+    },
   ],
   zh: [
     {
@@ -145,6 +272,10 @@ const tutorialSteps = {
     {
       title: "保护颜色多样性",
       body: "鸽群最初拥有八种羽色。当场上少于七种羽色时，模拟会暂停并提示重新开始生态系统。",
+    },
+    {
+      title: "发现稀有配饰",
+      body: "偶尔会有一只鸽子携带稀有配饰。成功喂食它即可解锁配饰，再从收藏中把配饰装到主机最爱的鸽子身上。",
     },
   ],
 } as const;
@@ -163,6 +294,7 @@ type PigeonAgent = {
   birthX: number;
   birthY: number;
   bornAt: number;
+  accessory: AccessoryId | null;
 };
 
 type EcosystemState = {
@@ -178,6 +310,8 @@ type EcosystemState = {
   lastUpdated: number;
   events: string[];
   restartColorVarietyCount: number | null;
+  unlockedAccessories: AccessoryId[];
+  favoriteAccessory: AccessoryId | null;
 };
 
 type Metric = {
@@ -347,6 +481,18 @@ function translateEvent(event: string, language: Language) {
   const exact = exactEventTranslations.get(event);
   if (exact) {
     return exact;
+  }
+
+  const accessoryMatch = event.match(
+    /^Accessory unlocked: (.+)\. It can now be worn by the host favorite\.$/,
+  );
+  if (accessoryMatch) {
+    const accessory = accessoryCatalog.find(
+      (candidate) => candidate.names.en === accessoryMatch[1],
+    );
+    return accessory
+      ? `已解锁配饰：${accessory.names.zh}。现在可以让主机最爱的鸽子佩戴它。`
+      : event;
   }
 
   let match = event.match(
@@ -583,6 +729,7 @@ function createOuterPigeon(
     birthX: 0,
     birthY: 0,
     bornAt: 0,
+    accessory: null,
   };
 }
 
@@ -637,6 +784,8 @@ function makeInitialState(now = Date.now()): EcosystemState {
     lastUpdated: now,
     events: initialEvents,
     restartColorVarietyCount: null,
+    unlockedAccessories: [],
+    favoriteAccessory: null,
   };
 }
 
@@ -670,6 +819,12 @@ function restartEcosystemState(
     current.restartColorVarietyCount ??
     pigeonColorVarietyCount(current.pigeons);
   const restarted = makeInitialState(now);
+  restarted.unlockedAccessories = [...current.unlockedAccessories];
+  restarted.favoriteAccessory =
+    current.favoriteAccessory &&
+    current.unlockedAccessories.includes(current.favoriteAccessory)
+      ? current.favoriteAccessory
+      : null;
   restarted.events = [
     `The ecosystem restarted after color diversity fell to ${colorVarietyCount} of ${TOTAL_COLOR_VARIETIES} varieties.`,
     ...initialEvents,
@@ -683,6 +838,52 @@ function formatPercent(value: number) {
 
 function pushEvent(state: EcosystemState, message: string) {
   state.events = [message, ...state.events].slice(0, 6);
+}
+
+function maybeSpawnRareAccessory(
+  state: EcosystemState,
+  elapsedSeconds: number,
+  random = Math.random,
+) {
+  if (
+    state.pigeons.length === 0 ||
+    state.pigeons.some((pigeon) => pigeon.accessory !== null)
+  ) {
+    return;
+  }
+
+  const observedSeconds = clamp(elapsedSeconds, 0, 1.5);
+  const spawnChance =
+    1 -
+    Math.pow(
+      1 - ACCESSORY_SPAWN_CHANCE_PER_SECOND,
+      observedSeconds,
+    );
+  if (random() >= spawnChance) {
+    return;
+  }
+
+  const lockedAccessories = accessoryIds.filter(
+    (accessoryId) => !state.unlockedAccessories.includes(accessoryId),
+  );
+  const accessoryPool =
+    lockedAccessories.length > 0 ? lockedAccessories : accessoryIds;
+  const accessoryId =
+    accessoryPool[
+      Math.min(
+        accessoryPool.length - 1,
+        Math.floor(random() * accessoryPool.length),
+      )
+    ];
+  const pigeonIndex = Math.min(
+    state.pigeons.length - 1,
+    Math.floor(random() * state.pigeons.length),
+  );
+
+  state.pigeons[pigeonIndex] = {
+    ...state.pigeons[pigeonIndex],
+    accessory: accessoryId,
+  };
 }
 
 function generationEvent(before: EcosystemState, after: EcosystemState) {
@@ -877,6 +1078,7 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
     );
   }
 
+  maybeSpawnRareAccessory(next, elapsedSeconds);
   next.lastUpdated = now;
   return markRestartRequiredIfColorVarietyTooLow(next);
 }
@@ -929,6 +1131,9 @@ function restoreState(savedState: unknown) {
               birthX: Number(savedPigeon.birthX) || 0,
               birthY: Number(savedPigeon.birthY) || 0,
               bornAt: Number(savedPigeon.bornAt) || 0,
+              accessory: isAccessoryId(savedPigeon.accessory)
+                ? savedPigeon.accessory
+                : null,
             };
           })
         : initial.pigeons;
@@ -936,6 +1141,18 @@ function restoreState(savedState: unknown) {
       Number(parsed.nextPigeonId) || 0,
       ...pigeons.map((pigeon) => pigeon.id + 1),
     );
+    const unlockedAccessories = Array.isArray(parsed.unlockedAccessories)
+      ? [
+          ...new Set(
+            parsed.unlockedAccessories.filter(isAccessoryId),
+          ),
+        ]
+      : [];
+    const favoriteAccessory =
+      isAccessoryId(parsed.favoriteAccessory) &&
+      unlockedAccessories.includes(parsed.favoriteAccessory)
+        ? parsed.favoriteAccessory
+        : null;
 
     return advanceState({
       ...initial,
@@ -943,6 +1160,8 @@ function restoreState(savedState: unknown) {
       pigeons,
       nextPigeonId,
       events: Array.isArray(parsed.events) ? parsed.events.slice(0, 6) : initialEvents,
+      unlockedAccessories,
+      favoriteAccessory,
       restartColorVarietyCount:
         parsed.restartColorVarietyCount !== null &&
         typeof parsed.restartColorVarietyCount !== "undefined" &&
@@ -1028,10 +1247,12 @@ function feedPigeonState(
   }
 
   const pigeons = advanced.pigeons.map((pigeon) => ({ ...pigeon }));
+  const carriedAccessory = pigeons[parentIndex].accessory;
   pigeons[parentIndex].feedCount += 1;
   pigeons[parentIndex].boldness = clamp(pigeons[parentIndex].boldness + 0.015, 0.05, 0.95);
   pigeons[parentIndex].hasAcceptedFood = true;
   pigeons[parentIndex].protectedUntil = 0;
+  pigeons[parentIndex].accessory = null;
   const parent = pigeons[parentIndex];
   const inheritedMutation = (((advanced.nextPigeonId * 29) % 9) - 4) * 0.008;
   const childStyle = inheritedPigeonStyle(parent);
@@ -1078,6 +1299,11 @@ function feedPigeonState(
     dependency: clamp(advanced.dependency + 0.007, 0.05, 0.95),
     foraging: clamp(advanced.foraging - 0.004, 0.12, 0.96),
     events: [...advanced.events],
+    unlockedAccessories:
+      carriedAccessory &&
+      !advanced.unlockedAccessories.includes(carriedAccessory)
+        ? [...advanced.unlockedAccessories, carriedAccessory]
+        : [...advanced.unlockedAccessories],
   };
   const feedingLead =
     declinedBefore === 0
@@ -1098,7 +1324,36 @@ function feedPigeonState(
     );
   }
 
+  if (
+    carriedAccessory &&
+    !advanced.unlockedAccessories.includes(carriedAccessory)
+  ) {
+    pushEvent(
+      next,
+      `Accessory unlocked: ${
+        accessoryDefinition(carriedAccessory).names.en
+      }. It can now be worn by the host favorite.`,
+    );
+  }
+
   return markRestartRequiredIfColorVarietyTooLow(next);
+}
+
+function equipFavoriteAccessoryState(
+  current: EcosystemState,
+  accessoryId: AccessoryId | null,
+) {
+  if (
+    accessoryId !== null &&
+    !current.unlockedAccessories.includes(accessoryId)
+  ) {
+    return current;
+  }
+
+  return {
+    ...current,
+    favoriteAccessory: accessoryId,
+  };
 }
 
 function rejectFoodState(
@@ -1368,10 +1623,31 @@ function pigeonVisuals(state: EcosystemState) {
 
 type PigeonVisual = ReturnType<typeof pigeonVisuals>[number];
 
+function PigeonAccessory({
+  accessoryId,
+  variant = "field",
+}: {
+  accessoryId: AccessoryId;
+  variant?: "field" | "portrait" | "wardrobe";
+}) {
+  const accessory = accessoryDefinition(accessoryId);
+
+  return (
+    <span
+      aria-hidden="true"
+      className={`pigeon-accessory pigeon-accessory-${accessoryId} pigeon-accessory-${variant}`}
+      data-accessory-id={accessoryId}
+    >
+      {accessory.symbol}
+    </span>
+  );
+}
+
 function pigeonAriaLabel(
   pigeon: PigeonVisual,
   language: Language,
   isHostFavorite = false,
+  equippedAccessory: AccessoryId | null = null,
 ) {
   const boldness = formatPercent(pigeon.agent.boldness);
   const acceptance = formatPercent(pigeon.feedingAcceptance);
@@ -1381,18 +1657,32 @@ function pigeonAriaLabel(
       ? "，主机最常投喂的鸽子，不会自然死亡"
       : ", host favorite, protected from natural deaths"
     : "";
+  const carriedAccessoryDescription = pigeon.agent.accessory
+    ? language === "zh"
+      ? `，${uiCopy.zh.rareAccessoryCarrier}：${
+          accessoryDefinition(pigeon.agent.accessory).names.zh
+        }`
+      : `, ${uiCopy.en.rareAccessoryCarrier}: ${
+          accessoryDefinition(pigeon.agent.accessory).names.en
+        }`
+    : "";
+  const equippedAccessoryDescription = equippedAccessory
+    ? language === "zh"
+      ? `，佩戴${accessoryDefinition(equippedAccessory).names.zh}`
+      : `, wearing ${accessoryDefinition(equippedAccessory).names.en}`
+    : "";
 
   if (language === "zh") {
     return `${plumage}鸽子，文字基因为 ${pigeon.word}，大胆程度 ${boldness}，接受喂食概率 ${acceptance}，${
       pigeon.zone === "inside" ? "饱满的城市体型" : "较瘦的野外体型"
-    }，样式 ${pigeon.styleSignature}，已进食 ${pigeon.agent.feedCount} 次${favoriteDescription}`;
+    }，样式 ${pigeon.styleSignature}，已进食 ${pigeon.agent.feedCount} 次${favoriteDescription}${carriedAccessoryDescription}${equippedAccessoryDescription}`;
   }
 
   return `${plumage} pigeon represented by ${
     pigeon.word
   }, boldness ${boldness}, feeding acceptance ${acceptance}, ${
     pigeon.zone === "inside" ? "fed city body" : "slim wild body"
-  }, style ${pigeon.styleSignature}, fed ${pigeon.agent.feedCount} times${favoriteDescription}`;
+  }, style ${pigeon.styleSignature}, fed ${pigeon.agent.feedCount} times${favoriteDescription}${carriedAccessoryDescription}${equippedAccessoryDescription}`;
 }
 
 function selectFoodRecipient(
@@ -1491,6 +1781,9 @@ function PigeonField({
   const favoritePigeon = favoriteAgent
     ? pigeons.find((pigeon) => pigeon.id === favoriteAgent.id)
     : undefined;
+  const equippedFavoriteAccessory = favoritePigeon
+    ? state.favoriteAccessory
+    : null;
   const cityPigeonCount = state.pigeons.filter(
     (pigeon) => pigeon.hasAcceptedFood,
   ).length;
@@ -1893,7 +2186,15 @@ function PigeonField({
             ? `${copy.hostFavorite}: ${translatedPlumage(
                 favoritePigeon.agent.plumage,
                 language,
-              )}, ${favoritePigeon.agent.feedCount} ${copy.favoriteFeeds}. ${copy.favoriteProtected}`
+              )}, ${favoritePigeon.agent.feedCount} ${copy.favoriteFeeds}. ${copy.favoriteProtected}${
+                equippedFavoriteAccessory
+                  ? `, ${
+                      accessoryDefinition(equippedFavoriteAccessory).names[
+                        language
+                      ]
+                    }`
+                  : ""
+              }`
             : `${copy.hostFavorite}: ${copy.favoriteEmpty}`
         }
         className={`host-favorite-plaque ${
@@ -1911,14 +2212,22 @@ function PigeonField({
           }`}
         >
           {favoritePigeon ? (
-            <span
-              className="pigeon-bird-sprite"
-              style={
-                {
-                  "--motion-y": `${favoritePigeon.spriteIndex * 14.285714}%`,
-                } as React.CSSProperties
-              }
-            />
+            <>
+              <span
+                className="pigeon-bird-sprite"
+                style={
+                  {
+                    "--motion-y": `${favoritePigeon.spriteIndex * 14.285714}%`,
+                  } as React.CSSProperties
+                }
+              />
+              {equippedFavoriteAccessory ? (
+                <PigeonAccessory
+                  accessoryId={equippedFavoriteAccessory}
+                  variant="portrait"
+                />
+              ) : null}
+            </>
           ) : (
             <b>♥</b>
           )}
@@ -1981,6 +2290,7 @@ function PigeonField({
                 pigeon,
                 language,
                 isHostFavorite,
+                isHostFavorite ? equippedFavoriteAccessory : null,
               )}
               className={`pigeon-word ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
@@ -2020,6 +2330,22 @@ function PigeonField({
               }
             >
               <span aria-hidden="true" className="pigeon-bird-sprite" />
+              {pigeon.agent.accessory ? (
+                <>
+                  <PigeonAccessory accessoryId={pigeon.agent.accessory} />
+                  <span
+                    aria-hidden="true"
+                    className="rare-accessory-spark"
+                  >
+                    ✦
+                  </span>
+                </>
+              ) : null}
+              {isHostFavorite && equippedFavoriteAccessory ? (
+                <PigeonAccessory
+                  accessoryId={equippedFavoriteAccessory}
+                />
+              ) : null}
               {isHostFavorite ? (
                 <span aria-hidden="true" className="host-favorite-heart">
                   ♥
@@ -2209,6 +2535,131 @@ function SceneControls({
   );
 }
 
+function AccessoryWardrobe({
+  language,
+  favoriteExists,
+  unlockedAccessories,
+  equippedAccessory,
+  onEquip,
+}: {
+  language: Language;
+  favoriteExists: boolean;
+  unlockedAccessories: AccessoryId[];
+  equippedAccessory: AccessoryId | null;
+  onEquip: (accessoryId: AccessoryId | null) => void;
+}) {
+  const copy = uiCopy[language];
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [isOpen]);
+
+  return (
+    <aside className={`accessory-wardrobe ${isOpen ? "is-open" : ""}`}>
+      <button
+        aria-controls="accessory-wardrobe-panel"
+        aria-expanded={isOpen}
+        aria-label={copy.wardrobeOpen}
+        className="accessory-wardrobe-trigger"
+        onClick={() => setIsOpen((current) => !current)}
+        title={copy.wardrobeOpen}
+        type="button"
+      >
+        <span aria-hidden="true">♛</span>
+        <strong>
+          {unlockedAccessories.length}/{accessoryCatalog.length}
+        </strong>
+      </button>
+      {isOpen ? (
+        <section
+          aria-label={copy.wardrobe}
+          className="accessory-wardrobe-panel"
+          id="accessory-wardrobe-panel"
+        >
+          <header>
+            <div>
+              <h2>{copy.wardrobe}</h2>
+              <strong>
+                {unlockedAccessories.length}/{accessoryCatalog.length}
+              </strong>
+            </div>
+            <button
+              aria-label={copy.wardrobeClose}
+              className="accessory-wardrobe-close"
+              onClick={() => setIsOpen(false)}
+              title={copy.wardrobeClose}
+              type="button"
+            >
+              ×
+            </button>
+          </header>
+          <p className="accessory-wardrobe-status">
+            {unlockedAccessories.length === 0
+              ? copy.wardrobeEmpty
+              : !favoriteExists
+                ? copy.wardrobeNoFavorite
+                : copy.favoriteProtected}
+          </p>
+          <div className="accessory-grid">
+            {accessoryCatalog.map((accessory) => {
+              const isUnlocked = unlockedAccessories.includes(accessory.id);
+              const isEquipped = equippedAccessory === accessory.id;
+              const disabled = !isUnlocked || !favoriteExists;
+              const stateLabel = isEquipped
+                ? copy.wardrobeEquipped
+                : isUnlocked
+                  ? copy.wardrobeUnlocked
+                  : copy.wardrobeLocked;
+
+              return (
+                <button
+                  aria-label={`${accessory.names[language]}: ${stateLabel}`}
+                  aria-pressed={isEquipped}
+                  className={`accessory-option ${
+                    isUnlocked ? "is-unlocked" : "is-locked"
+                  } ${isEquipped ? "is-equipped" : ""}`}
+                  data-accessory-option={accessory.id}
+                  disabled={disabled}
+                  key={accessory.id}
+                  onClick={() => onEquip(accessory.id)}
+                  title={`${accessory.names[language]} · ${stateLabel}`}
+                  type="button"
+                >
+                  <PigeonAccessory
+                    accessoryId={accessory.id}
+                    variant="wardrobe"
+                  />
+                  <span>{isUnlocked ? accessory.names[language] : "?"}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button
+            className="accessory-unequip"
+            disabled={!favoriteExists || equippedAccessory === null}
+            onClick={() => onEquip(null)}
+            type="button"
+          >
+            <span aria-hidden="true">×</span>
+            {copy.wardrobeUnequip}
+          </button>
+        </section>
+      ) : null}
+    </aside>
+  );
+}
+
 function AccountControl({
   account,
   language,
@@ -2377,6 +2828,17 @@ function TutorialDialog({
               </div>
               <strong>&lt; 7/8</strong>
             </>
+          ) : null}
+          {step === 3 ? (
+            <div className="tutorial-accessory-row">
+              {accessoryCatalog.map((accessory) => (
+                <PigeonAccessory
+                  accessoryId={accessory.id}
+                  key={accessory.id}
+                  variant="wardrobe"
+                />
+              ))}
+            </div>
           ) : null}
         </div>
 
@@ -2703,6 +3165,17 @@ export function UrbanPigeonSimulation({
                 )
               }
               state={state}
+            />
+            <AccessoryWardrobe
+              equippedAccessory={state.favoriteAccessory}
+              favoriteExists={Boolean(hostFavoritePigeon(state.pigeons))}
+              language={language}
+              onEquip={(accessoryId) =>
+                setState((current) =>
+                  equipFavoriteAccessoryState(current, accessoryId),
+                )
+              }
+              unlockedAccessories={state.unlockedAccessories}
             />
           </div>
         </div>
