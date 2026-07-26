@@ -93,6 +93,7 @@ type PigeonDeathEffect = {
   pigeonId: number;
   plumage: Plumage;
   spriteIndex: number;
+  zone: "inside" | "outside";
   word: string;
   palette: string[];
   x: number;
@@ -106,7 +107,7 @@ const initialEvents = [
   "A feeding action protects the entire flock from hunger.",
   "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
   "A bird that reaches a pellet divides into a matching pigeon at the same spot.",
-  "The initial flock spans eight feather colors; casing and size vary within each color.",
+  "The initial flock spans eight feather colors and varied letter casing at a shared wild body size.",
   "If fewer than four color varieties remain, the ecosystem restarts with all eight colors.",
 ];
 
@@ -190,13 +191,12 @@ function wordFromCaseMask(caseMask: number) {
 }
 
 function pigeonStyleSignature(
-  pigeon: Pick<PigeonAgent, "plumage" | "caseMask" | "colorSeed" | "sizeScale">,
+  pigeon: Pick<PigeonAgent, "plumage" | "caseMask" | "colorSeed">,
 ) {
   return [
     pigeon.plumage,
     normalizeCaseMask(pigeon.caseMask),
     Math.abs(Math.trunc(pigeon.colorSeed)),
-    Math.round(pigeon.sizeScale * 1000),
   ].join(":");
 }
 
@@ -235,7 +235,7 @@ function initialPigeonStyle(id: number) {
     plumage: plumageOrder[(id * 5) % plumageOrder.length],
     caseMask: (id * 37) % (1 << pigeonLetters.length),
     colorSeed: (id * 53 + 11) % 997,
-    sizeScale: 0.74 + ((id * 7) % 13) * 0.035,
+    sizeScale: 1,
   };
 }
 
@@ -251,7 +251,7 @@ function createOuterPigeon(
     caseSeed: (id * 17) % 97,
     caseMask: normalizeCaseMask(style.caseMask),
     colorSeed: Math.abs(Math.trunc(style.colorSeed)),
-    sizeScale: clamp(style.sizeScale, 0.72, 1.18),
+    sizeScale: 1,
     boldness,
     hasAcceptedFood: false,
     protectedUntil: 0,
@@ -266,7 +266,7 @@ function inheritedPigeonStyle(template: PigeonAgent) {
     plumage: template.plumage,
     caseMask: normalizeCaseMask(template.caseMask),
     colorSeed: Math.abs(Math.trunc(template.colorSeed)),
-    sizeScale: clamp(template.sizeScale, 0.72, 1.18),
+    sizeScale: 1,
   };
 }
 
@@ -579,7 +579,6 @@ function loadState() {
               ? Math.abs(Math.trunc(numericCaseSeed))
               : fallback.caseSeed;
             const numericColorSeed = Number(savedPigeon.colorSeed);
-            const numericSizeScale = Number(savedPigeon.sizeScale);
             const numericBoldness = Number(savedPigeon.boldness);
             const plumage = plumageOrder.includes(savedPigeon.plumage as Plumage)
               ? (savedPigeon.plumage as Plumage)
@@ -599,9 +598,7 @@ function loadState() {
               colorSeed: Number.isFinite(numericColorSeed)
                 ? Math.abs(Math.trunc(numericColorSeed))
                 : (id * 53 + caseSeed * 11) % 997,
-              sizeScale: Number.isFinite(numericSizeScale)
-                ? clamp(numericSizeScale, 0.72, 1.18)
-                : 0.74 + ((id * 7 + caseSeed) % 13) * 0.035,
+              sizeScale: 1,
               boldness: Number.isFinite(numericBoldness)
                 ? clamp(numericBoldness, 0.05, 0.95)
                 : fallback.boldness,
@@ -989,7 +986,7 @@ function pigeonVisuals(state: EcosystemState) {
     const isBold = agent.boldness >= 0.5;
     const feedingAcceptance = agent.hasAcceptedFood ? 1 : agent.boldness;
     const word = wordFromCaseMask(agent.caseMask);
-    const individualScale = clamp(agent.sizeScale, 0.72, 1.18);
+    const uniformScale = 1;
     const isNewborn =
       Number(agent.bornAt) > 0 &&
       now - Number(agent.bornAt) < SPLIT_ANIMATION_MS;
@@ -1006,7 +1003,7 @@ function pigeonVisuals(state: EcosystemState) {
       birthY: Number(agent.birthY) || y,
       isNewborn,
       speed: 6.4 + (agent.caseSeed % 7) * 0.42,
-      scale: individualScale,
+      scale: uniformScale,
       spriteIndex: plumageOrder.indexOf(agent.plumage),
       word,
       palette: pigeonLetterPalette(agent),
@@ -1297,6 +1294,7 @@ function PigeonField({
         pigeonId: pigeon.id,
         plumage: pigeon.agent.plumage,
         spriteIndex: pigeon.spriteIndex,
+        zone: pigeon.zone,
         word: pigeon.word,
         palette: pigeon.palette,
         x: pigeon.x,
@@ -1535,9 +1533,9 @@ function PigeonField({
                 pigeon.agent.boldness,
               )}, feeding acceptance ${formatPercent(
                 pigeon.feedingAcceptance,
-              )}, individual size ${Math.round(
-                pigeon.scale * 100,
-              )}%, style ${pigeon.styleSignature}, fed ${
+              )}, ${pigeon.zone === "inside" ? "fed city body" : "slim wild body"}, style ${
+                pigeon.styleSignature
+              }, fed ${
                 pigeon.agent.feedCount
               } times`}
               className={`pigeon-word ${
@@ -1603,7 +1601,7 @@ function PigeonField({
       <div aria-hidden="true" className="pigeon-death-layer">
         {deathEffects.map((effect) => (
           <div
-            className="pigeon-death-effect"
+            className={`pigeon-death-effect pigeon-death-effect-${effect.zone}`}
             data-pigeon-death-id={effect.pigeonId}
             key={effect.id}
             style={

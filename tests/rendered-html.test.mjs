@@ -121,6 +121,8 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /caseMask: number/);
   assert.match(simulation, /colorSeed: number/);
   assert.match(simulation, /sizeScale: number/);
+  assert.match(simulation, /sizeScale: 1/);
+  assert.doesNotMatch(simulation, /sizeScale: 0\.74/);
   assert.match(simulation, /hasAcceptedFood: boolean/);
   assert.match(simulation, /function averageBoldness/);
   assert.match(simulation, /function createOuterPigeon/);
@@ -155,7 +157,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /onContextMenu=\{\(event\) =>/);
   assert.match(simulation, /handlePigeonContextMenu\(event, pigeon\)/);
   assert.match(simulation, /const \[deathEffects, setDeathEffects\]/);
-  assert.match(simulation, /className="pigeon-death-effect"/);
+  assert.match(
+    simulation,
+    /className=\{`pigeon-death-effect pigeon-death-effect-\$\{effect\.zone\}`\}/,
+  );
   assert.match(simulation, /className="pigeon-feather"/);
   assert.match(simulation, /Array\.from\(\{ length: 12 \}/);
   assert.match(simulation, /minimumFeedCount/);
@@ -196,7 +201,9 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /function projectilePosition/);
   assert.match(simulation, /agent\.id \* 137\.508/);
   assert.match(simulation, /const radialSeed/);
-  assert.match(simulation, /scale: individualScale/);
+  assert.match(simulation, /const uniformScale = 1/);
+  assert.match(simulation, /scale: uniformScale/);
+  assert.doesNotMatch(simulation, /individualScale/);
   assert.match(simulation, /palette: pigeonLetterPalette\(agent\)/);
   assert.match(simulation, /spriteIndex: plumageOrder\.indexOf\(agent\.plumage\)/);
   assert.match(simulation, /data-style-signature=\{pigeon\.styleSignature\}/);
@@ -248,11 +255,15 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(css, /grid-template-columns/);
   assert.match(css, /clip-path: polygon/);
   assert.match(css, /\.pigeon-word-inside/);
+  assert.match(css, /--body-width: 1\.08/);
+  assert.match(css, /--body-height: 1\.04/);
   assert.match(css, /\.pigeon-word-inside \.pigeon-word-label/);
   assert.match(css, /\.pigeon-word-inside\.pigeon-word-bold \.pigeon-word-label/);
   assert.match(css, /font-size: 1\.12rem/);
   assert.match(css, /font-size: 1\.2rem/);
   assert.match(css, /\.pigeon-word-outside/);
+  assert.match(css, /--body-width: 0\.88/);
+  assert.match(css, /transform: scaleX\(var\(--body-width\)\) scaleY\(var\(--body-height\)\)/);
   assert.match(css, /\.pigeon-word-newborn/);
   assert.match(css, /--field-sky/);
   assert.match(css, /\.pigeon-word-white/);
