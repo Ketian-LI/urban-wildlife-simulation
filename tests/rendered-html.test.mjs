@@ -186,7 +186,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /window\.crypto\.randomUUID\(\)/);
   assert.match(simulation, /fetch\("\/api\/presence"/);
   assert.match(simulation, /feeding unrestricted/);
-  assert.match(simulation, /feeding every \$\{formatFeedCooldown\(feedCooldownMs\)\} per visitor/);
+  assert.match(
+    simulation,
+    /formatFeedCooldown\(\s*feedCooldownMs,\s*language,\s*\)/,
+  );
   assert.match(simulation, /const \[lastThrowAt, setLastThrowAt\]/);
   assert.match(simulation, /launchedAt < nextAllowedAt/);
   assert.match(simulation, /feedCooldownMs=\{feedCooldownMs\}/);
@@ -218,6 +221,19 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.doesNotMatch(simulation, /const nearest = pigeons\.reduce/);
   assert.match(simulation, /pigeon-letter-capital/);
   assert.match(simulation, /data-food-id=\{particle\.id\}/);
+  assert.match(simulation, /type Language = "en" \| "zh"/);
+  assert.match(simulation, /const LANGUAGE_STORAGE_KEY/);
+  assert.match(simulation, /const TUTORIAL_STORAGE_KEY/);
+  assert.match(simulation, /function translateEvent/);
+  assert.match(simulation, /function SceneControls/);
+  assert.match(simulation, /function TutorialDialog/);
+  assert.match(simulation, /role="group"/);
+  assert.match(simulation, /role="dialog"/);
+  assert.match(simulation, /aria-pressed=\{language === "zh"\}/);
+  assert.match(simulation, /tutorialSteps\[language\]/);
+  assert.match(simulation, /window\.localStorage\.setItem\(LANGUAGE_STORAGE_KEY/);
+  assert.match(simulation, /document\.documentElement\.lang/);
+  assert.match(simulation, /少于四种羽色/);
   assert.match(simulation, /birthX: number/);
   assert.match(simulation, /bornAt: number/);
   assert.match(simulation, /protectedUntil: bornAt \+ SPLIT_ANIMATION_MS \+ 100/);
@@ -278,6 +294,13 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(css, /\.restart-diversity-readout/);
   assert.match(css, /\.feed-cooldown-status/);
   assert.match(css, /\.feed-cooldown-status\.is-cooling/);
+  assert.match(css, /\.scene-controls/);
+  assert.match(css, /\.language-switch/);
+  assert.match(css, /\.tutorial-help-button/);
+  assert.match(css, /\.tutorial-backdrop/);
+  assert.match(css, /\.tutorial-dialog/);
+  assert.match(css, /\.tutorial-visual/);
+  assert.match(css, /\.tutorial-pigeon-city/);
   assert.match(css, /\.wild-park/);
   assert.match(css, /\.park-tree/);
   assert.match(css, /\.plaza-monument/);

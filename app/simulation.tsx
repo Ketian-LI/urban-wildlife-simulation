@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const STORAGE_KEY = "urban-pigeon-collective-v5";
 const PRESENCE_STORAGE_KEY = "urban-pigeon-presence-id-v1";
+const LANGUAGE_STORAGE_KEY = "urban-pigeon-language-v1";
+const TUTORIAL_STORAGE_KEY = "urban-pigeon-tutorial-v1";
 const PRESENCE_HEARTBEAT_MS = 15_000;
 const PRESENCE_RETRY_MS = 5_000;
 const MAX_FEED_COOLDOWN_MS = 3_000;
@@ -27,6 +29,96 @@ type Plumage =
   | "charcoal"
   | "silver"
   | "rust";
+
+type Language = "en" | "zh";
+
+const uiCopy = {
+  en: {
+    brand: "Urban Pigeon Simulation",
+    generation: "Generation",
+    nextFeed: "Next feed",
+    ready: "ready",
+    wildPark: "Wild park",
+    cityPlaza: "Marble city plaza",
+    ecosystemVariables: "Ecosystem variables",
+    recentChanges: "Recent ecosystem changes",
+    recentNotes: "Recent field notes",
+    language: "Language",
+    openTutorial: "Open tutorial",
+    restartEyebrow: "Ecosystem restart required",
+    restartTitle: "Genetic diversity is too low",
+    varietiesRemain: "color varieties remain",
+    restartDescription:
+      "Fewer than four feather colors remain. Restart the ecosystem to restore thirty pigeons spanning all eight colors.",
+    restartAction: "Restart ecosystem",
+    throwFoodAria: "Throw food into the animated illustrated pigeon population",
+    tutorialEyebrow: "Field guide",
+    tutorialTitle: "How this ecosystem works",
+    tutorialSkip: "Skip",
+    tutorialBack: "Previous",
+    tutorialNext: "Next",
+    tutorialFinish: "Enter the park",
+    tutorialProgress: "Tutorial step",
+  },
+  zh: {
+    brand: "城市鸽群模拟",
+    generation: "世代",
+    nextFeed: "下次喂食",
+    ready: "可以喂食",
+    wildPark: "野生公园",
+    cityPlaza: "大理石城市广场",
+    ecosystemVariables: "生态系统变量",
+    recentChanges: "近期生态变化",
+    recentNotes: "近期观察记录",
+    language: "语言",
+    openTutorial: "打开教程",
+    restartEyebrow: "需要重新开始生态系统",
+    restartTitle: "基因多样性过低",
+    varietiesRemain: "种羽色仍然存在",
+    restartDescription:
+      "场上已经少于四种羽色。重新开始后，将恢复包含全部八种羽色的三十只鸽子。",
+    restartAction: "重新开始",
+    throwFoodAria: "点击场景，将食物投向动态鸽群",
+    tutorialEyebrow: "观察指南",
+    tutorialTitle: "这个生态系统如何运行",
+    tutorialSkip: "跳过",
+    tutorialBack: "上一步",
+    tutorialNext: "下一步",
+    tutorialFinish: "进入公园",
+    tutorialProgress: "教程步骤",
+  },
+} as const;
+
+const tutorialSteps = {
+  en: [
+    {
+      title: "Throw a pellet",
+      body: "Click anywhere in the scene. A dot is launched from the lower edge, and pigeons try it in nearest-first order.",
+    },
+    {
+      title: "Watch bodies change",
+      body: "Wild pigeons are slim. A pigeon that accepts food enters the city plaza, becomes fuller, and divides into a matching city pigeon.",
+    },
+    {
+      title: "Protect color diversity",
+      body: "The flock begins with eight feather colors. If fewer than four remain, the simulation pauses and asks you to restart the ecosystem.",
+    },
+  ],
+  zh: [
+    {
+      title: "投出一粒食物",
+      body: "点击场景中的任意位置，食物点会从画面底边抛入。鸽子按照与食物的距离，由近到远依次尝试。",
+    },
+    {
+      title: "观察体型变化",
+      body: "野生鸽子较瘦。接受喂食后，它会进入城市广场、变得更饱满，并在原地分裂出一只相同的城市鸽子。",
+    },
+    {
+      title: "保护颜色多样性",
+      body: "鸽群最初拥有八种羽色。当场上少于四种羽色时，模拟会暂停并提示重新开始生态系统。",
+    },
+  ],
+} as const;
 
 type PigeonAgent = {
   id: number;
@@ -132,6 +224,192 @@ const featherPalettes: Record<Plumage, string[]> = {
   silver: ["#c5ccca", "#9ea9aa", "#dce0dc", "#7e8c90", "#b6c0c2", "#eef0eb"],
   rust: ["#6e362c", "#a14f38", "#c16d4d", "#7f4a3b", "#d18a64", "#59352f"],
 };
+
+const plumageNames: Record<Language, Record<Plumage, string>> = {
+  en: {
+    grey: "grey",
+    white: "white",
+    spotted: "spotted",
+    brown: "brown",
+    "blue-grey": "blue-grey",
+    charcoal: "charcoal",
+    silver: "silver",
+    rust: "rust",
+  },
+  zh: {
+    grey: "灰色",
+    white: "白色",
+    spotted: "斑点",
+    brown: "棕色",
+    "blue-grey": "蓝灰色",
+    charcoal: "炭黑色",
+    silver: "银色",
+    rust: "锈红色",
+  },
+};
+
+const exactEventTranslations = new Map<string, string>([
+  [
+    "Thirty unfed birds begin in the wild park outside the marble city plaza.",
+    "三十只尚未接受人类喂食的鸽子从城市圈外的野生公园开始。",
+  ],
+  [
+    "A feeding action protects the entire flock from hunger.",
+    "每次喂食动作都会让整群鸽子暂时免于饥饿。",
+  ],
+  [
+    "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
+    "停止喂食后，只有城市鸽子会逐渐死亡；圈外的野生鸽子保持安全。",
+  ],
+  [
+    "A bird that reaches a pellet divides into a matching pigeon at the same spot.",
+    "吃到食物的鸽子会在原地分裂出一只相同的鸽子。",
+  ],
+  [
+    "The initial flock spans eight feather colors and varied letter casing at a shared wild body size.",
+    "初始鸽群包含八种羽色和不同的字母大小写，野生体型保持一致。",
+  ],
+  [
+    "If fewer than four color varieties remain, the ecosystem restarts with all eight colors.",
+    "颜色种类少于四种时，生态系统会要求重启并恢复全部八种颜色。",
+  ],
+  [
+    "Birds that approached people first were more likely to survive and reproduce.",
+    "更早接近人类的鸽子更有可能存活并繁殖。",
+  ],
+  [
+    "With fewer feeding cues, edge-foraging behavior recovered slightly.",
+    "人类喂食信号减少后，边缘觅食能力略有恢复。",
+  ],
+  [
+    "The flock's behavior shifted toward waiting near human paths.",
+    "鸽群的行为逐渐转向在人类活动路径附近等待。",
+  ],
+  [
+    "The flock adjusted quietly; small behavioral differences carried forward.",
+    "鸽群安静地完成了一次调整，细微的行为差异被延续下来。",
+  ],
+]);
+
+function translatedPlumage(plumage: string, language: Language) {
+  if (language === "en") {
+    return plumage;
+  }
+
+  return plumageOrder.includes(plumage as Plumage)
+    ? plumageNames.zh[plumage as Plumage]
+    : plumage;
+}
+
+function translatedRefreshSuffix(suffix: string) {
+  const match = suffix.match(
+    /^\s*(\d+) new wild (?:bird arrived|birds arrived) outside with a style inherited from the current flock\.$/,
+  );
+  return match
+    ? ` 圈外补充了 ${match[1]} 只新野生鸽子，其样式继承自当前鸽群。`
+    : "";
+}
+
+function translateEvent(event: string, language: Language) {
+  if (language === "en") {
+    return event;
+  }
+
+  const exact = exactEventTranslations.get(event);
+  if (exact) {
+    return exact;
+  }
+
+  let match = event.match(
+    /^Genetic diversity is too low: only (\d+) color varieties remain\.$/,
+  );
+  if (match) {
+    return `基因多样性过低：场上只剩 ${match[1]} 种羽色。`;
+  }
+
+  match = event.match(
+    /^The ecosystem restarted after color diversity fell to (\d+) of (\d+) varieties\.$/,
+  );
+  if (match) {
+    return `羽色多样性降至 ${match[1]}/${match[2]} 后，生态系统已重新开始。`;
+  }
+
+  match = event.match(
+    /^One city bird died from hunger; (\d+) remain, while wild birds stayed safe\.(.*)$/,
+  );
+  if (match) {
+    return `一只城市鸽子因饥饿死亡；场上还剩 ${match[1]} 只，野生鸽子未受影响。${translatedRefreshSuffix(
+      match[2],
+    )}`;
+  }
+
+  match = event.match(
+    /^(\d+) city birds died during the feeding pause; wild birds outside were unaffected\.(.*)$/,
+  );
+  if (match) {
+    return `停止喂食期间有 ${match[1]} 只城市鸽子死亡；圈外野生鸽子未受影响。${translatedRefreshSuffix(
+      match[2],
+    )}`;
+  }
+
+  const feedingTail = (tail: string) => {
+    let tailMatch = tail.match(
+      /^and divided into two; the field now holds (\d+) birds\.$/,
+    );
+    if (tailMatch) {
+      return `并分裂成两只；场上现在共有 ${tailMatch[1]} 只鸽子。`;
+    }
+
+    tailMatch = tail.match(
+      /^and divided\. At capacity, a randomly selected bird with (\d+) feeds was removed\.$/,
+    );
+    if (tailMatch) {
+      return `并完成分裂。数量达到上限后，一只进食 ${tailMatch[1]} 次的候选鸽子被随机移除。`;
+    }
+
+    return tail;
+  };
+
+  match = event.match(/^The nearest ([a-z-]+) bird ate the pellet (.*)$/);
+  if (match) {
+    return `距离最近的${translatedPlumage(match[1], "zh")}鸽子吃到了食物，${feedingTail(
+      match[2],
+    )}`;
+  }
+
+  match = event.match(
+    /^After (\d+) nearer (?:bird|birds) declined, the ([a-z-]+) bird ate the pellet (.*)$/,
+  );
+  if (match) {
+    return `前面 ${match[1]} 只更近的鸽子拒绝后，${translatedPlumage(
+      match[2],
+      "zh",
+    )}鸽子吃到了食物，${feedingTail(match[3])}`;
+  }
+
+  match = event.match(
+    /^All (\d+) pigeons declined the pellet in nearest-first order; the closest was a ([a-z-]+) bird with (\d+)% boldness\.$/,
+  );
+  if (match) {
+    return `按照由近到远的顺序，${match[1]} 只鸽子都拒绝了食物；最近的是一只大胆程度为 ${match[3]}% 的${translatedPlumage(
+      match[2],
+      "zh",
+    )}鸽子。`;
+  }
+
+  match = event.match(
+    /^A ([a-z-]+) pigeon died after direct human action in the (city plaza|wild park); (\d+) birds remain\.$/,
+  );
+  if (match) {
+    const habitat = match[2] === "city plaza" ? "城市广场" : "野生公园";
+    return `一只${translatedPlumage(
+      match[1],
+      "zh",
+    )}鸽子因人类直接操作在${habitat}死亡；场上还剩 ${match[3]} 只。`;
+  }
+
+  return event;
+}
 
 const parkTrees = [
   { x: 3, y: 35, size: 0.9, tone: 0 },
@@ -820,9 +1098,10 @@ function feedCooldownMsForOnlineCount(onlineCount: number) {
   return Math.min(MAX_FEED_COOLDOWN_MS, visitorCount * 200);
 }
 
-function formatFeedCooldown(cooldownMs: number) {
+function formatFeedCooldown(cooldownMs: number, language: Language) {
   const seconds = cooldownMs / 1000;
-  return `${seconds.toFixed(Number.isInteger(seconds) ? 0 : 1)}s`;
+  const value = seconds.toFixed(Number.isInteger(seconds) ? 0 : 1);
+  return language === "zh" ? `${value} 秒` : `${value}s`;
 }
 
 function useOnlinePresence() {
@@ -910,6 +1189,7 @@ function metricDetails(
   state: EcosystemState,
   onlineCount: number,
   feedCooldownMs: number,
+  language: Language,
 ): Metric[] {
   const meanBoldness = averageBoldness(state.pigeons);
   const insideCount = state.pigeons.filter((pigeon) => pigeon.hasAcceptedFood).length;
@@ -917,44 +1197,56 @@ function metricDetails(
 
   return [
     {
-      label: "Population",
+      label: language === "zh" ? "数量" : "Population",
       value: `${state.pigeons.length}/${MAX_PIGEONS}`,
-      detail: `${insideCount} city / ${
-        state.pigeons.length - insideCount
-      } wild / ${colorVarietyCount}/${TOTAL_COLOR_VARIETIES} colors`,
+      detail:
+        language === "zh"
+          ? `城市 ${insideCount} / 野外 ${
+              state.pigeons.length - insideCount
+            } / 羽色 ${colorVarietyCount}/${TOTAL_COLOR_VARIETIES}`
+          : `${insideCount} city / ${
+              state.pigeons.length - insideCount
+            } wild / ${colorVarietyCount}/${TOTAL_COLOR_VARIETIES} colors`,
       percent: state.pigeons.length / MAX_PIGEONS,
     },
     {
-      label: "Boldness",
+      label: language === "zh" ? "大胆程度" : "Boldness",
       value: formatPercent(meanBoldness),
-      detail: "individual mean acceptance",
+      detail: language === "zh" ? "个体平均接受概率" : "individual mean acceptance",
       percent: meanBoldness,
     },
     {
-      label: "Dependency",
+      label: language === "zh" ? "依赖程度" : "Dependency",
       value: formatPercent(state.dependency),
-      detail: "reliance on people",
+      detail: language === "zh" ? "对人类的依赖" : "reliance on people",
       percent: state.dependency,
     },
     {
-      label: "Foraging",
+      label: language === "zh" ? "觅食能力" : "Foraging",
       value: formatPercent(state.foraging),
-      detail: "non-human food ability",
+      detail: language === "zh" ? "寻找非人类食物的能力" : "non-human food ability",
       percent: state.foraging,
     },
     {
-      label: "Human food",
+      label: language === "zh" ? "人类食物" : "Human food",
       value: formatPercent(state.humanFoodSignal),
-      detail: "recent feeding pressure",
+      detail: language === "zh" ? "近期喂食压力" : "recent feeding pressure",
       percent: state.humanFoodSignal,
     },
     {
-      label: "Online now",
+      label: language === "zh" ? "当前在线" : "Online now",
       value: `${onlineCount}`,
       detail:
         feedCooldownMs === 0
-          ? "feeding unrestricted"
-          : `feeding every ${formatFeedCooldown(feedCooldownMs)} per visitor`,
+          ? language === "zh"
+            ? "喂食不受限制"
+            : "feeding unrestricted"
+          : language === "zh"
+            ? `每位访客每 ${formatFeedCooldown(feedCooldownMs, language)} 可喂食一次`
+            : `feeding every ${formatFeedCooldown(
+                feedCooldownMs,
+                language,
+              )} per visitor`,
     },
   ];
 }
@@ -1015,6 +1307,24 @@ function pigeonVisuals(state: EcosystemState) {
 
 type PigeonVisual = ReturnType<typeof pigeonVisuals>[number];
 
+function pigeonAriaLabel(pigeon: PigeonVisual, language: Language) {
+  const boldness = formatPercent(pigeon.agent.boldness);
+  const acceptance = formatPercent(pigeon.feedingAcceptance);
+  const plumage = translatedPlumage(pigeon.agent.plumage, language);
+
+  if (language === "zh") {
+    return `${plumage}鸽子，文字基因为 ${pigeon.word}，大胆程度 ${boldness}，接受喂食概率 ${acceptance}，${
+      pigeon.zone === "inside" ? "饱满的城市体型" : "较瘦的野外体型"
+    }，样式 ${pigeon.styleSignature}，已进食 ${pigeon.agent.feedCount} 次`;
+  }
+
+  return `${plumage} pigeon represented by ${
+    pigeon.word
+  }, boldness ${boldness}, feeding acceptance ${acceptance}, ${
+    pigeon.zone === "inside" ? "fed city body" : "slim wild body"
+  }, style ${pigeon.styleSignature}, fed ${pigeon.agent.feedCount} times`;
+}
+
 function selectFoodRecipient(
   pigeons: PigeonVisual[],
   targetX: number,
@@ -1073,6 +1383,7 @@ function PigeonField({
   metrics,
   generations,
   feedCooldownMs,
+  language,
   onThrow,
   onFoodClaimed,
   onFoodRejected,
@@ -1082,6 +1393,7 @@ function PigeonField({
   metrics: Metric[];
   generations: number;
   feedCooldownMs: number;
+  language: Language;
   onThrow: (pigeonId: number, protectionDuration: number) => void;
   onFoodClaimed: (
     pigeonId: number,
@@ -1092,6 +1404,7 @@ function PigeonField({
   onFoodRejected: (pigeonId: number, attemptedCount: number) => void;
   onPigeonKilled: (pigeonId: number) => void;
 }) {
+  const copy = uiCopy[language];
   const [particles, setParticles] = useState<FoodParticle[]>([]);
   const [claims, setClaims] = useState<FoodClaim[]>([]);
   const [deathEffects, setDeathEffects] = useState<PigeonDeathEffect[]>([]);
@@ -1318,7 +1631,7 @@ function PigeonField({
 
   return (
     <section
-      aria-label="Throw food into the animated illustrated pigeon population"
+      aria-label={copy.throwFoodAria}
       className="ecosystem"
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
@@ -1326,9 +1639,9 @@ function PigeonField({
       tabIndex={0}
     >
       <header className="scene-header">
-        <h1>Urban Pigeon Simulation</h1>
+        <h1>{copy.brand}</h1>
         <div className="scene-generation">
-          <span>Generation</span>
+          <span>{copy.generation}</span>
           <strong>{String(generations).padStart(2, "0")}</strong>
         </div>
       </header>
@@ -1340,11 +1653,11 @@ function PigeonField({
           }`}
           role="status"
         >
-          <span>Next feed</span>
+          <span>{copy.nextFeed}</span>
           <strong>
             {cooldownRemainingMs > 0
               ? `${(Math.ceil(cooldownRemainingMs / 100) / 10).toFixed(1)}s`
-              : "ready"}
+              : copy.ready}
           </strong>
         </div>
       ) : null}
@@ -1472,18 +1785,22 @@ function PigeonField({
       </div>
       <div className="plaza-monument" aria-hidden="true" />
       <div
-        aria-label={`${cityPigeonCount} pigeons inside the marble city plaza`}
+        aria-label={
+          language === "zh"
+            ? `大理石城市广场内有 ${cityPigeonCount} 只鸽子`
+            : `${cityPigeonCount} pigeons inside the marble city plaza`
+        }
         className="city-circle"
         role="status"
       >
-        <span className="sr-only">Marble city plaza</span>
+        <span className="sr-only">{copy.cityPlaza}</span>
       </div>
       <div className="habitat-label habitat-label-wild">
-        <span>Wild park</span>
+        <span>{copy.wildPark}</span>
         <strong>{wildPigeonCount}</strong>
       </div>
       <div className="habitat-label habitat-label-city">
-        <span>Marble city plaza</span>
+        <span>{copy.cityPlaza}</span>
         <strong>{cityPigeonCount}</strong>
       </div>
       <div className="online-marker" role="status">
@@ -1496,7 +1813,7 @@ function PigeonField({
         <strong>{populationMetric.value}</strong>
         <small>{populationMetric.detail}</small>
       </div>
-      <div className="plaza-metrics" aria-label="Ecosystem variables">
+      <div className="plaza-metrics" aria-label={copy.ecosystemVariables}>
         {habitatMetrics.map((metric, index) => (
           <div
             className={`plaza-metric plaza-metric-${index + 1}`}
@@ -1513,11 +1830,14 @@ function PigeonField({
           </div>
         ))}
       </div>
-      <div className="plaza-events" aria-label="Recent ecosystem changes">
-        <span>Recent field notes</span>
+      <div className="plaza-events" aria-label={copy.recentChanges}>
+        <span>{copy.recentNotes}</span>
         {state.events.slice(0, 4).map((event, index) => (
-          <i key={`${event}-${index}`} title={event}>
-            {event}
+          <i
+            key={`${event}-${index}`}
+            title={translateEvent(event, language)}
+          >
+            {translateEvent(event, language)}
           </i>
         ))}
       </div>
@@ -1527,17 +1847,7 @@ function PigeonField({
 
           return (
             <div
-              aria-label={`${pigeon.agent.plumage} pigeon represented by ${
-                pigeon.word
-              }, boldness ${formatPercent(
-                pigeon.agent.boldness,
-              )}, feeding acceptance ${formatPercent(
-                pigeon.feedingAcceptance,
-              )}, ${pigeon.zone === "inside" ? "fed city body" : "slim wild body"}, style ${
-                pigeon.styleSignature
-              }, fed ${
-                pigeon.agent.feedCount
-              } times`}
+              aria-label={pigeonAriaLabel(pigeon, language)}
               className={`pigeon-word ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
               } pigeon-word-${pigeon.agent.plumage} pigeon-word-${pigeon.zone} ${
@@ -1709,16 +2019,214 @@ function PigeonField({
   );
 }
 
+function SceneControls({
+  language,
+  onLanguageChange,
+  onOpenTutorial,
+}: {
+  language: Language;
+  onLanguageChange: (language: Language) => void;
+  onOpenTutorial: () => void;
+}) {
+  const copy = uiCopy[language];
+
+  return (
+    <nav
+      aria-label={language === "zh" ? "场景设置" : "Scene settings"}
+      className="scene-controls"
+    >
+      <div
+        aria-label={copy.language}
+        className="language-switch"
+        role="group"
+      >
+        <button
+          aria-pressed={language === "zh"}
+          onClick={() => onLanguageChange("zh")}
+          type="button"
+        >
+          中文
+        </button>
+        <button
+          aria-pressed={language === "en"}
+          onClick={() => onLanguageChange("en")}
+          type="button"
+        >
+          EN
+        </button>
+      </div>
+      <button
+        aria-label={copy.openTutorial}
+        className="tutorial-help-button"
+        onClick={onOpenTutorial}
+        title={copy.openTutorial}
+        type="button"
+      >
+        ?
+      </button>
+    </nav>
+  );
+}
+
+function TutorialDialog({
+  language,
+  step,
+  primaryButtonRef,
+  onBack,
+  onClose,
+  onNext,
+}: {
+  language: Language;
+  step: number;
+  primaryButtonRef: React.RefObject<HTMLButtonElement | null>;
+  onBack: () => void;
+  onClose: () => void;
+  onNext: () => void;
+}) {
+  const copy = uiCopy[language];
+  const steps = tutorialSteps[language];
+  const current = steps[step];
+  const isLast = step === steps.length - 1;
+
+  return (
+    <div className="tutorial-backdrop">
+      <section
+        aria-describedby="tutorial-dialog-description"
+        aria-labelledby="tutorial-dialog-title"
+        aria-modal="true"
+        className="tutorial-dialog"
+        role="dialog"
+      >
+        <div className="tutorial-heading">
+          <div>
+            <p className="eyebrow">{copy.tutorialEyebrow}</p>
+            <h2 id="tutorial-dialog-title">{copy.tutorialTitle}</h2>
+          </div>
+          <span aria-live="polite">
+            {copy.tutorialProgress} {step + 1}/{steps.length}
+          </span>
+        </div>
+
+        <div
+          aria-hidden="true"
+          className={`tutorial-visual tutorial-visual-${step + 1}`}
+        >
+          {step === 0 ? (
+            <>
+              <i className="tutorial-pigeon tutorial-pigeon-wild" />
+              <i className="tutorial-flight-path" />
+              <b className="tutorial-pellet">.</b>
+            </>
+          ) : null}
+          {step === 1 ? (
+            <>
+              <div>
+                <i className="tutorial-pigeon tutorial-pigeon-wild" />
+                <span>{copy.wildPark}</span>
+              </div>
+              <b>→</b>
+              <div>
+                <i className="tutorial-pigeon tutorial-pigeon-city" />
+                <span>{copy.cityPlaza}</span>
+              </div>
+            </>
+          ) : null}
+          {step === 2 ? (
+            <>
+              <div className="tutorial-color-row">
+                {plumageOrder.map((plumage) => (
+                  <i
+                    key={plumage}
+                    style={
+                      {
+                        "--tutorial-color": featherPalettes[plumage][1],
+                      } as React.CSSProperties
+                    }
+                  />
+                ))}
+              </div>
+              <strong>&lt; 4/8</strong>
+            </>
+          ) : null}
+        </div>
+
+        <div className="tutorial-copy">
+          <h3>{current.title}</h3>
+          <p id="tutorial-dialog-description">{current.body}</p>
+        </div>
+
+        <div className="tutorial-actions">
+          <button
+            className="tutorial-skip-button"
+            onClick={onClose}
+            type="button"
+          >
+            {copy.tutorialSkip}
+          </button>
+          <div>
+            {step > 0 ? (
+              <button
+                aria-label={copy.tutorialBack}
+                className="tutorial-back-button"
+                onClick={onBack}
+                title={copy.tutorialBack}
+                type="button"
+              >
+                ←
+              </button>
+            ) : null}
+            <button
+              className="tutorial-next-button"
+              onClick={onNext}
+              ref={primaryButtonRef}
+              type="button"
+            >
+              {isLast ? copy.tutorialFinish : copy.tutorialNext}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 export function UrbanPigeonSimulation() {
   const [state, setState] = useState<EcosystemState>(() => makeInitialState());
   const [hydrated, setHydrated] = useState(false);
+  const [language, setLanguage] = useState<Language>("en");
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialStep, setTutorialStep] = useState(0);
   const restartButtonRef = useRef<HTMLButtonElement>(null);
+  const tutorialPrimaryButtonRef = useRef<HTMLButtonElement>(null);
   const onlineCount = useOnlinePresence();
   const feedCooldownMs = feedCooldownMsForOnlineCount(onlineCount);
+  const copy = uiCopy[language];
 
   useEffect(() => {
-    setState(loadState());
-    setHydrated(true);
+    const hydrationFrame = window.requestAnimationFrame(() => {
+      setState(loadState());
+      try {
+        const storedLanguage = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+        const preferredLanguage =
+          storedLanguage === "zh" || storedLanguage === "en"
+            ? storedLanguage
+            : window.navigator.language.toLowerCase().startsWith("zh")
+              ? "zh"
+              : "en";
+        setLanguage(preferredLanguage);
+        setTutorialOpen(
+          window.localStorage.getItem(TUTORIAL_STORAGE_KEY) !== "seen",
+        );
+      } catch {
+        setLanguage(
+          window.navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en",
+        );
+        setTutorialOpen(true);
+      }
+      setHydrated(true);
+    });
+
+    return () => window.cancelAnimationFrame(hydrationFrame);
   }, []);
 
   useEffect(() => {
@@ -1728,6 +2236,15 @@ export function UrbanPigeonSimulation() {
 
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [hydrated, state]);
+
+  useEffect(() => {
+    if (!hydrated) {
+      return;
+    }
+
+    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+  }, [hydrated, language]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -1747,21 +2264,57 @@ export function UrbanPigeonSimulation() {
     }
   }, [state.restartColorVarietyCount]);
 
-  const metrics = metricDetails(state, onlineCount, feedCooldownMs);
+  useEffect(() => {
+    if (tutorialOpen && state.restartColorVarietyCount === null) {
+      tutorialPrimaryButtonRef.current?.focus();
+    }
+  }, [state.restartColorVarietyCount, tutorialOpen, tutorialStep]);
+
+  const closeTutorial = () => {
+    setTutorialOpen(false);
+    setTutorialStep(0);
+    window.localStorage.setItem(TUTORIAL_STORAGE_KEY, "seen");
+  };
+  const advanceTutorial = () => {
+    if (tutorialStep >= tutorialSteps[language].length - 1) {
+      closeTutorial();
+      return;
+    }
+    setTutorialStep((current) => current + 1);
+  };
+  const changeLanguage = (nextLanguage: Language) => {
+    setLanguage(nextLanguage);
+  };
+  const openTutorial = () => {
+    setTutorialStep(0);
+    setTutorialOpen(true);
+  };
+  const metrics = metricDetails(
+    state,
+    onlineCount,
+    feedCooldownMs,
+    language,
+  );
+  const modalOpen =
+    state.restartColorVarietyCount !== null || tutorialOpen;
 
   return (
     <>
       <main
-        aria-hidden={
-          state.restartColorVarietyCount !== null ? true : undefined
-        }
+        aria-hidden={modalOpen ? true : undefined}
         className="min-h-screen overflow-hidden bg-[#e8eee6] text-[#1e2521]"
       >
         <div className="simulation-stage">
           <div className="content-grid">
+            <SceneControls
+              language={language}
+              onLanguageChange={changeLanguage}
+              onOpenTutorial={openTutorial}
+            />
             <PigeonField
               feedCooldownMs={feedCooldownMs}
               generations={state.generations}
+              language={language}
               metrics={metrics}
               onFoodClaimed={(pigeonId, declinedBefore, birthX, birthY) =>
                 setState((current) =>
@@ -1804,27 +2357,37 @@ export function UrbanPigeonSimulation() {
             className="restart-dialog"
             role="alertdialog"
           >
-            <p className="eyebrow">Ecosystem restart required</p>
-            <h2 id="restart-dialog-title">Genetic diversity is too low</h2>
+            <p className="eyebrow">{copy.restartEyebrow}</p>
+            <h2 id="restart-dialog-title">{copy.restartTitle}</h2>
             <div className="restart-diversity-readout">
               <strong>{state.restartColorVarietyCount}/8</strong>
-              <span>color varieties remain</span>
+              <span>{copy.varietiesRemain}</span>
             </div>
-            <p id="restart-dialog-description">
-              Color is the genetic-diversity proxy in this prototype. Restart
-              the ecosystem to restore thirty pigeons spanning all eight colors.
-            </p>
+            <p id="restart-dialog-description">{copy.restartDescription}</p>
             <button
-              onClick={() =>
-                setState((current) => restartEcosystemState(current))
-              }
+              onClick={() => {
+                setTutorialOpen(false);
+                setState((current) => restartEcosystemState(current));
+              }}
               ref={restartButtonRef}
               type="button"
             >
-              Restart ecosystem
+              {copy.restartAction}
             </button>
           </section>
         </div>
+      ) : null}
+      {tutorialOpen && state.restartColorVarietyCount === null ? (
+        <TutorialDialog
+          language={language}
+          onBack={() =>
+            setTutorialStep((current) => Math.max(0, current - 1))
+          }
+          onClose={closeTutorial}
+          onNext={advanceTutorial}
+          primaryButtonRef={tutorialPrimaryButtonRef}
+          step={tutorialStep}
+        />
       ) : null}
     </>
   );

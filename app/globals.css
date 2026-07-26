@@ -2253,3 +2253,334 @@ body {
     width: 2.75rem;
   }
 }
+
+/* Language controls and first-visit field guide */
+.simulation-stage .content-grid {
+  position: relative;
+}
+
+.scene-controls {
+  align-items: center;
+  display: flex;
+  gap: 0.45rem;
+  position: absolute;
+  right: 1.4%;
+  top: 1.6%;
+  z-index: 32;
+}
+
+.language-switch {
+  background: rgba(244, 247, 239, 0.9);
+  border: 1px solid rgba(35, 52, 43, 0.3);
+  border-radius: 6px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  overflow: hidden;
+}
+
+.language-switch button,
+.tutorial-help-button {
+  border: 0;
+  color: #26372e;
+  cursor: pointer;
+  font-family: var(--font-geist-mono), monospace;
+  font-weight: 700;
+}
+
+.language-switch button {
+  background: transparent;
+  font-size: 0.66rem;
+  min-height: 2rem;
+  min-width: 2.7rem;
+  padding: 0.35rem 0.48rem;
+}
+
+.language-switch button + button {
+  border-left: 1px solid rgba(35, 52, 43, 0.2);
+}
+
+.language-switch button[aria-pressed="true"] {
+  background: #315b43;
+  color: #f8faf5;
+}
+
+.tutorial-help-button {
+  align-items: center;
+  background: rgba(244, 247, 239, 0.9);
+  border: 1px solid rgba(35, 52, 43, 0.3);
+  border-radius: 50%;
+  display: inline-flex;
+  font-size: 0.9rem;
+  height: 2rem;
+  justify-content: center;
+  padding: 0;
+  width: 2rem;
+}
+
+.language-switch button:hover,
+.tutorial-help-button:hover {
+  background-color: #dfe8dc;
+}
+
+.language-switch button:focus-visible,
+.tutorial-help-button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(247, 249, 241, 0.9);
+  outline: 2px solid #315b43;
+  outline-offset: 1px;
+}
+
+.tutorial-backdrop {
+  align-items: center;
+  backdrop-filter: blur(3px);
+  background: rgba(23, 32, 27, 0.52);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  padding: 1rem;
+  position: fixed;
+  z-index: 60;
+}
+
+.tutorial-dialog {
+  background: #f6f7f1;
+  border: 1px solid rgba(35, 52, 43, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 1.4rem 4rem rgba(22, 28, 24, 0.28);
+  color: #1e2a23;
+  max-height: calc(100svh - 2rem);
+  max-width: 34rem;
+  overflow: auto;
+  width: 100%;
+}
+
+.tutorial-heading {
+  align-items: flex-start;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1.4rem 1.5rem 1rem;
+}
+
+.tutorial-heading .eyebrow {
+  color: #66736b;
+  margin: 0;
+}
+
+.tutorial-heading h2 {
+  font-size: clamp(1.35rem, 4vw, 1.9rem);
+  font-weight: 650;
+  line-height: 1.15;
+  margin: 0.35rem 0 0;
+}
+
+.tutorial-heading > span {
+  color: #627068;
+  flex: 0 0 auto;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  padding-top: 0.2rem;
+}
+
+.tutorial-visual {
+  align-items: center;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0)),
+    #dce9d8;
+  border-bottom: 1px solid rgba(39, 57, 47, 0.14);
+  border-top: 1px solid rgba(39, 57, 47, 0.14);
+  display: flex;
+  height: 9rem;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+.tutorial-pigeon {
+  aspect-ratio: 3 / 4;
+  background-image: url("/pigeon-motion-atlas.webp");
+  background-position: 0% 0%;
+  background-repeat: no-repeat;
+  background-size: 700% 800%;
+  display: block;
+  height: 6.4rem;
+  position: relative;
+  z-index: 2;
+}
+
+.tutorial-pigeon-wild {
+  transform: scaleX(0.88);
+}
+
+.tutorial-pigeon-city {
+  transform: scale(1.08, 1.04);
+}
+
+.tutorial-flight-path {
+  border-left: 2px dashed rgba(71, 88, 77, 0.48);
+  border-radius: 50%;
+  bottom: -1.5rem;
+  height: 8rem;
+  left: 31%;
+  position: absolute;
+  transform: rotate(54deg);
+  width: 11rem;
+}
+
+.tutorial-pellet {
+  bottom: 0.45rem;
+  color: #5b4930;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 2.2rem;
+  left: 28%;
+  line-height: 1;
+  position: absolute;
+}
+
+.tutorial-visual-2 {
+  gap: clamp(1.2rem, 8vw, 3.5rem);
+}
+
+.tutorial-visual-2 > div {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.tutorial-visual-2 span {
+  color: #506158;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.tutorial-visual-2 > b {
+  color: #3e5d4b;
+  font-size: 1.5rem;
+}
+
+.tutorial-visual-3 {
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.tutorial-color-row {
+  display: flex;
+  gap: 0.42rem;
+}
+
+.tutorial-color-row i {
+  background: var(--tutorial-color);
+  border: 1px solid rgba(31, 43, 37, 0.28);
+  border-radius: 50%;
+  height: 1.35rem;
+  width: 1.35rem;
+}
+
+.tutorial-visual-3 > strong {
+  color: #9a3d2a;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 1.35rem;
+}
+
+.tutorial-copy {
+  min-height: 8.4rem;
+  padding: 1.25rem 1.5rem 0.75rem;
+}
+
+.tutorial-copy h3 {
+  font-size: 1.1rem;
+  margin: 0 0 0.55rem;
+}
+
+.tutorial-copy p {
+  color: #536159;
+  line-height: 1.6;
+  margin: 0;
+}
+
+.tutorial-actions {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.75rem 1.5rem 1.4rem;
+}
+
+.tutorial-actions button {
+  border-radius: 6px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 650;
+  min-height: 2.65rem;
+}
+
+.tutorial-skip-button {
+  background: transparent;
+  border: 0;
+  color: #5a6860;
+  padding: 0.55rem 0;
+}
+
+.tutorial-actions > div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tutorial-back-button {
+  background: #eef1e9;
+  border: 1px solid rgba(35, 52, 43, 0.24);
+  color: #2d4437;
+  font-size: 1.1rem;
+  padding: 0.45rem 0.8rem;
+  width: 2.75rem;
+}
+
+.tutorial-next-button {
+  background: #2f5941;
+  border: 1px solid #2f5941;
+  color: #f9fbf6;
+  padding: 0.55rem 1rem;
+}
+
+.tutorial-next-button:hover {
+  background: #3b6b50;
+}
+
+.tutorial-actions button:focus-visible {
+  box-shadow: 0 0 0 3px rgba(91, 126, 104, 0.3);
+  outline: 2px solid #f8faf5;
+  outline-offset: 1px;
+}
+
+@media (max-width: 680px) {
+  .scene-controls {
+    right: 3%;
+    top: 10%;
+  }
+
+  .language-switch button {
+    min-width: 2.5rem;
+  }
+
+  .tutorial-dialog {
+    max-width: 30rem;
+  }
+
+  .tutorial-heading,
+  .tutorial-copy,
+  .tutorial-actions {
+    padding-left: 1.1rem;
+    padding-right: 1.1rem;
+  }
+
+  .tutorial-visual {
+    height: 7.8rem;
+  }
+
+  .tutorial-pigeon {
+    height: 5.4rem;
+  }
+
+  .tutorial-copy {
+    min-height: 9.4rem;
+  }
+}
