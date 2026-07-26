@@ -223,13 +223,11 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.doesNotMatch(simulation, /shyWordForms|boldWordForms/);
   assert.match(css, /\.pigeon-word-label/);
   assert.match(css, /\.pigeon-bird-sprite/);
-  assert.match(css, /url\("\/pigeon-idle-atlas\.webp"\)/);
-  assert.match(css, /url\("\/pigeon-crouch-atlas\.webp"\)/);
-  assert.match(css, /url\("\/pigeon-half-open-atlas\.webp"\)/);
-  assert.match(css, /url\("\/pigeon-flight-atlas\.webp"\)/);
-  assert.match(css, /url\("\/pigeon-downstroke-atlas\.webp"\)/);
-  assert.match(css, /url\("\/pigeon-landing-atlas\.webp"\)/);
-  assert.match(css, /url\("\/pigeon-settle-atlas\.webp"\)/);
+  assert.match(css, /url\("\/pigeon-motion-atlas\.webp"\)/);
+  assert.doesNotMatch(
+    css,
+    /url\("\/pigeon-(?:idle|crouch|half-open|flight|downstroke|landing|settle)-atlas\.webp"\)/,
+  );
   assert.match(css, /@keyframes pigeon-flight-sprite-frames/);
   assert.match(css, /@keyframes pigeon-landing-sprite-frames/);
   assert.match(css, /@keyframes pigeon-bird-dissolve/);
@@ -294,11 +292,5 @@ test("keeps the pigeon simulation visual system in source", async () => {
 
   await access(new URL("../public/og.png", import.meta.url));
   await access(new URL("../public/equestrian-monument.png", import.meta.url));
-  await access(new URL("../public/pigeon-idle-atlas.webp", import.meta.url));
-  await access(new URL("../public/pigeon-crouch-atlas.webp", import.meta.url));
-  await access(new URL("../public/pigeon-half-open-atlas.webp", import.meta.url));
-  await access(new URL("../public/pigeon-flight-atlas.webp", import.meta.url));
-  await access(new URL("../public/pigeon-downstroke-atlas.webp", import.meta.url));
-  await access(new URL("../public/pigeon-landing-atlas.webp", import.meta.url));
-  await access(new URL("../public/pigeon-settle-atlas.webp", import.meta.url));
+  await access(new URL("../public/pigeon-motion-atlas.webp", import.meta.url));
 });

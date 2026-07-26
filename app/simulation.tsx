@@ -1565,8 +1565,7 @@ function PigeonField({
                   "--claim-y": claim ? `${claim.y}%` : `${pigeon.y}%`,
                   "--speed": `${pigeon.speed}s`,
                   "--flight-duration": claim ? `${claim.flightDuration}ms` : "620ms",
-                  "--sprite-x": `${(pigeon.spriteIndex % 4) * 33.333333}%`,
-                  "--sprite-y": `${Math.floor(pigeon.spriteIndex / 4) * 100}%`,
+                  "--motion-y": `${pigeon.spriteIndex * 14.285714}%`,
                   "--scale": pigeon.scale.toFixed(2),
                   "--tilt": `${pigeon.tilt}deg`,
                   animationDelay:
@@ -1613,8 +1612,7 @@ function PigeonField({
                 "--death-y": `${effect.y}%`,
                 "--death-scale": effect.scale,
                 "--death-tilt": `${effect.tilt}deg`,
-                "--sprite-x": `${(effect.spriteIndex % 4) * 33.333333}%`,
-                "--sprite-y": `${Math.floor(effect.spriteIndex / 4) * 100}%`,
+                "--motion-y": `${effect.spriteIndex * 14.285714}%`,
               } as React.CSSProperties
             }
           >

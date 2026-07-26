@@ -2048,14 +2048,16 @@ body {
 
 .pigeon-bird-sprite,
 .pigeon-death-bird {
-  background-image: url("/pigeon-idle-atlas.webp");
-  background-position: var(--sprite-x) var(--sprite-y);
+  backface-visibility: hidden;
+  background-image: url("/pigeon-motion-atlas.webp");
+  background-position: 0% var(--motion-y);
   background-repeat: no-repeat;
-  background-size: 400% 200%;
+  background-size: 700% 800%;
   display: block;
   inset: 0;
   pointer-events: none;
   position: absolute;
+  will-change: background-position;
 }
 
 .pigeon-word-inside .pigeon-bird-sprite {
@@ -2064,11 +2066,11 @@ body {
 }
 
 .pigeon-word-flying .pigeon-bird-sprite {
-  animation: pigeon-flight-sprite-frames var(--flight-duration) linear both;
+  animation: pigeon-flight-sprite-frames var(--flight-duration) step-end both;
 }
 
 .pigeon-word-landing .pigeon-bird-sprite {
-  animation: pigeon-landing-sprite-frames 760ms linear both;
+  animation: pigeon-landing-sprite-frames 760ms step-end both;
 }
 
 .pigeon-word-label-source {
@@ -2140,81 +2142,81 @@ body {
 @keyframes pigeon-flight-sprite-frames {
   0%,
   6.9% {
-    background-image: url("/pigeon-idle-atlas.webp");
+    background-position-x: 0%;
   }
 
   7%,
   15.9% {
-    background-image: url("/pigeon-crouch-atlas.webp");
+    background-position-x: 16.666667%;
   }
 
   16%,
   27.9% {
-    background-image: url("/pigeon-half-open-atlas.webp");
+    background-position-x: 33.333333%;
   }
 
   28%,
   43.9% {
-    background-image: url("/pigeon-flight-atlas.webp");
+    background-position-x: 50%;
   }
 
   44%,
   59.9% {
-    background-image: url("/pigeon-downstroke-atlas.webp");
+    background-position-x: 66.666667%;
   }
 
   60%,
   75.9% {
-    background-image: url("/pigeon-flight-atlas.webp");
+    background-position-x: 50%;
   }
 
   76%,
   89.9% {
-    background-image: url("/pigeon-downstroke-atlas.webp");
+    background-position-x: 66.666667%;
   }
 
   90%,
   100% {
-    background-image: url("/pigeon-flight-atlas.webp");
+    background-position-x: 50%;
   }
 }
 
 @keyframes pigeon-landing-sprite-frames {
   0%,
   13.9% {
-    background-image: url("/pigeon-flight-atlas.webp");
+    background-position-x: 50%;
   }
 
   14%,
   31.9% {
-    background-image: url("/pigeon-half-open-atlas.webp");
+    background-position-x: 33.333333%;
   }
 
   32%,
   56.9% {
-    background-image: url("/pigeon-landing-atlas.webp");
+    background-position-x: 83.333333%;
   }
 
   57%,
   81.9% {
-    background-image: url("/pigeon-settle-atlas.webp");
+    background-position-x: 100%;
   }
 
   82%,
   100% {
-    background-image: url("/pigeon-idle-atlas.webp");
+    background-position-x: 0%;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .pigeon-word-flying .pigeon-bird-sprite {
     animation: none;
-    background-image: url("/pigeon-flight-atlas.webp");
+    background-position-x: 50%;
   }
 
   .pigeon-word-landing .pigeon-bird-sprite {
     animation: none;
-    background-image: url("/pigeon-idle-atlas.webp");
+    background-position-x: 0%;
   }
 
   .pigeon-death-bird {
