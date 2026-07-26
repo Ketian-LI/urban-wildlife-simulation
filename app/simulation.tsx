@@ -19,6 +19,7 @@ const FEEDING_SAFETY_MS = 5000;
 const SPLIT_ANIMATION_MS = 1800;
 const PIGEON_DEATH_ANIMATION_MS = 1400;
 const CITY_FOOD_DETECTION_RADIUS = 24;
+const CLOUD_SAVE_INTERVAL_MS = 5_000;
 
 type Plumage =
   | "grey"
@@ -31,6 +32,10 @@ type Plumage =
   | "rust";
 
 type Language = "en" | "zh";
+type CloudSyncStatus = "local" | "loading" | "saving" | "saved" | "error";
+type AccountInfo = {
+  displayName: string;
+};
 
 const uiCopy = {
   en: {
@@ -47,6 +52,14 @@ const uiCopy = {
     favoriteFeeds: "feeds",
     favoriteProtected: "Protected from natural deaths",
     favoriteEmpty: "No favorite yet",
+    signInWithChatGPT: "Sign in with ChatGPT",
+    signOut: "Sign out",
+    cloudSave: "Cloud save",
+    syncLocal: "Saved on this device",
+    syncLoading: "Loading cloud save",
+    syncSaving: "Saving",
+    syncSaved: "Saved",
+    syncError: "Cloud sync unavailable",
     language: "Language",
     openTutorial: "Open tutorial",
     restartEyebrow: "Ecosystem restart required",
@@ -78,6 +91,14 @@ const uiCopy = {
     favoriteFeeds: "次投喂",
     favoriteProtected: "不会自然死亡",
     favoriteEmpty: "尚未选出",
+    signInWithChatGPT: "使用 ChatGPT 登录",
+    signOut: "退出登录",
+    cloudSave: "云端存档",
+    syncLocal: "保存在此设备",
+    syncLoading: "正在读取云端存档",
+    syncSaving: "正在保存",
+    syncSaved: "已保存",
+    syncError: "云端同步暂不可用",
     language: "语言",
     openTutorial: "打开教程",
     restartEyebrow: "需要重新开始生态系统",
@@ -860,18 +881,13 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
   return markRestartRequiredIfColorVarietyTooLow(next);
 }
 
-function loadState() {
-  if (typeof window === "undefined") {
-    return makeInitialState();
-  }
-
+function restoreState(savedState: unknown) {
   try {
-    const saved = window.localStorage.getItem(STORAGE_KEY);
-    if (!saved) {
+    if (!savedState || typeof savedState !== "object") {
       return makeInitialState();
     }
 
-    const parsed = JSON.parse(saved) as Partial<EcosystemState>;
+    const parsed = savedState as Partial<EcosystemState>;
     const initial = makeInitialState();
     const pigeons =
       Array.isArray(parsed.pigeons) && parsed.pigeons.length > 0
@@ -934,6 +950,19 @@ function loadState() {
           ? Math.max(0, Math.trunc(Number(parsed.restartColorVarietyCount)))
           : null,
     });
+  } catch {
+    return makeInitialState();
+  }
+}
+
+function loadState() {
+  if (typeof window === "undefined") {
+    return makeInitialState();
+  }
+
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    return saved ? restoreState(JSON.parse(saved)) : makeInitialState();
   } catch {
     return makeInitialState();
   }
@@ -2180,6 +2209,71 @@ function SceneControls({
   );
 }
 
+function AccountControl({
+  account,
+  language,
+  signInPath,
+  signOutPath,
+  syncStatus,
+}: {
+  account: AccountInfo | null;
+  language: Language;
+  signInPath: string;
+  signOutPath: string;
+  syncStatus: CloudSyncStatus;
+}) {
+  const copy = uiCopy[language];
+  const statusCopy: Record<CloudSyncStatus, string> = {
+    local: copy.syncLocal,
+    loading: copy.syncLoading,
+    saving: copy.syncSaving,
+    saved: copy.syncSaved,
+    error: copy.syncError,
+  };
+
+  if (!account) {
+    return (
+      <a
+        aria-label={`${copy.signInWithChatGPT}. ${copy.syncLocal}`}
+        className="account-control account-sign-in"
+        href={signInPath}
+      >
+        <span aria-hidden="true" className="account-cloud-icon">
+          ☁
+        </span>
+        <span>
+          <strong>{copy.signInWithChatGPT}</strong>
+          <small>{copy.syncLocal}</small>
+        </span>
+      </a>
+    );
+  }
+
+  return (
+    <div
+      aria-label={`${copy.cloudSave}: ${statusCopy[syncStatus]}`}
+      className={`account-control account-signed-in account-sync-${syncStatus}`}
+      role="status"
+    >
+      <span aria-hidden="true" className="account-avatar">
+        {account.displayName.trim().charAt(0).toUpperCase() || "U"}
+      </span>
+      <span className="account-identity">
+        <strong>{account.displayName}</strong>
+        <small>{statusCopy[syncStatus]}</small>
+      </span>
+      <a
+        aria-label={copy.signOut}
+        className="account-sign-out"
+        href={signOutPath}
+        title={copy.signOut}
+      >
+        ↪
+      </a>
+    </div>
+  );
+}
+
 function TutorialDialog({
   language,
   step,
@@ -2326,14 +2420,28 @@ function TutorialDialog({
   );
 }
 
-export function UrbanPigeonSimulation() {
+export function UrbanPigeonSimulation({
+  account,
+  signInPath,
+  signOutPath,
+}: {
+  account: AccountInfo | null;
+  signInPath: string;
+  signOutPath: string;
+}) {
   const [state, setState] = useState<EcosystemState>(() => makeInitialState());
   const [hydrated, setHydrated] = useState(false);
   const [language, setLanguage] = useState<Language>("en");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const [cloudReady, setCloudReady] = useState(account === null);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>(
+    account ? "loading" : "local",
+  );
   const restartButtonRef = useRef<HTMLButtonElement>(null);
   const tutorialPrimaryButtonRef = useRef<HTMLButtonElement>(null);
+  const latestStateRef = useRef(state);
+  const lastCloudSaveRef = useRef("");
   const onlineCount = useOnlinePresence();
   const feedCooldownMs = feedCooldownMsForOnlineCount(onlineCount);
   const copy = uiCopy[language];
@@ -2374,6 +2482,10 @@ export function UrbanPigeonSimulation() {
   }, [hydrated, state]);
 
   useEffect(() => {
+    latestStateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
     if (!hydrated) {
       return;
     }
@@ -2381,6 +2493,111 @@ export function UrbanPigeonSimulation() {
     window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
     document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
   }, [hydrated, language]);
+
+  useEffect(() => {
+    if (!hydrated || !account) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    void fetch("/api/simulation-state", {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Cloud save could not be loaded.");
+        }
+
+        return (await response.json()) as { state?: unknown };
+      })
+      .then((payload) => {
+        if (payload.state) {
+          const restored = restoreState(payload.state);
+          lastCloudSaveRef.current = JSON.stringify(restored);
+          setState(restored);
+        }
+        setCloudReady(true);
+        setCloudSyncStatus("saved");
+      })
+      .catch((error: unknown) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setCloudSyncStatus("error");
+      });
+
+    return () => controller.abort();
+  }, [account, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated || !account || !cloudReady) {
+      return;
+    }
+
+    let active = true;
+    const persistCloudState = async () => {
+      const snapshot = latestStateRef.current;
+      const serialized = JSON.stringify(snapshot);
+      if (serialized === lastCloudSaveRef.current) {
+        if (active) {
+          setCloudSyncStatus("saved");
+        }
+        return;
+      }
+
+      if (active) {
+        setCloudSyncStatus("saving");
+      }
+
+      try {
+        const response = await fetch("/api/simulation-state", {
+          body: JSON.stringify({ state: snapshot }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+        if (!response.ok) {
+          throw new Error("Cloud save could not be written.");
+        }
+        lastCloudSaveRef.current = serialized;
+        if (active) {
+          setCloudSyncStatus("saved");
+        }
+      } catch {
+        if (active) {
+          setCloudSyncStatus("error");
+        }
+      }
+    };
+    const persistBeforeLeaving = () => {
+      const serialized = JSON.stringify(latestStateRef.current);
+      if (
+        serialized !== lastCloudSaveRef.current &&
+        typeof window.navigator.sendBeacon === "function"
+      ) {
+        window.navigator.sendBeacon(
+          "/api/simulation-state",
+          new Blob([`{"state":${serialized}}`], {
+            type: "application/json",
+          }),
+        );
+      }
+    };
+
+    void persistCloudState();
+    const timer = window.setInterval(
+      () => void persistCloudState(),
+      CLOUD_SAVE_INTERVAL_MS,
+    );
+    window.addEventListener("pagehide", persistBeforeLeaving);
+
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener("pagehide", persistBeforeLeaving);
+    };
+  }, [account, cloudReady, hydrated]);
 
   useEffect(() => {
     if (!hydrated) {
@@ -2442,6 +2659,13 @@ export function UrbanPigeonSimulation() {
       >
         <div className="simulation-stage">
           <div className="content-grid">
+            <AccountControl
+              account={account}
+              language={language}
+              signInPath={signInPath}
+              signOutPath={signOutPath}
+              syncStatus={cloudSyncStatus}
+            />
             <SceneControls
               language={language}
               onLanguageChange={changeLanguage}

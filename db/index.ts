@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/d1";
 import * as schema from "./schema";
 
 let presenceSchemaPromise: Promise<void> | null = null;
+let simulationSaveSchemaPromise: Promise<void> | null = null;
 
 export function getD1() {
   if (!env.DB) {
@@ -42,4 +43,31 @@ export function ensurePresenceSchema() {
   }
 
   return presenceSchemaPromise;
+}
+
+export function ensureSimulationSaveSchema() {
+  if (!simulationSaveSchemaPromise) {
+    const d1 = getD1();
+    simulationSaveSchemaPromise = d1
+      .batch([
+        d1.prepare(`
+          CREATE TABLE IF NOT EXISTS simulation_saves (
+            owner_id TEXT PRIMARY KEY NOT NULL,
+            state_json TEXT NOT NULL,
+            updated_at INTEGER NOT NULL
+          )
+        `),
+        d1.prepare(`
+          CREATE INDEX IF NOT EXISTS simulation_saves_updated_at_idx
+          ON simulation_saves (updated_at)
+        `),
+      ])
+      .then(() => undefined)
+      .catch((error) => {
+        simulationSaveSchemaPromise = null;
+        throw error;
+      });
+  }
+
+  return simulationSaveSchemaPromise;
 }

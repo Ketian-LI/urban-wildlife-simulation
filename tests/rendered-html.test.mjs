@@ -2,14 +2,14 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
-async function render() {
+async function render(headers = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
     new Request("http://localhost/", {
-      headers: { accept: "text/html" },
+      headers: { accept: "text/html", ...headers },
     }),
     {
       ASSETS: {
@@ -60,6 +60,9 @@ test("server-renders the illustrated flock", async () => {
   assert.match(html, /8\/8 colors/);
   assert.match(html, /Throw food into the animated illustrated pigeon population/);
   assert.match(html, /property="og:image"/);
+  assert.match(html, /Sign in with ChatGPT/);
+  assert.match(html, /Saved on this device/);
+  assert.match(html, /href="\/signin-with-chatgpt\?return_to=%2F"/);
   assert.doesNotMatch(html, /pigeon-body|pigeon-head|>Feed</);
 
   const styleSignatures = [
@@ -83,22 +86,44 @@ test("server-renders the illustrated flock", async () => {
   }
 });
 
+test("server-renders the signed-in cloud-save account", async () => {
+  const response = await render({
+    "oai-authenticated-user-email": "field-host@example.com",
+  });
+  assert.equal(response.status, 200);
+
+  const html = await response.text();
+  assert.match(html, /field-host@example\.com/);
+  assert.match(html, /Cloud save/);
+  assert.match(html, /Loading cloud save/);
+  assert.match(html, /href="\/signout-with-chatgpt\?return_to=%2F"/);
+});
+
 test("keeps the pigeon simulation visual system in source", async () => {
   const [
     simulation,
     css,
     layout,
+    page,
     packageJson,
     presenceRoute,
+    simulationStateRoute,
     databaseSchema,
+    databaseIndex,
     hostingConfig,
   ] = await Promise.all([
     readFile(new URL("../app/simulation.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
     readFile(new URL("../app/api/presence/route.ts", import.meta.url), "utf8"),
+    readFile(
+      new URL("../app/api/simulation-state/route.ts", import.meta.url),
+      "utf8",
+    ),
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
+    readFile(new URL("../db/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
   ]);
 
@@ -114,6 +139,7 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /const CITY_FOOD_DETECTION_RADIUS = 24/);
+  assert.match(simulation, /const CLOUD_SAVE_INTERVAL_MS = 5_000/);
   assert.match(simulation, /function recordFeedActionState/);
   assert.match(simulation, /function protectFlockFromHunger/);
   assert.match(simulation, /const HUNGER_INTERVAL_SECONDS = 1/);
@@ -259,6 +285,14 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /tutorialSteps\[language\]/);
   assert.match(simulation, /window\.localStorage\.setItem\(LANGUAGE_STORAGE_KEY/);
   assert.match(simulation, /document\.documentElement\.lang/);
+  assert.match(simulation, /function AccountControl/);
+  assert.match(simulation, /className="account-control account-sign-in"/);
+  assert.match(simulation, /account-sync-\$\{syncStatus\}/);
+  assert.match(simulation, /function restoreState/);
+  assert.match(simulation, /fetch\("\/api\/simulation-state"/);
+  assert.match(simulation, /method: "POST"/);
+  assert.match(simulation, /window\.navigator\.sendBeacon/);
+  assert.match(simulation, /CLOUD_SAVE_INTERVAL_MS/);
   assert.match(simulation, /少于四种羽色/);
   assert.match(simulation, /birthX: number/);
   assert.match(simulation, /bornAt: number/);
@@ -316,6 +350,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(css, /\.host-favorite-protection/);
   assert.match(css, /\.host-favorite-heart/);
   assert.match(css, /\.pigeon-word-host-favorite/);
+  assert.match(css, /\.account-control/);
+  assert.match(css, /\.account-sign-in/);
+  assert.match(css, /\.account-signed-in/);
+  assert.match(css, /\.account-sync-error/);
   assert.match(css, /--field-sky/);
   assert.match(css, /\.pigeon-word-white/);
   assert.match(css, /\.pigeon-word-spotted/);
@@ -355,11 +393,26 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(presenceRoute, /heartbeatMs: 15_000/);
   assert.match(presenceRoute, /\.onConflictDoUpdate/);
   assert.match(presenceRoute, /Cache-Control": "no-store"/);
+  assert.match(page, /export const dynamic = "force-dynamic"/);
+  assert.match(page, /getChatGPTUser\(\)/);
+  assert.match(page, /chatGPTSignInPath\("\/"\)/);
+  assert.match(page, /chatGPTSignOutPath\("\/"\)/);
+  assert.match(simulationStateRoute, /getChatGPTUser\(\)/);
+  assert.match(simulationStateRoute, /ownerIdForEmail/);
+  assert.match(simulationStateRoute, /crypto\.subtle\.digest\("SHA-256"/);
+  assert.match(simulationStateRoute, /MAX_STATE_BYTES = 256_000/);
+  assert.match(simulationStateRoute, /MAX_PIGEONS = 50/);
+  assert.match(simulationStateRoute, /onConflictDoUpdate/);
   assert.match(databaseSchema, /presenceSessions/);
   assert.match(databaseSchema, /lastSeen: integer\("last_seen"\)/);
+  assert.match(databaseSchema, /simulationSaves/);
+  assert.match(databaseSchema, /ownerId: text\("owner_id"\)\.primaryKey\(\)/);
+  assert.match(databaseIndex, /ensureSimulationSaveSchema/);
+  assert.match(databaseIndex, /CREATE TABLE IF NOT EXISTS simulation_saves/);
   assert.equal(JSON.parse(hostingConfig).d1, "DB");
 
   await access(new URL("../public/og.png", import.meta.url));
   await access(new URL("../public/equestrian-monument.png", import.meta.url));
   await access(new URL("../public/pigeon-motion-atlas.webp", import.meta.url));
+  await access(new URL("../drizzle/0001_glossy_warbird.sql", import.meta.url));
 });
