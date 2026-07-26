@@ -43,6 +43,10 @@ const uiCopy = {
     ecosystemVariables: "Ecosystem variables",
     recentChanges: "Recent ecosystem changes",
     recentNotes: "Recent field notes",
+    hostFavorite: "Host favorite",
+    favoriteFeeds: "feeds",
+    favoriteProtected: "Protected from natural deaths",
+    favoriteEmpty: "No favorite yet",
     language: "Language",
     openTutorial: "Open tutorial",
     restartEyebrow: "Ecosystem restart required",
@@ -70,6 +74,10 @@ const uiCopy = {
     ecosystemVariables: "生态系统变量",
     recentChanges: "近期生态变化",
     recentNotes: "近期观察记录",
+    hostFavorite: "主机最爱",
+    favoriteFeeds: "次投喂",
+    favoriteProtected: "不会自然死亡",
+    favoriteEmpty: "尚未选出",
     language: "语言",
     openTutorial: "打开教程",
     restartEyebrow: "需要重新开始生态系统",
@@ -508,6 +516,24 @@ function averageBoldness(pigeons: PigeonAgent[]) {
   return pigeons.reduce((total, pigeon) => total + pigeon.boldness, 0) / pigeons.length;
 }
 
+function hostFavoritePigeon(pigeons: PigeonAgent[]) {
+  return pigeons.reduce<PigeonAgent | undefined>((favorite, pigeon) => {
+    if (pigeon.feedCount <= 0) {
+      return favorite;
+    }
+
+    if (
+      !favorite ||
+      pigeon.feedCount > favorite.feedCount ||
+      (pigeon.feedCount === favorite.feedCount && pigeon.id < favorite.id)
+    ) {
+      return pigeon;
+    }
+
+    return favorite;
+  }, undefined);
+}
+
 function initialPigeonStyle(id: number) {
   return {
     plumage: plumageOrder[(id * 5) % plumageOrder.length],
@@ -693,6 +719,7 @@ function applyHungerDeaths(
   let actualDeaths = 0;
 
   for (let index = 0; index < deathCount; index += 1) {
+    const favoriteId = hostFavoritePigeon(state.pigeons)?.id;
     const indexedPigeons = state.pigeons.map((pigeon, pigeonIndex) => ({
       pigeon,
       pigeonIndex,
@@ -700,6 +727,7 @@ function applyHungerDeaths(
     const eligible = indexedPigeons.filter(
       ({ pigeon }) =>
         pigeon.hasAcceptedFood &&
+        pigeon.id !== favoriteId &&
         (Number(pigeon.protectedUntil) || 0) <= now,
     );
 
@@ -994,11 +1022,15 @@ function feedPigeonState(
 
   let removed: PigeonAgent | undefined;
   if (pigeons.length > MAX_PIGEONS) {
-    const indexedPigeons = pigeons
+    const favoriteId = hostFavoritePigeon(pigeons)?.id;
+    const removablePigeons = pigeons
       .map((pigeon, index) => ({ pigeon, index }))
-      .filter(
-        ({ pigeon }) => (Number(pigeon.protectedUntil) || 0) <= Date.now(),
-      );
+      .filter(({ pigeon }) => pigeon.id !== favoriteId);
+    const unprotectedPigeons = removablePigeons.filter(
+      ({ pigeon }) => (Number(pigeon.protectedUntil) || 0) <= Date.now(),
+    );
+    const indexedPigeons =
+      unprotectedPigeons.length > 0 ? unprotectedPigeons : removablePigeons;
     const minimumFeedCount = Math.min(
       ...indexedPigeons.map(({ pigeon }) => pigeon.feedCount),
     );
@@ -1307,22 +1339,31 @@ function pigeonVisuals(state: EcosystemState) {
 
 type PigeonVisual = ReturnType<typeof pigeonVisuals>[number];
 
-function pigeonAriaLabel(pigeon: PigeonVisual, language: Language) {
+function pigeonAriaLabel(
+  pigeon: PigeonVisual,
+  language: Language,
+  isHostFavorite = false,
+) {
   const boldness = formatPercent(pigeon.agent.boldness);
   const acceptance = formatPercent(pigeon.feedingAcceptance);
   const plumage = translatedPlumage(pigeon.agent.plumage, language);
+  const favoriteDescription = isHostFavorite
+    ? language === "zh"
+      ? "，主机最常投喂的鸽子，不会自然死亡"
+      : ", host favorite, protected from natural deaths"
+    : "";
 
   if (language === "zh") {
     return `${plumage}鸽子，文字基因为 ${pigeon.word}，大胆程度 ${boldness}，接受喂食概率 ${acceptance}，${
       pigeon.zone === "inside" ? "饱满的城市体型" : "较瘦的野外体型"
-    }，样式 ${pigeon.styleSignature}，已进食 ${pigeon.agent.feedCount} 次`;
+    }，样式 ${pigeon.styleSignature}，已进食 ${pigeon.agent.feedCount} 次${favoriteDescription}`;
   }
 
   return `${plumage} pigeon represented by ${
     pigeon.word
   }, boldness ${boldness}, feeding acceptance ${acceptance}, ${
     pigeon.zone === "inside" ? "fed city body" : "slim wild body"
-  }, style ${pigeon.styleSignature}, fed ${pigeon.agent.feedCount} times`;
+  }, style ${pigeon.styleSignature}, fed ${pigeon.agent.feedCount} times${favoriteDescription}`;
 }
 
 function selectFoodRecipient(
@@ -1417,6 +1458,10 @@ function PigeonField({
     () => pigeonVisuals(state),
     [state],
   );
+  const favoriteAgent = hostFavoritePigeon(state.pigeons);
+  const favoritePigeon = favoriteAgent
+    ? pigeons.find((pigeon) => pigeon.id === favoriteAgent.id)
+    : undefined;
   const cityPigeonCount = state.pigeons.filter(
     (pigeon) => pigeon.hasAcceptedFood,
   ).length;
@@ -1813,6 +1858,61 @@ function PigeonField({
         <strong>{populationMetric.value}</strong>
         <small>{populationMetric.detail}</small>
       </div>
+      <div
+        aria-label={
+          favoritePigeon
+            ? `${copy.hostFavorite}: ${translatedPlumage(
+                favoritePigeon.agent.plumage,
+                language,
+              )}, ${favoritePigeon.agent.feedCount} ${copy.favoriteFeeds}. ${copy.favoriteProtected}`
+            : `${copy.hostFavorite}: ${copy.favoriteEmpty}`
+        }
+        className={`host-favorite-plaque ${
+          favoritePigeon ? "has-favorite" : "is-empty"
+        }`}
+        data-host-favorite-id={favoritePigeon?.id}
+        role="status"
+      >
+        <span
+          aria-hidden="true"
+          className={`host-favorite-portrait ${
+            favoritePigeon
+              ? `pigeon-word-${favoritePigeon.agent.plumage}`
+              : ""
+          }`}
+        >
+          {favoritePigeon ? (
+            <span
+              className="pigeon-bird-sprite"
+              style={
+                {
+                  "--motion-y": `${favoritePigeon.spriteIndex * 14.285714}%`,
+                } as React.CSSProperties
+              }
+            />
+          ) : (
+            <b>♥</b>
+          )}
+        </span>
+        <span className="host-favorite-copy">
+          <span>
+            <i aria-hidden="true">♥</i>
+            {copy.hostFavorite}
+          </span>
+          <strong>
+            {favoritePigeon?.agent.feedCount ?? 0}
+            <small>{copy.favoriteFeeds}</small>
+          </strong>
+          {!favoritePigeon ? <small>{copy.favoriteEmpty}</small> : null}
+        </span>
+        <span
+          aria-label={copy.favoriteProtected}
+          className="host-favorite-protection"
+          role="img"
+        >
+          ∞
+        </span>
+      </div>
       <div className="plaza-metrics" aria-label={copy.ecosystemVariables}>
         {habitatMetrics.map((metric, index) => (
           <div
@@ -1844,17 +1944,24 @@ function PigeonField({
       <div className="pigeon-layer">
         {pigeons.map((pigeon) => {
           const claim = claims.find((item) => item.pigeonId === pigeon.id);
+          const isHostFavorite = pigeon.id === favoritePigeon?.id;
 
           return (
             <div
-              aria-label={pigeonAriaLabel(pigeon, language)}
+              aria-label={pigeonAriaLabel(
+                pigeon,
+                language,
+                isHostFavorite,
+              )}
               className={`pigeon-word ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
               } pigeon-word-${pigeon.agent.plumage} pigeon-word-${pigeon.zone} ${
                 claim
                   ? `pigeon-word-claiming pigeon-word-${claim.phase} pigeon-word-${claim.response}`
                   : ""
-              } ${pigeon.isNewborn ? "pigeon-word-newborn" : ""}`}
+              } ${pigeon.isNewborn ? "pigeon-word-newborn" : ""} ${
+                isHostFavorite ? "pigeon-word-host-favorite" : ""
+              }`}
               data-food-response={claim?.response}
               data-pigeon-id={pigeon.id}
               data-style-signature={pigeon.styleSignature}
@@ -1884,6 +1991,11 @@ function PigeonField({
               }
             >
               <span aria-hidden="true" className="pigeon-bird-sprite" />
+              {isHostFavorite ? (
+                <span aria-hidden="true" className="host-favorite-heart">
+                  ♥
+                </span>
+              ) : null}
               <span
                 aria-hidden="true"
                 className="pigeon-word-label pigeon-word-label-source"

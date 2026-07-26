@@ -2602,3 +2602,199 @@ body {
     font-size: 1.25rem;
   }
 }
+
+/* Host favorite: a permanent plaza plaque and matching bird marker */
+.host-favorite-plaque {
+  align-items: center;
+  background: #e8e6de;
+  border: clamp(0.08rem, 0.14vw, 0.14rem) solid #888d86;
+  border-radius: 4px;
+  bottom: 1.7%;
+  box-shadow:
+    0 0 0 clamp(0.1rem, 0.22vw, 0.22rem) #cbc8bf,
+    0 0.22rem 0 #6e756e;
+  color: #35433c;
+  display: grid;
+  font-family: var(--font-geist-mono), monospace;
+  gap: clamp(0.28rem, 0.58vw, 0.62rem);
+  grid-template-columns: clamp(2.3rem, 4.8vw, 4.9rem) minmax(0, 1fr) clamp(1.2rem, 2vw, 2rem);
+  left: 2.2%;
+  min-height: clamp(3rem, 7.2vw, 7.2rem);
+  padding: clamp(0.28rem, 0.55vw, 0.6rem);
+  pointer-events: none;
+  position: absolute;
+  width: 20.5%;
+  z-index: 18;
+}
+
+.host-favorite-plaque::before,
+.host-favorite-plaque::after {
+  background: #8c918a;
+  border: 1px solid #f1efe8;
+  border-radius: 50%;
+  content: "";
+  height: clamp(0.18rem, 0.34vw, 0.34rem);
+  position: absolute;
+  top: clamp(0.18rem, 0.34vw, 0.34rem);
+  width: clamp(0.18rem, 0.34vw, 0.34rem);
+}
+
+.host-favorite-plaque::before {
+  left: clamp(0.18rem, 0.34vw, 0.34rem);
+}
+
+.host-favorite-plaque::after {
+  right: clamp(0.18rem, 0.34vw, 0.34rem);
+}
+
+.host-favorite-portrait {
+  --body-height: 1.04;
+  --body-width: 1.08;
+  align-items: center;
+  aspect-ratio: 1;
+  background: #d2d8d0;
+  border: clamp(0.08rem, 0.16vw, 0.16rem) solid #a44b3c;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+
+.host-favorite-portrait .pigeon-bird-sprite {
+  inset: 7% 14% 2%;
+  transition: none;
+}
+
+.host-favorite-portrait > b {
+  color: #a43e35;
+  font-size: clamp(1rem, 2.2vw, 2.2rem);
+  line-height: 1;
+}
+
+.host-favorite-plaque.is-empty .host-favorite-portrait {
+  border-color: #8b948c;
+}
+
+.host-favorite-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.host-favorite-copy > span {
+  align-items: center;
+  display: flex;
+  font-size: clamp(0.38rem, 0.65vw, 0.68rem);
+  font-weight: 700;
+  gap: 0.28rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.host-favorite-copy > span i {
+  color: #a43e35;
+  font-size: 1.35em;
+  font-style: normal;
+}
+
+.host-favorite-copy > strong {
+  align-items: baseline;
+  display: flex;
+  font-size: clamp(0.8rem, 1.55vw, 1.6rem);
+  font-weight: 580;
+  gap: 0.32rem;
+  line-height: 1;
+  margin-top: 0.22em;
+}
+
+.host-favorite-copy > strong small,
+.host-favorite-copy > small {
+  color: #57645d;
+  font-size: clamp(0.32rem, 0.52vw, 0.54rem);
+  font-weight: 650;
+}
+
+.host-favorite-copy > small {
+  margin-top: 0.35em;
+}
+
+.host-favorite-protection {
+  align-items: center;
+  background: #365b43;
+  clip-path: polygon(50% 0, 92% 16%, 84% 72%, 50% 100%, 16% 72%, 8% 16%);
+  color: #f4eee1;
+  display: flex;
+  font-family: Georgia, serif;
+  font-size: clamp(0.8rem, 1.45vw, 1.5rem);
+  font-weight: 700;
+  justify-content: center;
+  min-height: clamp(1.35rem, 2.4vw, 2.5rem);
+  width: 100%;
+}
+
+.pigeon-word-host-favorite {
+  z-index: 8;
+}
+
+.host-favorite-heart {
+  color: #aa3f35;
+  font-family: Georgia, serif;
+  font-size: clamp(0.95rem, 1.65vw, 1.7rem);
+  left: 50%;
+  line-height: 1;
+  position: absolute;
+  text-shadow:
+    0 1px 0 #fff8ed,
+    0 0.08rem 0.12rem #5b3731;
+  top: -27%;
+  transform: translateX(-50%);
+  z-index: 3;
+}
+
+@media (max-width: 900px) {
+  .host-favorite-plaque {
+    bottom: 8.5%;
+    grid-template-columns: 2.55rem minmax(0, 1fr) 1.45rem;
+    left: 3%;
+    min-height: 3.25rem;
+    padding: 0.35rem;
+    width: 11.5rem;
+  }
+
+  .host-favorite-copy > span {
+    font-size: 0.52rem;
+  }
+
+  .host-favorite-copy > strong {
+    font-size: 0.92rem;
+  }
+
+  .host-favorite-copy > strong small,
+  .host-favorite-copy > small {
+    font-size: 0.46rem;
+  }
+
+  .host-favorite-protection {
+    font-size: 0.9rem;
+    min-height: 1.65rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .host-favorite-plaque {
+    bottom: 9.5%;
+    grid-template-columns: 2.25rem minmax(0, 1fr) 1.3rem;
+    min-height: 2.9rem;
+    width: 10.3rem;
+  }
+
+  .host-favorite-copy > span {
+    font-size: 0.46rem;
+  }
+
+  .host-favorite-copy > strong {
+    font-size: 0.82rem;
+  }
+}

@@ -125,6 +125,13 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.doesNotMatch(simulation, /sizeScale: 0\.74/);
   assert.match(simulation, /hasAcceptedFood: boolean/);
   assert.match(simulation, /function averageBoldness/);
+  assert.match(simulation, /function hostFavoritePigeon/);
+  assert.match(simulation, /pigeon\.feedCount <= 0/);
+  assert.match(simulation, /pigeon\.feedCount > favorite\.feedCount/);
+  assert.match(
+    simulation,
+    /pigeon\.feedCount === favorite\.feedCount && pigeon\.id < favorite\.id/,
+  );
   assert.match(simulation, /function createOuterPigeon/);
   assert.match(simulation, /function inheritedPigeonStyle/);
   assert.match(simulation, /const childStyle = inheritedPigeonStyle\(parent\)/);
@@ -147,12 +154,17 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /const template = pigeons\[templateIndex\]/);
   assert.match(simulation, /function applyHungerDeaths/);
   assert.match(simulation, /pigeon\.hasAcceptedFood &&/);
+  assert.match(simulation, /pigeon\.id !== favoriteId &&/);
   assert.match(simulation, /feedingProtectedUntil: number/);
   assert.match(simulation, /protectedUntil: number/);
   assert.match(simulation, /accepted \? flightDuration \+ 100 : 0/);
   assert.match(simulation, /feedPigeonState/);
   assert.match(simulation, /rejectFoodState/);
   assert.match(simulation, /function killPigeonState/);
+  assert.match(
+    simulation,
+    /pigeons: current\.pigeons\.filter\(\(candidate\) => candidate\.id !== pigeonId\)/,
+  );
   assert.match(simulation, /PIGEON_DEATH_ANIMATION_MS = 1400/);
   assert.match(simulation, /onContextMenu=\{\(event\) =>/);
   assert.match(simulation, /handlePigeonContextMenu\(event, pigeon\)/);
@@ -164,6 +176,14 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /className="pigeon-feather"/);
   assert.match(simulation, /Array\.from\(\{ length: 12 \}/);
   assert.match(simulation, /minimumFeedCount/);
+  assert.match(
+    simulation,
+    /const removablePigeons = pigeons[\s\S]*?pigeon\.id !== favoriteId/,
+  );
+  assert.match(
+    simulation,
+    /unprotectedPigeons\.length > 0 \? unprotectedPigeons : removablePigeons/,
+  );
   assert.match(simulation, /function selectFoodRecipient/);
   assert.match(simulation, /function cityPigeonsDetectingFood/);
   assert.match(simulation, /pigeon\.zone === "inside"/);
@@ -210,6 +230,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /palette: pigeonLetterPalette\(agent\)/);
   assert.match(simulation, /spriteIndex: plumageOrder\.indexOf\(agent\.plumage\)/);
   assert.match(simulation, /data-style-signature=\{pigeon\.styleSignature\}/);
+  assert.match(simulation, /data-host-favorite-id=\{favoritePigeon\?\.id\}/);
+  assert.match(simulation, /className="host-favorite-heart"/);
+  assert.match(simulation, /pigeon-word-host-favorite/);
+  assert.match(simulation, /copy\.favoriteProtected/);
   assert.match(simulation, /speed: 6\.4/);
   assert.doesNotMatch(simulation, /const groupIndex|const densityScale/);
   assert.match(simulation, /phase: "flying"/);
@@ -287,6 +311,11 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.doesNotMatch(css, /\.pigeon-word-outside\s*\{\s*opacity: 0\./);
   assert.match(css, /transform: scaleX\(var\(--body-width\)\) scaleY\(var\(--body-height\)\)/);
   assert.match(css, /\.pigeon-word-newborn/);
+  assert.match(css, /\.host-favorite-plaque/);
+  assert.match(css, /\.host-favorite-portrait/);
+  assert.match(css, /\.host-favorite-protection/);
+  assert.match(css, /\.host-favorite-heart/);
+  assert.match(css, /\.pigeon-word-host-favorite/);
   assert.match(css, /--field-sky/);
   assert.match(css, /\.pigeon-word-white/);
   assert.match(css, /\.pigeon-word-spotted/);
