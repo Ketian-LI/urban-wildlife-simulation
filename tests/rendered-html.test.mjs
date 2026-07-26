@@ -227,6 +227,8 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /function translateEvent/);
   assert.match(simulation, /function SceneControls/);
   assert.match(simulation, /function TutorialDialog/);
+  assert.match(simulation, /className="language-switch tutorial-language-switch"/);
+  assert.match(simulation, /onLanguageChange=\{changeLanguage\}/);
   assert.match(simulation, /role="group"/);
   assert.match(simulation, /role="dialog"/);
   assert.match(simulation, /aria-pressed=\{language === "zh"\}/);

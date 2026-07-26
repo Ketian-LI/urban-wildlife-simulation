@@ -2373,12 +2373,22 @@ body {
   margin: 0.35rem 0 0;
 }
 
-.tutorial-heading > span {
-  color: #627068;
+.tutorial-heading-tools {
+  align-items: flex-end;
+  display: flex;
   flex: 0 0 auto;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.tutorial-language-switch {
+  background: #edf2e9;
+}
+
+.tutorial-step-count {
+  color: #627068;
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.72rem;
-  padding-top: 0.2rem;
 }
 
 .tutorial-visual {
@@ -2582,5 +2592,13 @@ body {
 
   .tutorial-copy {
     min-height: 9.4rem;
+  }
+
+  .tutorial-heading {
+    gap: 0.7rem;
+  }
+
+  .tutorial-heading h2 {
+    font-size: 1.25rem;
   }
 }

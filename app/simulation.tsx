@@ -2074,6 +2074,7 @@ function TutorialDialog({
   primaryButtonRef,
   onBack,
   onClose,
+  onLanguageChange,
   onNext,
 }: {
   language: Language;
@@ -2081,6 +2082,7 @@ function TutorialDialog({
   primaryButtonRef: React.RefObject<HTMLButtonElement | null>;
   onBack: () => void;
   onClose: () => void;
+  onLanguageChange: (language: Language) => void;
   onNext: () => void;
 }) {
   const copy = uiCopy[language];
@@ -2102,9 +2104,31 @@ function TutorialDialog({
             <p className="eyebrow">{copy.tutorialEyebrow}</p>
             <h2 id="tutorial-dialog-title">{copy.tutorialTitle}</h2>
           </div>
-          <span aria-live="polite">
-            {copy.tutorialProgress} {step + 1}/{steps.length}
-          </span>
+          <div className="tutorial-heading-tools">
+            <div
+              aria-label={copy.language}
+              className="language-switch tutorial-language-switch"
+              role="group"
+            >
+              <button
+                aria-pressed={language === "zh"}
+                onClick={() => onLanguageChange("zh")}
+                type="button"
+              >
+                中文
+              </button>
+              <button
+                aria-pressed={language === "en"}
+                onClick={() => onLanguageChange("en")}
+                type="button"
+              >
+                EN
+              </button>
+            </div>
+            <span aria-live="polite" className="tutorial-step-count">
+              {copy.tutorialProgress} {step + 1}/{steps.length}
+            </span>
+          </div>
         </div>
 
         <div
@@ -2384,6 +2408,7 @@ export function UrbanPigeonSimulation() {
             setTutorialStep((current) => Math.max(0, current - 1))
           }
           onClose={closeTutorial}
+          onLanguageChange={changeLanguage}
           onNext={advanceTutorial}
           primaryButtonRef={tutorialPrimaryButtonRef}
           step={tutorialStep}
