@@ -281,6 +281,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(css, /font-size: 1\.2rem/);
   assert.match(css, /\.pigeon-word-outside/);
   assert.match(css, /--body-width: 0\.88/);
+  assert.match(css, /\.pigeon-word-shy\s*\{\s*opacity: 1/);
+  assert.match(css, /\.pigeon-word-outside\s*\{\s*opacity: 1/);
+  assert.doesNotMatch(css, /\.pigeon-word-shy\s*\{\s*opacity: 0\./);
+  assert.doesNotMatch(css, /\.pigeon-word-outside\s*\{\s*opacity: 0\./);
   assert.match(css, /transform: scaleX\(var\(--body-width\)\) scaleY\(var\(--body-height\)\)/);
   assert.match(css, /\.pigeon-word-newborn/);
   assert.match(css, /--field-sky/);

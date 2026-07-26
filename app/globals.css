@@ -851,7 +851,7 @@ h2 {
 }
 
 .pigeon-word-shy {
-  opacity: 0.66;
+  opacity: 1;
 }
 
 .pigeon-word-inside {
@@ -1175,7 +1175,7 @@ h2 {
 @keyframes pigeon-split-birth {
   0% {
     left: var(--birth-x);
-    opacity: 0;
+    opacity: 1;
     top: var(--birth-y);
     transform:
       translate(-50%, -50%)
@@ -1844,7 +1844,7 @@ body {
 }
 
 .pigeon-word-outside {
-  opacity: 0.86;
+  opacity: 1;
 }
 
 .food-particle-layer {
