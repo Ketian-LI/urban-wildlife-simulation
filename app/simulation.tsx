@@ -12,7 +12,7 @@ const MAX_FEED_COOLDOWN_MS = 3_000;
 const INITIAL_PIGEONS = 30;
 const MAX_PIGEONS = 50;
 const TOTAL_COLOR_VARIETIES = 8;
-const MIN_COLOR_VARIETIES = 4;
+const MIN_COLOR_VARIETIES = 7;
 const GENERATION_SECONDS = 12;
 const HUNGER_INTERVAL_SECONDS = 1;
 const FEEDING_SAFETY_MS = 5000;
@@ -66,7 +66,7 @@ const uiCopy = {
     restartTitle: "Genetic diversity is too low",
     varietiesRemain: "color varieties remain",
     restartDescription:
-      "Fewer than four feather colors remain. Restart the ecosystem to restore thirty pigeons spanning all eight colors.",
+      "Fewer than seven feather colors remain. Restart the ecosystem to restore thirty pigeons spanning all eight colors.",
     restartAction: "Restart ecosystem",
     throwFoodAria: "Throw food into the animated illustrated pigeon population",
     tutorialEyebrow: "Field guide",
@@ -105,7 +105,7 @@ const uiCopy = {
     restartTitle: "基因多样性过低",
     varietiesRemain: "种羽色仍然存在",
     restartDescription:
-      "场上已经少于四种羽色。重新开始后，将恢复包含全部八种羽色的三十只鸽子。",
+      "场上已经少于七种羽色。重新开始后，将恢复包含全部八种羽色的三十只鸽子。",
     restartAction: "重新开始",
     throwFoodAria: "点击场景，将食物投向动态鸽群",
     tutorialEyebrow: "观察指南",
@@ -130,7 +130,7 @@ const tutorialSteps = {
     },
     {
       title: "Protect color diversity",
-      body: "The flock begins with eight feather colors. If fewer than four remain, the simulation pauses and asks you to restart the ecosystem.",
+      body: "The flock begins with eight feather colors. If fewer than seven remain, the simulation pauses and asks you to restart the ecosystem.",
     },
   ],
   zh: [
@@ -144,7 +144,7 @@ const tutorialSteps = {
     },
     {
       title: "保护颜色多样性",
-      body: "鸽群最初拥有八种羽色。当场上少于四种羽色时，模拟会暂停并提示重新开始生态系统。",
+      body: "鸽群最初拥有八种羽色。当场上少于七种羽色时，模拟会暂停并提示重新开始生态系统。",
     },
   ],
 } as const;
@@ -229,7 +229,7 @@ const initialEvents = [
   "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
   "A bird that reaches a pellet divides into a matching pigeon at the same spot.",
   "The initial flock spans eight feather colors and varied letter casing at a shared wild body size.",
-  "If fewer than four color varieties remain, the ecosystem restarts with all eight colors.",
+  "If fewer than seven color varieties remain, the ecosystem restarts with all eight colors.",
 ];
 
 const pigeonLetters = "pigeon";
@@ -299,8 +299,8 @@ const exactEventTranslations = new Map<string, string>([
     "初始鸽群包含八种羽色和不同的字母大小写，野生体型保持一致。",
   ],
   [
-    "If fewer than four color varieties remain, the ecosystem restarts with all eight colors.",
-    "颜色种类少于四种时，生态系统会要求重启并恢复全部八种颜色。",
+    "If fewer than seven color varieties remain, the ecosystem restarts with all eight colors.",
+    "颜色种类少于七种时，生态系统会要求重启并恢复全部八种颜色。",
   ],
   [
     "Birds that approached people first were more likely to survive and reproduce.",
@@ -2375,7 +2375,7 @@ function TutorialDialog({
                   />
                 ))}
               </div>
-              <strong>&lt; 4/8</strong>
+              <strong>&lt; 7/8</strong>
             </>
           ) : null}
         </div>

@@ -135,7 +135,7 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /const MAX_PIGEONS = 50/);
   assert.match(simulation, /const STORAGE_KEY = "urban-pigeon-collective-v5"/);
   assert.match(simulation, /const TOTAL_COLOR_VARIETIES = 8/);
-  assert.match(simulation, /const MIN_COLOR_VARIETIES = 4/);
+  assert.match(simulation, /const MIN_COLOR_VARIETIES = 7/);
   assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /const CITY_FOOD_DETECTION_RADIUS = 24/);
@@ -293,7 +293,9 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /method: "POST"/);
   assert.match(simulation, /window\.navigator\.sendBeacon/);
   assert.match(simulation, /CLOUD_SAVE_INTERVAL_MS/);
-  assert.match(simulation, /少于四种羽色/);
+  assert.match(simulation, /少于七种羽色/);
+  assert.match(simulation, /fewer than seven/);
+  assert.match(simulation, /&lt; 7\/8/);
   assert.match(simulation, /birthX: number/);
   assert.match(simulation, /bornAt: number/);
   assert.match(simulation, /protectedUntil: bornAt \+ SPLIT_ANIMATION_MS \+ 100/);
