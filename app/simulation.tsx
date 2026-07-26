@@ -160,7 +160,8 @@ const uiCopy = {
     wardrobeClose: "Close accessory collection",
     wardrobeEmpty: "No accessories collected",
     wardrobeNoFavorite: "No host favorite yet",
-    wardrobeUnequip: "Wear nothing",
+    wardrobeEquip: "Equip",
+    wardrobeUnequip: "Remove",
     wardrobeEquipped: "Equipped",
     wardrobeUnlocked: "Unlocked",
     wardrobeLocked: "Locked",
@@ -209,7 +210,8 @@ const uiCopy = {
     wardrobeClose: "关闭配饰收藏",
     wardrobeEmpty: "尚未收藏配饰",
     wardrobeNoFavorite: "尚无主机最爱",
-    wardrobeUnequip: "不佩戴",
+    wardrobeEquip: "佩戴",
+    wardrobeUnequip: "卸下",
     wardrobeEquipped: "已佩戴",
     wardrobeUnlocked: "已解锁",
     wardrobeLocked: "未解锁",
@@ -1743,6 +1745,7 @@ function PigeonField({
   metrics,
   generations,
   feedCooldownMs,
+  favoriteAccessoryPreview,
   language,
   onThrow,
   onFoodClaimed,
@@ -1753,6 +1756,7 @@ function PigeonField({
   metrics: Metric[];
   generations: number;
   feedCooldownMs: number;
+  favoriteAccessoryPreview: AccessoryId | null;
   language: Language;
   onThrow: (pigeonId: number, protectionDuration: number) => void;
   onFoodClaimed: (
@@ -1782,7 +1786,7 @@ function PigeonField({
     ? pigeons.find((pigeon) => pigeon.id === favoriteAgent.id)
     : undefined;
   const equippedFavoriteAccessory = favoritePigeon
-    ? state.favoriteAccessory
+    ? favoriteAccessoryPreview ?? state.favoriteAccessory
     : null;
   const cityPigeonCount = state.pigeons.filter(
     (pigeon) => pigeon.hasAcceptedFood,
@@ -2541,15 +2545,24 @@ function AccessoryWardrobe({
   unlockedAccessories,
   equippedAccessory,
   onEquip,
+  onPreview,
 }: {
   language: Language;
   favoriteExists: boolean;
   unlockedAccessories: AccessoryId[];
   equippedAccessory: AccessoryId | null;
   onEquip: (accessoryId: AccessoryId | null) => void;
+  onPreview: (accessoryId: AccessoryId | null) => void;
 }) {
   const copy = uiCopy[language];
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedAccessory, setSelectedAccessory] =
+    useState<AccessoryId | null>(equippedAccessory);
+  const wardrobeRef = useRef<HTMLElement>(null);
+  const closeWardrobe = () => {
+    setIsOpen(false);
+    onPreview(null);
+  };
 
   useEffect(() => {
     if (!isOpen) {
@@ -2559,103 +2572,185 @@ function AccessoryWardrobe({
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setIsOpen(false);
+        onPreview(null);
+      }
+    };
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        wardrobeRef.current &&
+        !wardrobeRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+        onPreview(null);
       }
     };
     window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [isOpen]);
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+    };
+  }, [isOpen, onPreview]);
+
+  const toggleWardrobe = () => {
+    if (!isOpen) {
+      const initialSelection =
+        equippedAccessory ?? unlockedAccessories[0] ?? null;
+      setSelectedAccessory(initialSelection);
+      onPreview(initialSelection);
+    } else {
+      onPreview(null);
+    }
+    setIsOpen((current) => !current);
+  };
 
   return (
-    <aside className={`accessory-wardrobe ${isOpen ? "is-open" : ""}`}>
+    <aside
+      className={`accessory-wardrobe ${isOpen ? "is-open" : ""}`}
+      ref={wardrobeRef}
+    >
       <button
         aria-controls="accessory-wardrobe-panel"
         aria-expanded={isOpen}
-        aria-label={copy.wardrobeOpen}
+        aria-label={isOpen ? copy.wardrobeClose : copy.wardrobeOpen}
         className="accessory-wardrobe-trigger"
-        onClick={() => setIsOpen((current) => !current)}
-        title={copy.wardrobeOpen}
+        onClick={toggleWardrobe}
+        title={isOpen ? copy.wardrobeClose : copy.wardrobeOpen}
         type="button"
       >
-        <span aria-hidden="true">♛</span>
+        <span aria-hidden="true" className="accessory-trigger-icon">
+          ♛
+        </span>
         <strong>
           {unlockedAccessories.length}/{accessoryCatalog.length}
         </strong>
+        <span aria-hidden="true" className="accessory-trigger-chevron">
+          ⌄
+        </span>
       </button>
-      {isOpen ? (
-        <section
-          aria-label={copy.wardrobe}
-          className="accessory-wardrobe-panel"
-          id="accessory-wardrobe-panel"
-        >
-          <header>
-            <div>
-              <h2>{copy.wardrobe}</h2>
-              <strong>
-                {unlockedAccessories.length}/{accessoryCatalog.length}
-              </strong>
-            </div>
-            <button
-              aria-label={copy.wardrobeClose}
-              className="accessory-wardrobe-close"
-              onClick={() => setIsOpen(false)}
-              title={copy.wardrobeClose}
-              type="button"
-            >
-              ×
-            </button>
-          </header>
-          <p className="accessory-wardrobe-status">
-            {unlockedAccessories.length === 0
-              ? copy.wardrobeEmpty
-              : !favoriteExists
-                ? copy.wardrobeNoFavorite
-                : copy.favoriteProtected}
-          </p>
-          <div className="accessory-grid">
-            {accessoryCatalog.map((accessory) => {
-              const isUnlocked = unlockedAccessories.includes(accessory.id);
-              const isEquipped = equippedAccessory === accessory.id;
-              const disabled = !isUnlocked || !favoriteExists;
-              const stateLabel = isEquipped
+      <section
+        aria-hidden={!isOpen}
+        aria-label={copy.wardrobe}
+        className="accessory-wardrobe-panel"
+        id="accessory-wardrobe-panel"
+      >
+        <header>
+          <div>
+            <span aria-hidden="true">♛</span>
+            <h2>{copy.wardrobe}</h2>
+            <strong>
+              {unlockedAccessories.length}/{accessoryCatalog.length}
+            </strong>
+          </div>
+          <button
+            aria-label={copy.wardrobeClose}
+            className="accessory-wardrobe-close"
+            onClick={closeWardrobe}
+            title={copy.wardrobeClose}
+            type="button"
+          >
+            ×
+          </button>
+        </header>
+        <p className="accessory-wardrobe-status">
+          <span>
+            {!favoriteExists
+              ? copy.wardrobeNoFavorite
+              : selectedAccessory
+              ? accessoryDefinition(selectedAccessory).names[language]
+              : unlockedAccessories.length === 0
+                ? copy.wardrobeEmpty
+                : copy.wardrobeUnlocked}
+          </span>
+          {favoriteExists && selectedAccessory ? (
+            <strong>
+              {selectedAccessory === equippedAccessory
                 ? copy.wardrobeEquipped
-                : isUnlocked
-                  ? copy.wardrobeUnlocked
-                  : copy.wardrobeLocked;
+                : copy.wardrobeUnlocked}
+            </strong>
+          ) : null}
+        </p>
+        <div className="accessory-grid">
+          {accessoryCatalog.map((accessory) => {
+            const isUnlocked = unlockedAccessories.includes(accessory.id);
+            const isEquipped = equippedAccessory === accessory.id;
+            const isSelected = selectedAccessory === accessory.id;
+            const stateLabel = isEquipped
+              ? copy.wardrobeEquipped
+              : isUnlocked
+                ? copy.wardrobeUnlocked
+                : copy.wardrobeLocked;
 
-              return (
-                <button
-                  aria-label={`${accessory.names[language]}: ${stateLabel}`}
-                  aria-pressed={isEquipped}
-                  className={`accessory-option ${
-                    isUnlocked ? "is-unlocked" : "is-locked"
-                  } ${isEquipped ? "is-equipped" : ""}`}
-                  data-accessory-option={accessory.id}
-                  disabled={disabled}
-                  key={accessory.id}
-                  onClick={() => onEquip(accessory.id)}
-                  title={`${accessory.names[language]} · ${stateLabel}`}
-                  type="button"
-                >
+            return (
+              <button
+                aria-label={`${accessory.names[language]}: ${stateLabel}`}
+                aria-pressed={isSelected}
+                className={`accessory-option ${
+                  isUnlocked ? "is-unlocked" : "is-locked"
+                } ${isEquipped ? "is-equipped" : ""} ${
+                  isSelected ? "is-selected" : ""
+                }`}
+                data-accessory-option={accessory.id}
+                disabled={!isUnlocked}
+                key={accessory.id}
+                onClick={() => {
+                  setSelectedAccessory(accessory.id);
+                  onPreview(accessory.id);
+                }}
+                title={`${accessory.names[language]} · ${stateLabel}`}
+                type="button"
+              >
+                {isUnlocked ? (
                   <PigeonAccessory
                     accessoryId={accessory.id}
                     variant="wardrobe"
                   />
-                  <span>{isUnlocked ? accessory.names[language] : "?"}</span>
-                </button>
-              );
-            })}
-          </div>
+                ) : (
+                  <span aria-hidden="true" className="accessory-lock" />
+                )}
+                <span className="accessory-option-label">
+                  {isUnlocked
+                    ? accessory.names[language]
+                    : copy.wardrobeLocked}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+        <div className="accessory-actions">
+          <button
+            className="accessory-equip"
+            disabled={
+              !favoriteExists ||
+              selectedAccessory === null ||
+              selectedAccessory === equippedAccessory
+            }
+            onClick={() => {
+              if (selectedAccessory) {
+                onEquip(selectedAccessory);
+              }
+            }}
+            type="button"
+          >
+            <span aria-hidden="true">✓</span>
+            {copy.wardrobeEquip}
+          </button>
           <button
             className="accessory-unequip"
             disabled={!favoriteExists || equippedAccessory === null}
-            onClick={() => onEquip(null)}
+            onClick={() => {
+              onEquip(null);
+              onPreview(null);
+              setSelectedAccessory(null);
+            }}
             type="button"
           >
             <span aria-hidden="true">×</span>
             {copy.wardrobeUnequip}
           </button>
-        </section>
-      ) : null}
+        </div>
+      </section>
     </aside>
   );
 }
@@ -2896,6 +2991,8 @@ export function UrbanPigeonSimulation({
   const [language, setLanguage] = useState<Language>("en");
   const [tutorialOpen, setTutorialOpen] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const [favoriteAccessoryPreview, setFavoriteAccessoryPreview] =
+    useState<AccessoryId | null>(null);
   const [cloudReady, setCloudReady] = useState(account === null);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<CloudSyncStatus>(
     account ? "loading" : "local",
@@ -3134,6 +3231,7 @@ export function UrbanPigeonSimulation({
               onOpenTutorial={openTutorial}
             />
             <PigeonField
+              favoriteAccessoryPreview={favoriteAccessoryPreview}
               feedCooldownMs={feedCooldownMs}
               generations={state.generations}
               language={language}
@@ -3175,6 +3273,7 @@ export function UrbanPigeonSimulation({
                   equipFavoriteAccessoryState(current, accessoryId),
                 )
               }
+              onPreview={setFavoriteAccessoryPreview}
               unlockedAccessories={state.unlockedAccessories}
             />
           </div>
