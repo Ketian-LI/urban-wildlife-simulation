@@ -64,6 +64,11 @@ test("server-renders the illustrated flock", async () => {
   assert.match(html, /Saved on this device/);
   assert.match(html, /href="\/signin-with-chatgpt\?return_to=%2F"/);
   assert.match(html, /Open accessory collection/);
+  assert.equal(
+    [...html.matchAll(/data-accessory-id="[^"]+"/g)].length,
+    1,
+  );
+  assert.match(html, /rare-accessory-spark/);
   assert.doesNotMatch(html, /pigeon-body|pigeon-head|>Feed</);
 
   const styleSignatures = [
@@ -169,6 +174,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
     /pigeon\.feedCount === favorite\.feedCount && pigeon\.id < favorite\.id/,
   );
   assert.match(simulation, /function createOuterPigeon/);
+  assert.match(simulation, /function guaranteeAccessoryCarrier/);
+  assert.match(simulation, /guaranteeAccessoryCarrier\(pigeons\)/);
+  assert.match(simulation, /initialAccessorySeeded: boolean/);
+  assert.match(simulation, /initialAccessorySeeded: true/);
   assert.match(simulation, /function inheritedPigeonStyle/);
   assert.match(simulation, /const childStyle = inheritedPigeonStyle\(parent\)/);
   assert.match(simulation, /const style = inheritedPigeonStyle\(template\)/);
@@ -182,6 +191,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(
     simulation,
     /restarted\.unlockedAccessories = \[\.\.\.current\.unlockedAccessories\]/,
+  );
+  assert.match(
+    simulation,
+    /guaranteeAccessoryCarrier\(\s*restarted\.pigeons,\s*restarted\.unlockedAccessories/,
   );
   assert.match(simulation, /Genetic diversity is too low/);
   assert.match(simulation, /role="alertdialog"/);
@@ -309,6 +322,7 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /account-sync-\$\{syncStatus\}/);
   assert.match(simulation, /function restoreState/);
   assert.match(simulation, /unlockedAccessories\.filter\(isAccessoryId\)/);
+  assert.match(simulation, /parsed\.initialAccessorySeeded !== true/);
   assert.match(simulation, /isAccessoryId\(parsed\.favoriteAccessory\)/);
   assert.match(simulation, /function maybeSpawnRareAccessory/);
   assert.match(simulation, /pigeon\.accessory !== null/);

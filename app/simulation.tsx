@@ -314,6 +314,7 @@ type EcosystemState = {
   restartColorVarietyCount: number | null;
   unlockedAccessories: AccessoryId[];
   favoriteAccessory: AccessoryId | null;
+  initialAccessorySeeded: boolean;
 };
 
 type Metric = {
@@ -768,8 +769,41 @@ function createRefreshedOuterPigeon(
   );
 }
 
+function guaranteeAccessoryCarrier(
+  pigeons: PigeonAgent[],
+  unlockedAccessories: AccessoryId[] = [],
+  seed = 7,
+) {
+  if (
+    pigeons.length === 0 ||
+    pigeons.some((pigeon) => pigeon.accessory !== null)
+  ) {
+    return;
+  }
+
+  const lockedAccessories = accessoryIds.filter(
+    (accessoryId) => !unlockedAccessories.includes(accessoryId),
+  );
+  const accessoryPool =
+    lockedAccessories.length > 0 ? lockedAccessories : accessoryIds;
+  const normalizedSeed = Math.abs(Math.trunc(seed));
+  const pigeonIndex = normalizedSeed % pigeons.length;
+  const accessoryIndex =
+    (normalizedSeed * 7 + 3) % accessoryPool.length;
+
+  pigeons[pigeonIndex] = {
+    ...pigeons[pigeonIndex],
+    accessory: accessoryPool[accessoryIndex],
+  };
+}
+
 function createInitialPigeons() {
-  return Array.from({ length: INITIAL_PIGEONS }, (_, index) => createOuterPigeon(index));
+  const pigeons = Array.from(
+    { length: INITIAL_PIGEONS },
+    (_, index) => createOuterPigeon(index),
+  );
+  guaranteeAccessoryCarrier(pigeons);
+  return pigeons;
 }
 
 function makeInitialState(now = Date.now()): EcosystemState {
@@ -788,6 +822,7 @@ function makeInitialState(now = Date.now()): EcosystemState {
     restartColorVarietyCount: null,
     unlockedAccessories: [],
     favoriteAccessory: null,
+    initialAccessorySeeded: true,
   };
 }
 
@@ -822,6 +857,15 @@ function restartEcosystemState(
     pigeonColorVarietyCount(current.pigeons);
   const restarted = makeInitialState(now);
   restarted.unlockedAccessories = [...current.unlockedAccessories];
+  restarted.pigeons = restarted.pigeons.map((pigeon) => ({
+    ...pigeon,
+    accessory: null,
+  }));
+  guaranteeAccessoryCarrier(
+    restarted.pigeons,
+    restarted.unlockedAccessories,
+    current.nextPigeonId + current.generations,
+  );
   restarted.favoriteAccessory =
     current.favoriteAccessory &&
     current.unlockedAccessories.includes(current.favoriteAccessory)
@@ -1155,6 +1199,13 @@ function restoreState(savedState: unknown) {
       unlockedAccessories.includes(parsed.favoriteAccessory)
         ? parsed.favoriteAccessory
         : null;
+    if (parsed.initialAccessorySeeded !== true) {
+      guaranteeAccessoryCarrier(
+        pigeons,
+        unlockedAccessories,
+        nextPigeonId + (Number(parsed.generations) || 0),
+      );
+    }
 
     return advanceState({
       ...initial,
@@ -1164,6 +1215,7 @@ function restoreState(savedState: unknown) {
       events: Array.isArray(parsed.events) ? parsed.events.slice(0, 6) : initialEvents,
       unlockedAccessories,
       favoriteAccessory,
+      initialAccessorySeeded: true,
       restartColorVarietyCount:
         parsed.restartColorVarietyCount !== null &&
         typeof parsed.restartColorVarietyCount !== "undefined" &&
