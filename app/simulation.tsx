@@ -20,7 +20,7 @@ const SPLIT_ANIMATION_MS = 1800;
 const PIGEON_DEATH_ANIMATION_MS = 1400;
 const CITY_FOOD_DETECTION_RADIUS = 24;
 const CLOUD_SAVE_INTERVAL_MS = 5_000;
-const ACCESSORY_SPAWN_CHANCE_PER_SECOND = 0.004;
+const ACCESSORY_SPAWN_CHANCE_PER_SECOND = 1 / 10;
 
 type Plumage =
   | "grey"
@@ -119,9 +119,48 @@ const accessoryCatalog = [
     symbol: "◆",
     names: { en: "Laurel pin", zh: "月桂徽章" },
   },
+  {
+    id: "rain-walker",
+    symbol: "",
+    names: { en: "Rain walker", zh: "雨天散步者" },
+  },
+  {
+    id: "city-messenger",
+    symbol: "",
+    names: { en: "City messenger", zh: "城市信使" },
+  },
+  {
+    id: "park-ranger",
+    symbol: "",
+    names: { en: "Park ranger", zh: "公园巡守" },
+  },
+  {
+    id: "civic-formal",
+    symbol: "",
+    names: { en: "Civic formal", zh: "城市礼服" },
+  },
+  {
+    id: "academic-pigeon",
+    symbol: "",
+    names: { en: "Academic pigeon", zh: "学院鸽" },
+  },
+  {
+    id: "park-festival",
+    symbol: "",
+    names: { en: "Park festival", zh: "公园庆典" },
+  },
 ] as const;
 
 type AccessoryId = (typeof accessoryCatalog)[number]["id"];
+
+const outfitAccessoryIds = new Set<AccessoryId>([
+  "rain-walker",
+  "city-messenger",
+  "park-ranger",
+  "civic-formal",
+  "academic-pigeon",
+  "park-festival",
+]);
 
 const accessoryIds = accessoryCatalog.map(
   (accessory) => accessory.id,
@@ -1685,14 +1724,25 @@ function PigeonAccessory({
   variant?: "field" | "portrait" | "wardrobe";
 }) {
   const accessory = accessoryDefinition(accessoryId);
+  const isOutfit = outfitAccessoryIds.has(accessoryId);
 
   return (
     <span
       aria-hidden="true"
-      className={`pigeon-accessory pigeon-accessory-${accessoryId} pigeon-accessory-${variant}`}
+      className={`pigeon-accessory pigeon-accessory-${accessoryId} pigeon-accessory-${variant} ${
+        isOutfit ? "pigeon-accessory-outfit" : ""
+      }`}
       data-accessory-id={accessoryId}
     >
-      {accessory.symbol}
+      {isOutfit ? (
+        <>
+          <span className="pigeon-outfit-piece pigeon-outfit-garment" />
+          <span className="pigeon-outfit-piece pigeon-outfit-accent" />
+          <span className="pigeon-outfit-piece pigeon-outfit-detail" />
+        </>
+      ) : (
+        accessory.symbol
+      )}
     </span>
   );
 }

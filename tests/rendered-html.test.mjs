@@ -146,15 +146,24 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /const CITY_FOOD_DETECTION_RADIUS = 24/);
   assert.match(simulation, /const CLOUD_SAVE_INTERVAL_MS = 5_000/);
-  assert.match(simulation, /const ACCESSORY_SPAWN_CHANCE_PER_SECOND = 0\.004/);
+  assert.match(
+    simulation,
+    /const ACCESSORY_SPAWN_CHANCE_PER_SECOND = 1 \/ 10/,
+  );
   const accessoryCatalogSource = simulation.match(
     /const accessoryCatalog = \[([\s\S]*?)\] as const;/,
   )?.[1];
   assert.ok(accessoryCatalogSource);
-  assert.equal([...accessoryCatalogSource.matchAll(/\bid: "/g)].length, 16);
+  assert.equal([...accessoryCatalogSource.matchAll(/\bid: "/g)].length, 22);
   assert.match(accessoryCatalogSource, /id: "crown"/);
   assert.match(accessoryCatalogSource, /id: "red-leg-band"/);
   assert.match(accessoryCatalogSource, /id: "rainbow-streamer"/);
+  assert.match(accessoryCatalogSource, /id: "rain-walker"/);
+  assert.match(accessoryCatalogSource, /id: "city-messenger"/);
+  assert.match(accessoryCatalogSource, /id: "park-ranger"/);
+  assert.match(accessoryCatalogSource, /id: "civic-formal"/);
+  assert.match(accessoryCatalogSource, /id: "academic-pigeon"/);
+  assert.match(accessoryCatalogSource, /id: "park-festival"/);
   assert.match(simulation, /function recordFeedActionState/);
   assert.match(simulation, /function protectFlockFromHunger/);
   assert.match(simulation, /const HUNGER_INTERVAL_SECONDS = 1/);
@@ -407,6 +416,14 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(css, /\.pigeon-accessory-crown/);
   assert.match(css, /\.pigeon-accessory-red-leg-band/);
   assert.match(css, /\.pigeon-accessory-rainbow-streamer/);
+  assert.match(css, /\.pigeon-accessory-rain-walker/);
+  assert.match(css, /\.pigeon-accessory-city-messenger/);
+  assert.match(css, /\.pigeon-accessory-park-ranger/);
+  assert.match(css, /\.pigeon-accessory-civic-formal/);
+  assert.match(css, /\.pigeon-accessory-academic-pigeon/);
+  assert.match(css, /\.pigeon-accessory-park-festival/);
+  assert.match(css, /\.pigeon-accessory-outfit/);
+  assert.match(css, /\.pigeon-outfit-garment/);
   assert.match(css, /\.rare-accessory-spark/);
   assert.match(css, /\.accessory-wardrobe-panel/);
   assert.match(css, /\.accessory-wardrobe\.is-open \.accessory-wardrobe-panel/);

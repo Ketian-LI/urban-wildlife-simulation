@@ -3121,6 +3121,239 @@ body {
   transform: translate(-50%, -50%) rotate(12deg);
 }
 
+.pigeon-accessory-outfit {
+  --outfit-border: #3f493f;
+  --outfit-main: #d0a23c;
+  --outfit-secondary: #244963;
+  height: 100%;
+  inset: 0;
+  text-shadow: none;
+  transform: none;
+  width: 100%;
+}
+
+.pigeon-outfit-piece {
+  box-sizing: border-box;
+  display: block;
+  pointer-events: none;
+  position: absolute;
+}
+
+.pigeon-outfit-garment {
+  background: var(--outfit-main);
+  border: max(1px, 0.035em) solid var(--outfit-border);
+  border-radius: 46% 38% 24% 29%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34);
+  height: 24%;
+  left: 24%;
+  top: 31%;
+  transform: rotate(5deg);
+  width: 56%;
+}
+
+.pigeon-outfit-accent {
+  background: var(--outfit-secondary);
+  border: max(1px, 0.03em) solid var(--outfit-border);
+  border-radius: 55%;
+  height: 7%;
+  left: 43%;
+  top: 31%;
+  transform: rotate(8deg);
+  width: 35%;
+}
+
+.pigeon-outfit-detail {
+  background: #d9ad35;
+  border: max(1px, 0.03em) solid #5c4930;
+  border-radius: 50%;
+  height: 8%;
+  left: 39%;
+  top: 46%;
+  width: 8%;
+}
+
+.pigeon-accessory-rain-walker {
+  --outfit-border: #5f4c2e;
+  --outfit-main: #d2a33a;
+  --outfit-secondary: #243f5f;
+}
+
+.pigeon-accessory-rain-walker .pigeon-outfit-garment {
+  clip-path: polygon(12% 0, 92% 8%, 100% 72%, 63% 100%, 8% 72%);
+}
+
+.pigeon-accessory-rain-walker .pigeon-outfit-accent {
+  border-radius: 60% 44% 58% 40%;
+  height: 8%;
+  left: 42%;
+  top: 32%;
+  transform: rotate(10deg);
+  width: 37%;
+}
+
+.pigeon-accessory-rain-walker .pigeon-outfit-detail {
+  background: #2e67a0;
+  border-color: #173b5e;
+  border-radius: 40%;
+  height: 4%;
+  left: 43%;
+  top: 72%;
+  transform: rotate(-2deg);
+  width: 13%;
+}
+
+.pigeon-accessory-city-messenger {
+  --outfit-border: #4f3324;
+  --outfit-main: #89552f;
+  --outfit-secondary: #a86f3d;
+}
+
+.pigeon-accessory-city-messenger .pigeon-outfit-garment {
+  border-radius: 0.25rem;
+  height: 42%;
+  left: 53%;
+  top: 27%;
+  transform: rotate(-40deg);
+  width: 8%;
+}
+
+.pigeon-accessory-city-messenger .pigeon-outfit-accent {
+  border-radius: 18%;
+  height: 15%;
+  left: 27%;
+  top: 51%;
+  transform: rotate(7deg);
+  width: 22%;
+}
+
+.pigeon-accessory-city-messenger .pigeon-outfit-detail {
+  background: #af4135;
+  border-color: #672d28;
+  border-radius: 40%;
+  height: 4%;
+  left: 43%;
+  top: 72%;
+  transform: rotate(-2deg);
+  width: 13%;
+}
+
+.pigeon-accessory-park-ranger {
+  --outfit-border: #344c36;
+  --outfit-main: #4d7042;
+  --outfit-secondary: #c4aa75;
+}
+
+.pigeon-accessory-park-ranger .pigeon-outfit-garment {
+  clip-path: polygon(12% 0, 90% 8%, 100% 70%, 66% 96%, 8% 71%);
+}
+
+.pigeon-accessory-park-ranger .pigeon-outfit-accent {
+  border-radius: 60% 40% 60% 40%;
+  height: 8%;
+  left: 43%;
+  top: 32%;
+  transform: rotate(10deg);
+  width: 34%;
+}
+
+.pigeon-accessory-park-ranger .pigeon-outfit-detail {
+  background: #c69a32;
+  left: 39%;
+  top: 46%;
+}
+
+.pigeon-accessory-civic-formal {
+  --outfit-border: #4b272b;
+  --outfit-main: #74343d;
+  --outfit-secondary: #eee2c6;
+}
+
+.pigeon-accessory-civic-formal .pigeon-outfit-garment {
+  border-radius: 38% 38% 16% 16%;
+  clip-path: polygon(9% 0, 92% 7%, 88% 100%, 55% 86%, 44% 100%, 5% 76%);
+  height: 27%;
+}
+
+.pigeon-accessory-civic-formal .pigeon-outfit-accent {
+  border-radius: 50% 12% 50% 12%;
+  clip-path: polygon(0 9%, 48% 42%, 100% 0, 81% 100%, 49% 62%, 14% 95%);
+  height: 10%;
+  left: 47%;
+  top: 33%;
+  transform: rotate(7deg);
+  width: 24%;
+}
+
+.pigeon-accessory-civic-formal .pigeon-outfit-detail {
+  background: #c89a31;
+  left: 39%;
+  top: 47%;
+}
+
+.pigeon-accessory-academic-pigeon {
+  --outfit-border: #292f30;
+  --outfit-main: #3f4747;
+  --outfit-secondary: #2e5790;
+}
+
+.pigeon-accessory-academic-pigeon .pigeon-outfit-garment {
+  border-radius: 40% 34% 8% 12%;
+  clip-path: polygon(10% 0, 90% 5%, 100% 72%, 60% 96%, 8% 72%);
+}
+
+.pigeon-accessory-academic-pigeon .pigeon-outfit-accent {
+  border-radius: 45%;
+  height: 13%;
+  left: 51%;
+  top: 33%;
+  transform: rotate(8deg);
+  width: 11%;
+}
+
+.pigeon-accessory-academic-pigeon .pigeon-outfit-detail {
+  background: #d7b23e;
+  border-color: #284067;
+  border-radius: 12%;
+  height: 8%;
+  left: 38%;
+  top: 46%;
+  width: 9%;
+}
+
+.pigeon-accessory-park-festival {
+  --outfit-border: #31524d;
+  --outfit-main: #2f8178;
+  --outfit-secondary: #a83d49;
+}
+
+.pigeon-accessory-park-festival .pigeon-outfit-garment {
+  border-radius: 0.3rem;
+  height: 41%;
+  left: 51%;
+  top: 28%;
+  transform: rotate(-41deg);
+  width: 11%;
+}
+
+.pigeon-accessory-park-festival .pigeon-outfit-accent {
+  border-radius: 50% 18% 50% 18%;
+  clip-path: polygon(0 9%, 48% 42%, 100% 0, 81% 100%, 49% 62%, 14% 95%);
+  height: 11%;
+  left: 62%;
+  top: 31%;
+  transform: rotate(18deg);
+  width: 21%;
+}
+
+.pigeon-accessory-park-festival .pigeon-outfit-detail {
+  background: #f0dc64;
+  border: 2px dotted #f5f0dd;
+  height: 10%;
+  left: 39%;
+  top: 43%;
+  width: 10%;
+}
+
 .pigeon-accessory-portrait {
   --accessory-size: clamp(0.76rem, 1.42vw, 1.45rem);
   z-index: 6;
@@ -3137,6 +3370,36 @@ body {
   position: relative;
   transform: none;
   width: 1.65rem;
+}
+
+.pigeon-accessory-outfit.pigeon-accessory-wardrobe {
+  height: 1.5rem;
+  width: 1.65rem;
+}
+
+.pigeon-accessory-outfit.pigeon-accessory-wardrobe .pigeon-outfit-garment {
+  height: 48%;
+  left: 10%;
+  top: 26%;
+  width: 78%;
+}
+
+.pigeon-accessory-outfit.pigeon-accessory-wardrobe .pigeon-outfit-accent {
+  left: 47%;
+  top: 28%;
+}
+
+.pigeon-accessory-outfit.pigeon-accessory-wardrobe .pigeon-outfit-detail {
+  left: 22%;
+  top: 60%;
+}
+
+.pigeon-word-flying .pigeon-accessory-outfit {
+  transform: rotate(-4deg) translateY(-2%);
+}
+
+.pigeon-word-landing .pigeon-accessory-outfit {
+  transform: rotate(3deg) translateY(2%);
 }
 
 .rare-accessory-spark {
@@ -3342,7 +3605,11 @@ body {
   display: grid;
   gap: 0.35rem;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  max-height: min(18.7rem, 46vh);
+  overflow-y: auto;
   padding: 0.65rem 0.7rem;
+  scrollbar-color: #708477 #e3e2da;
+  scrollbar-width: thin;
 }
 
 .accessory-option {
