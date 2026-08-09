@@ -127,6 +127,7 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /function impactMagnitude/);
   assert.match(simulation, /display="magnitude"/);
   assert.match(simulation, /impactNoticeable/);
+  assert.match(simulation, /aria-label=\{copy\.signIn\}/);
   assert.match(simulation, /className="feed-launcher v8-feed-launcher"/);
   assert.doesNotMatch(simulation, /hasAcceptedFood|pigeon-word-inside|pigeon-word-outside/);
   assert.match(simulation, /favoritePosition/);
@@ -153,6 +154,9 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(css, /\.plaza-metric\.is-locked/);
   assert.match(css, /\.plaza-metric\.is-high-risk/);
   assert.match(css, /\.v9-event-flags/);
+  assert.match(css, /V11 phone and portrait-tablet composition/);
+  assert.match(css, /max-width: 900px\) and \(orientation: portrait/);
+  assert.match(css, /height: 100dvh/);
   assert.match(css, /\.v6-end-pillars div\.is-overflow/);
   assert.match(css, /--extra-atlas/);
   assert.match(css, /--dog-atlas/);

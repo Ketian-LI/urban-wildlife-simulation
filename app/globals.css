@@ -5815,3 +5815,509 @@ body {
     flex: none;
   }
 }
+
+/* V11 phone and portrait-tablet composition. */
+@media (max-width: 680px), (max-width: 900px) and (orientation: portrait) {
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  .simulation-stage,
+  .simulation-stage .content-grid,
+  .simulation-stage .ecosystem {
+    height: 100svh;
+    height: 100dvh;
+    min-height: 0;
+    width: 100vw;
+  }
+
+  .simulation-stage .content-grid,
+  .simulation-stage .ecosystem {
+    aspect-ratio: auto;
+  }
+
+  .simulation-stage .ecosystem {
+    background-position: center;
+    background-size: auto 100%;
+    box-shadow: none;
+  }
+
+  .scene-header {
+    left: max(0.7rem, env(safe-area-inset-left));
+    top: max(0.55rem, env(safe-area-inset-top));
+  }
+
+  .scene-header h1 {
+    font-size: 1rem;
+    max-width: 11rem;
+  }
+
+  .ecosystem-v8 .scene-generation {
+    gap: 0.28rem;
+    margin-top: 0.42rem;
+    max-width: 10rem;
+  }
+
+  .scene-generation span,
+  .scene-generation strong,
+  .ecosystem-v8 .scene-generation small {
+    font-size: 0.58rem;
+  }
+
+  .online-marker {
+    gap: 0.28rem;
+    min-height: 2rem;
+    padding: 0.28rem 0.46rem;
+    right: max(0.7rem, env(safe-area-inset-right));
+    top: max(0.55rem, env(safe-area-inset-top));
+  }
+
+  .online-marker::after {
+    display: none;
+  }
+
+  .online-marker span {
+    font-size: 0.58rem;
+  }
+
+  .online-marker strong {
+    font-size: 0.76rem;
+  }
+
+  .scene-controls {
+    gap: 0.35rem;
+    right: max(0.7rem, env(safe-area-inset-right));
+    top: calc(max(0.55rem, env(safe-area-inset-top)) + 2.6rem);
+  }
+
+  .language-switch button,
+  .tutorial-help-button {
+    font-size: 0.72rem;
+    height: 2.75rem;
+    min-height: 2.75rem;
+    min-width: 2.75rem;
+  }
+
+  .tutorial-help-button {
+    width: 2.75rem;
+  }
+
+  .account-control {
+    min-height: 2.75rem;
+    min-width: 0;
+    padding: 0.28rem;
+    right: calc(max(0.7rem, env(safe-area-inset-right)) + 8.85rem);
+    top: calc(max(0.55rem, env(safe-area-inset-top)) + 2.6rem);
+  }
+
+  .account-control.account-sign-in > span:not(.account-cloud-icon):not(.account-avatar),
+  .account-signed-in .account-identity {
+    display: none;
+  }
+
+  .account-cloud-icon,
+  .account-avatar {
+    height: 2.05rem;
+    width: 2.05rem;
+  }
+
+  .account-signed-in {
+    gap: 0.18rem;
+  }
+
+  .account-sign-out {
+    height: 2rem;
+    width: 2rem;
+  }
+
+  .ecosystem-v8 .plaza-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    left: max(0.5rem, env(safe-area-inset-left));
+    top: calc(max(0.55rem, env(safe-area-inset-top)) + 5.85rem);
+    width: calc(100% - max(1rem, env(safe-area-inset-left) + env(safe-area-inset-right)));
+  }
+
+  .ecosystem-v8 .plaza-metric {
+    border-left-width: 3px;
+    gap: 0.2rem;
+    grid-template-columns: auto minmax(0, 1fr);
+    height: 3.15rem;
+    padding: 0.28rem;
+  }
+
+  .ecosystem-v8 .plaza-metric > .pillar-icon {
+    font-size: 0.62rem;
+    height: 1.25rem;
+    width: 1.25rem;
+  }
+
+  .ecosystem-v8 .plaza-metric > span:not(.pillar-icon) {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.05rem;
+  }
+
+  .ecosystem-v8 .plaza-metric span small {
+    font-size: 0.52rem;
+    max-width: 100%;
+  }
+
+  .ecosystem-v8 .plaza-metric span strong {
+    font-size: 0.76rem;
+  }
+
+  .ecosystem-v8 .plaza-metric > i {
+    height: 0.24rem;
+  }
+
+  .v9-metric-lock,
+  .v9-metric-risk {
+    font-size: 0.42rem;
+    left: 0.18rem;
+    right: auto;
+    top: calc(100% + 0.1rem);
+  }
+
+  .ecosystem-v6 .plaza-population {
+    background: #f0eee5;
+    border: 1px solid #718077;
+    bottom: auto;
+    left: max(0.5rem, env(safe-area-inset-left));
+    padding: 0.3rem 0.42rem;
+    text-align: left;
+    top: calc(max(0.55rem, env(safe-area-inset-top)) + 9.45rem);
+    transform: none;
+    width: auto;
+  }
+
+  .ecosystem-v6 .plaza-population span {
+    display: block;
+    font-size: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .ecosystem-v6 .plaza-population strong {
+    display: block;
+    font-size: 0.95rem;
+    margin-top: 0.08rem;
+  }
+
+  .ecosystem-v8:has(.v8-impact-toast) .plaza-population {
+    visibility: hidden;
+  }
+
+  .ecosystem-v8 .v8-impact-toast {
+    left: 0.5rem;
+    max-height: 9.5rem;
+    max-width: none;
+    overflow: hidden;
+    top: calc(max(0.55rem, env(safe-area-inset-top)) + 9.45rem);
+    transform: none;
+    width: calc(100% - 1rem);
+  }
+
+  .v8-impact-toast > p {
+    font-size: 0.52rem;
+  }
+
+  .v8-impact-toast > strong {
+    font-size: 0.66rem;
+  }
+
+  .v8-impact-chips small,
+  .v9-lock-result {
+    font-size: 0.52rem;
+  }
+
+  .v8-impact-chips b {
+    font-size: 0.62rem;
+  }
+
+  .v6-favorite-plaque {
+    bottom: max(0.55rem, env(safe-area-inset-bottom));
+    grid-template-columns: 2.35rem minmax(0, 1fr) auto;
+    left: max(0.5rem, env(safe-area-inset-left));
+    min-height: 3.1rem;
+    padding: 0.28rem 0.34rem;
+    width: 7.35rem;
+  }
+
+  .v6-favorite-plaque small,
+  .v6-favorite-plaque b {
+    font-size: 0.46rem;
+  }
+
+  .v6-favorite-plaque strong {
+    font-size: 0.58rem;
+  }
+
+  .ecosystem-v8 .v8-feed-launcher {
+    bottom: max(0.55rem, env(safe-area-inset-bottom));
+    min-height: 3.1rem;
+    padding: 0.32rem 0.42rem;
+    width: 7.55rem;
+  }
+
+  .ecosystem-v8 .v8-feed-launcher span {
+    font-size: 0.62rem;
+  }
+
+  .ecosystem-v8 .v8-feed-launcher small {
+    font-size: 0.48rem;
+  }
+
+  .v6-journal {
+    bottom: max(0.55rem, env(safe-area-inset-bottom));
+    right: max(0.5rem, env(safe-area-inset-right));
+  }
+
+  .v6-journal > button {
+    min-height: 3.1rem;
+    padding: 0.3rem 0.42rem;
+  }
+
+  .v6-journal > button b,
+  .v6-journal > button small {
+    font-size: 0.55rem;
+  }
+
+  .ecosystem-v7 .v6-journal > section {
+    bottom: calc(100% + 0.45rem);
+    max-height: calc(100dvh - 13rem);
+    padding: 0.72rem;
+    width: calc(100vw - 1rem);
+  }
+
+  .v6-journal h2 {
+    font-size: 0.92rem;
+  }
+
+  .v6-journal h3 {
+    font-size: 0.64rem;
+  }
+
+  .v6-journal-colors span,
+  .v6-journal-species span,
+  .v7-species-status strong,
+  .v7-species-status b,
+  .v7-species-status small,
+  .v6-journal li {
+    font-size: 0.56rem;
+  }
+
+  .ecosystem-v8 .v6-event-card {
+    bottom: max(0.5rem, env(safe-area-inset-bottom));
+    max-height: calc(100dvh - max(1rem, env(safe-area-inset-top)));
+    overflow-y: auto;
+    padding: 0.85rem;
+    width: calc(100% - 1rem);
+  }
+
+  .ecosystem-v8 .v6-event-card > p {
+    font-size: 0.58rem;
+  }
+
+  .ecosystem-v8 .v6-event-card h2 {
+    font-size: 1.05rem;
+  }
+
+  .ecosystem-v8 .v6-event-card > span {
+    font-size: 0.7rem;
+  }
+
+  .ecosystem-v8 .v6-event-card > div {
+    grid-template-columns: 1fr;
+  }
+
+  .ecosystem-v8 .v6-event-card button {
+    min-height: 4.25rem;
+    padding: 0.55rem;
+  }
+
+  .ecosystem-v8 .v6-event-card button > strong {
+    font-size: 0.7rem;
+  }
+
+  .v9-event-flags span {
+    font-size: 0.62rem;
+  }
+
+  .v6-modal-backdrop {
+    padding: max(0.55rem, env(safe-area-inset-top)) max(0.55rem, env(safe-area-inset-right)) max(0.55rem, env(safe-area-inset-bottom)) max(0.55rem, env(safe-area-inset-left));
+  }
+
+  .v6-tutorial,
+  .v6-game-over {
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 0.9rem;
+  }
+
+  .v6-tutorial h2,
+  .v6-game-over h2 {
+    font-size: 1.15rem;
+  }
+
+  .v6-tutorial-visual {
+    height: 6.7rem;
+    margin: 0.7rem 0;
+  }
+
+  .v6-tutorial footer,
+  .v6-game-over footer {
+    gap: 0.5rem;
+  }
+
+  .v6-tutorial footer button,
+  .v6-game-over button {
+    min-height: 2.75rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .scene-header h1 {
+    font-size: 0.9rem;
+    max-width: 9.5rem;
+  }
+
+  .account-control {
+    right: calc(max(0.5rem, env(safe-area-inset-right)) + 8.45rem);
+  }
+
+  .language-switch button,
+  .tutorial-help-button {
+    height: 2.55rem;
+    min-height: 2.55rem;
+    min-width: 2.55rem;
+  }
+
+  .tutorial-help-button {
+    width: 2.55rem;
+  }
+
+  .ecosystem-v8 .plaza-metrics {
+    top: calc(max(0.55rem, env(safe-area-inset-top)) + 5.55rem);
+  }
+
+  .ecosystem-v8 .plaza-metric {
+    height: 3rem;
+    padding: 0.2rem;
+  }
+
+  .ecosystem-v8 .plaza-metric > .pillar-icon {
+    height: 1.1rem;
+    width: 1.1rem;
+  }
+
+  .ecosystem-v8 .plaza-metric span small {
+    font-size: 0.46rem;
+  }
+
+  .ecosystem-v6 .plaza-population,
+  .ecosystem-v8 .v8-impact-toast {
+    top: calc(max(0.55rem, env(safe-area-inset-top)) + 9rem);
+  }
+
+  .v6-favorite-plaque {
+    grid-template-columns: 2rem minmax(0, 1fr);
+    width: 6.45rem;
+  }
+
+  .v6-favorite-plaque > i {
+    display: none;
+  }
+
+  .ecosystem-v8 .v8-feed-launcher {
+    width: 6.85rem;
+  }
+}
+
+@media (max-height: 560px) and (orientation: landscape) {
+  .scene-header {
+    left: 1.2%;
+    top: 1.2%;
+  }
+
+  .scene-header h1 {
+    font-size: 0.82rem;
+    max-width: 8.5rem;
+  }
+
+  .ecosystem-v8 .scene-generation {
+    gap: 0.22rem;
+    margin-top: 0.32rem;
+    max-width: 8rem;
+  }
+
+  .scene-generation span,
+  .scene-generation strong,
+  .ecosystem-v8 .scene-generation small {
+    font-size: 0.44rem;
+  }
+
+  .ecosystem-v8 .plaza-metrics {
+    left: 27%;
+    top: 1.2%;
+    width: 41%;
+  }
+
+  .ecosystem-v8 .plaza-metric {
+    gap: 0.16rem;
+    height: 2.55rem;
+    padding: 0.22rem;
+  }
+
+  .ecosystem-v8 .plaza-metric > .pillar-icon {
+    font-size: 0.52rem;
+    height: 1.1rem;
+    width: 1.1rem;
+  }
+
+  .ecosystem-v8 .plaza-metric span small {
+    display: none;
+  }
+
+  .ecosystem-v8 .plaza-metric span strong {
+    font-size: 0.6rem;
+  }
+
+  .ecosystem-v8 .plaza-metric > span:not(.pillar-icon) {
+    justify-content: center;
+  }
+
+  .ecosystem-v8 .plaza-metric > i {
+    height: 0.2rem;
+  }
+
+  .online-marker {
+    right: 1.2%;
+    top: 3rem;
+  }
+
+  .account-control {
+    min-height: 2.2rem;
+    min-width: 0;
+    padding: 0.24rem;
+    right: 6.4rem;
+    top: 3rem;
+  }
+
+  .account-control.account-sign-in > span:not(.account-cloud-icon):not(.account-avatar),
+  .account-signed-in .account-identity {
+    display: none;
+  }
+
+  .account-signed-in {
+    gap: 0.15rem;
+  }
+
+  .ecosystem-v8 .v6-event-card {
+    bottom: 0.5rem;
+    max-height: calc(100% - 1rem);
+    overflow-y: auto;
+    width: 82%;
+  }
+}

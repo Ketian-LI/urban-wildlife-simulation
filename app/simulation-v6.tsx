@@ -2066,7 +2066,7 @@ function AccountControl({
   };
   if (!account) {
     return (
-      <a className="account-control account-sign-in" href={signInPath}>
+      <a aria-label={copy.signIn} className="account-control account-sign-in" href={signInPath}>
         <span aria-hidden="true" className="account-cloud-icon">☁</span>
         <span><strong>{copy.signIn}</strong><small>{copy.savedLocal}</small></span>
       </a>
