@@ -92,9 +92,14 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /dangerTurns >= 3/);
   assert.match(simulation, /function acceptanceProbability/);
   assert.match(simulation, /\.sort\(\(left, right\) => left\.distance - right\.distance \|\| left\.animal\.id - right\.animal\.id\)/);
-  assert.match(simulation, /let winnerIndex = -1/);
+  assert.match(simulation, /function acceptingAnimalIndex/);
+  assert.match(simulation, /const winnerIndex = acceptingAnimalIndex/);
   assert.match(simulation, /FOOD_LIFETIME_MS = 7_200/);
   assert.match(simulation, /function projectilePosition/);
+  assert.match(simulation, /function FoodParticleSprite/);
+  assert.match(simulation, /animalLayerRef/);
+  assert.match(simulation, /element\?\.style\.setProperty\("--claim-x"/);
+  assert.doesNotMatch(simulation, /const frameClass/);
   assert.match(simulation, /phase: "noticing"/);
   assert.match(simulation, /\? "approach" : "rejecting"/);
   assert.match(simulation, /phase: "landing"/);
@@ -118,6 +123,7 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.doesNotMatch(simulation, /ACCESSORY|WARDROBE|OUTFIT/i);
   assert.doesNotMatch(simulation, /FEED_COOLDOWN|lastThrowAt|HUNGER_INTERVAL|SPLIT_ANIMATION/i);
   assert.doesNotMatch(simulation, /genetic diversity|restartColorVariety/i);
+  assert.doesNotMatch(simulation, /function loadAtlas|canvas\.toDataURL|getImageData/);
 
   assert.match(css, /\.ecosystem-v6/);
   assert.match(css, /\.v6-food-tray/);
@@ -143,4 +149,6 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   await access(new URL("../public/pigeon-motion-atlas.webp", import.meta.url));
   await access(new URL("../public/wildlife-motion-atlas.png", import.meta.url));
   await access(new URL("../public/fox-hedgehog-motion-atlas.png", import.meta.url));
+  await access(new URL("../public/wildlife-motion-atlas-transparent.webp", import.meta.url));
+  await access(new URL("../public/fox-hedgehog-motion-atlas-transparent.webp", import.meta.url));
 });

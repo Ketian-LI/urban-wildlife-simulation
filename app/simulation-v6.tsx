@@ -705,24 +705,29 @@ function wordFromCaseMask(caseMask: number) {
 }
 
 function positionFor(id: number, zone: "inside" | "outside", species: Species) {
-  if (species === "swan") {
-    return zone === "inside"
-      ? { x: 73 + (id % 5) * 2.4, y: 39 + (id % 3) * 3.2 }
-      : { x: 82 + (id % 3) * 2, y: 31 + (id % 4) * 2.1 };
-  }
-
   if (zone === "inside") {
+    if (species === "swan") return { x: 69 + (id % 4) * 5, y: 37 + (id % 3) * 6 };
     return {
       x: 23 + ((id * 37) % 55),
       y: 45 + ((id * 29) % 35),
     };
   }
 
-  const lane = id % 4;
-  if (lane === 0) return { x: 8 + ((id * 17) % 15), y: 42 + ((id * 13) % 38) };
-  if (lane === 1) return { x: 78 + ((id * 19) % 14), y: 42 + ((id * 11) % 38) };
-  if (lane === 2) return { x: 18 + ((id * 23) % 64), y: 27 + ((id * 7) % 9) };
-  return { x: 16 + ((id * 31) % 68), y: 83 + ((id * 5) % 6) };
+  const outsideAnchors: Record<Species, { x: number; y: number }[]> = {
+    pigeon: [{ x: 28, y: 37 }, { x: 64, y: 39 }, { x: 79, y: 56 }],
+    squirrel: [{ x: 17, y: 44 }, { x: 12, y: 65 }, { x: 28, y: 76 }],
+    swan: [{ x: 70, y: 34 }, { x: 84, y: 39 }, { x: 76, y: 48 }],
+    "stray-cat": [{ x: 38, y: 36 }, { x: 62, y: 45 }, { x: 73, y: 68 }],
+    "stray-dog": [{ x: 22, y: 51 }, { x: 37, y: 72 }, { x: 61, y: 79 }],
+    fox: [{ x: 10, y: 58 }, { x: 86, y: 74 }, { x: 19, y: 82 }],
+    hedgehog: [{ x: 31, y: 82 }, { x: 67, y: 84 }, { x: 88, y: 57 }],
+  };
+  const anchor = outsideAnchors[species][id % 3];
+  const generationDrift = Math.floor(id / INITIAL_ANIMALS);
+  return {
+    x: clamp(anchor.x + ((generationDrift * 7 + id) % 5) - 2, 7, 93),
+    y: clamp(anchor.y + ((generationDrift * 11 + id) % 5) - 2, 27, 89),
+  };
 }
 
 function createAnimal(
@@ -1429,62 +1434,39 @@ function projectilePosition(particle: FoodParticle, now: number) {
   return { x, y, landed: progress >= 1 };
 }
 
-const atlasPromises = new Map<string, Promise<string>>();
-function loadAtlas(path: string) {
-  const existing = atlasPromises.get(path);
-  if (existing) return existing;
-  const promise = new Promise<string>((resolve, reject) => {
-    const image = new Image();
-    image.decoding = "async";
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      const context = canvas.getContext("2d", { willReadFrequently: true });
-      if (!context) return reject(new Error("atlas canvas unavailable"));
-      context.drawImage(image, 0, 0);
-      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
-      const visited = new Uint8Array(canvas.width * canvas.height);
-      const queue = new Int32Array(canvas.width * canvas.height);
-      let start = 0;
-      let end = 0;
-      const enqueue = (index: number) => {
-        if (visited[index]) return;
-        const offset = index * 4;
-        const r = pixels.data[offset];
-        const g = pixels.data[offset + 1];
-        const b = pixels.data[offset + 2];
-        const spread = Math.max(r, g, b) - Math.min(r, g, b);
-        if (Math.min(r, g, b) <= 224 || spread >= 25) return;
-        visited[index] = 1;
-        queue[end++] = index;
-      };
-      for (let x = 0; x < canvas.width; x += 1) {
-        enqueue(x);
-        enqueue((canvas.height - 1) * canvas.width + x);
-      }
-      for (let y = 1; y < canvas.height - 1; y += 1) {
-        enqueue(y * canvas.width);
-        enqueue(y * canvas.width + canvas.width - 1);
-      }
-      while (start < end) {
-        const index = queue[start++];
-        const x = index % canvas.width;
-        const y = Math.floor(index / canvas.width);
-        pixels.data[index * 4 + 3] = 0;
-        if (x > 0) enqueue(index - 1);
-        if (x + 1 < canvas.width) enqueue(index + 1);
-        if (y > 0) enqueue(index - canvas.width);
-        if (y + 1 < canvas.height) enqueue(index + canvas.width);
-      }
-      context.putImageData(pixels, 0, 0);
-      resolve(canvas.toDataURL("image/png"));
+function FoodParticleSprite({ particle }: { particle: FoodParticle }) {
+  const elementRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    let frame = 0;
+    const tick = (now: number) => {
+      const element = elementRef.current;
+      if (!element) return;
+      const position = projectilePosition(particle, now);
+      element.style.setProperty("--food-x", `${position.x}%`);
+      element.style.setProperty("--food-y", `${position.y}%`);
+      element.classList.toggle("food-particle-landed", position.landed);
+      if (now < particle.expiresAt) frame = window.requestAnimationFrame(tick);
     };
-    image.onerror = () => reject(new Error("atlas load failed"));
-    image.src = path;
-  });
-  atlasPromises.set(path, promise);
-  return promise;
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [particle]);
+
+  const initial = projectilePosition(particle, particle.launchedAt);
+  return (
+    <span
+      className={`food-particle v6-food-${particle.food}`}
+      data-food-id={particle.id}
+      ref={elementRef}
+      style={{
+        "--food-x": `${initial.x}%`,
+        "--food-y": `${initial.y}%`,
+        "--food-color": foodData[particle.food].color,
+      } as React.CSSProperties}
+    >
+      {foodData[particle.food].symbol}
+    </span>
+  );
 }
 
 function acceptanceProbability(
@@ -1529,31 +1511,31 @@ function preferredFollowTarget(animal: AnimalAgent, target: { x: number; y: numb
   return { x: clamp(target.x, 9, 91), y: clamp(target.y, 30, 88) };
 }
 
-function AnimalSprite({
-  animal,
-  phase = "idle",
-  atlasReady,
-}: {
-  animal: AnimalAgent;
-  phase?: AnimalResponse["phase"] | "idle";
-  atlasReady: boolean;
-}) {
+function feedClock() {
+  return { motion: window.performance.now(), wall: Date.now() };
+}
+
+function acceptingAnimalIndex(
+  animals: AnimalAgent[],
+  probabilities: number[],
+  reserved: Set<number>,
+) {
+  for (let index = 0; index < animals.length; index += 1) {
+    if (!reserved.has(animals[index].id) && Math.random() < probabilities[index]) return index;
+  }
+  return -1;
+}
+
+function AnimalSprite({ animal }: { animal: AnimalAgent }) {
   const isPigeon = animal.species === "pigeon";
   const standardRow = wildlifeRows[animal.species];
   const extraRow = extraRows[animal.species];
-  const frameClass =
-    phase === "approach"
-      ? "pigeon-word-flying"
-      : phase === "eating" || phase === "landing"
-        ? "pigeon-word-landing"
-        : "";
   const className = [
     "v6-animal-sprite",
-    frameClass,
     isPigeon ? `pigeon-word-${animal.plumage}` : "wildlife-agent",
     standardRow !== undefined ? "v6-standard-wildlife" : "",
     extraRow !== undefined ? "v6-extra-wildlife" : "",
-    atlasReady || isPigeon ? "is-atlas-ready" : "",
+    "is-atlas-ready",
   ]
     .filter(Boolean)
     .join(" ");
@@ -1867,79 +1849,71 @@ function SimulationScene({
   const [particles, setParticles] = useState<FoodParticle[]>([]);
   const [responses, setResponses] = useState<AnimalResponse[]>([]);
   const [deathEffects, setDeathEffects] = useState<DeathEffect[]>([]);
-  const [frameTime, setFrameTime] = useState(0);
-  const [wildlifeAtlas, setWildlifeAtlas] = useState<string | null>(null);
-  const [extraAtlas, setExtraAtlas] = useState<string | null>(null);
-  const [favoritePosition, setFavoritePosition] = useState<{ id: number; x: number; y: number } | null>(null);
   const sequence = useRef(1);
   const deathSequence = useRef(1);
   const timers = useRef<number[]>([]);
   const cursorTarget = useRef<{ x: number; y: number } | null>(null);
+  const favoritePositionRef = useRef<{ id: number; x: number; y: number } | null>(null);
+  const animalLayerRef = useRef<HTMLDivElement>(null);
   const favorite = state.pigeons.find((animal) => animal.id === state.favoriteId);
-
-  useEffect(() => {
-    let active = true;
-    void Promise.all([
-      loadAtlas("/wildlife-motion-atlas.png"),
-      loadAtlas("/fox-hedgehog-motion-atlas.png"),
-    ]).then(([standard, extra]) => {
-      if (active) {
-        setWildlifeAtlas(standard);
-        setExtraAtlas(extra);
-      }
-    }).catch(() => undefined);
-    return () => { active = false; };
-  }, []);
+  const favoriteAgentRef = useRef(favorite);
 
   useEffect(() => () => timers.current.forEach((timer) => window.clearTimeout(timer)), []);
-
-  useEffect(() => {
-    if (particles.length === 0) return;
-    let frame = 0;
-    const tick = (now: number) => {
-      setFrameTime(now);
-      frame = window.requestAnimationFrame(tick);
-    };
-    frame = window.requestAnimationFrame(tick);
-    return () => window.cancelAnimationFrame(frame);
-  }, [particles.length]);
+  useEffect(() => { favoriteAgentRef.current = favorite; }, [favorite]);
 
   const favoriteIsResponding = Boolean(
     favorite && responses.some((response) => response.animalId === favorite.id && response.phase !== "landing"),
   );
   useEffect(() => {
-    if (!favorite) return;
+    const initialFavorite = favoriteAgentRef.current;
+    if (!initialFavorite) {
+      favoritePositionRef.current = null;
+      return;
+    }
+    if (favoritePositionRef.current?.id !== initialFavorite.id) {
+      favoritePositionRef.current = { id: initialFavorite.id, x: initialFavorite.x, y: initialFavorite.y };
+    }
     let frame = 0;
     const move = () => {
-      const rawTarget = cursorTarget.current ?? { x: favorite.x, y: favorite.y };
-      const target = preferredFollowTarget(favorite, rawTarget);
-      const speed = favorite.species === "hedgehog" ? 0.018 : favorite.species === "swan" ? 0.03 : 0.045;
+      const currentFavorite = favoriteAgentRef.current;
+      const current = favoritePositionRef.current;
+      if (!currentFavorite || !current || current.id !== currentFavorite.id) return;
+      const rawTarget = cursorTarget.current ?? { x: currentFavorite.x, y: currentFavorite.y };
+      const target = preferredFollowTarget(currentFavorite, rawTarget);
+      const speed = currentFavorite.species === "hedgehog" ? 0.018 : currentFavorite.species === "swan" ? 0.03 : 0.045;
       if (!favoriteIsResponding) {
-        setFavoritePosition((position) => {
-          const current = position?.id === favorite.id ? position : { id: favorite.id, x: favorite.x, y: favorite.y };
-          const next = { x: current.x + (target.x - current.x) * speed, y: current.y + (target.y - current.y) * speed };
-          return Math.hypot(next.x - current.x, next.y - current.y) < 0.004
-            ? current
-            : { id: favorite.id, ...next };
-        });
+        const next = { id: current.id, x: current.x + (target.x - current.x) * speed, y: current.y + (target.y - current.y) * speed };
+        if (Math.hypot(next.x - current.x, next.y - current.y) >= 0.004) {
+          favoritePositionRef.current = next;
+          const element = animalLayerRef.current?.querySelector<HTMLElement>(`[data-animal-id="${currentFavorite.id}"]`);
+          element?.style.setProperty("--x", `${next.x}%`);
+          element?.style.setProperty("--y", `${next.y}%`);
+          element?.style.setProperty("--claim-x", `${next.x}%`);
+          element?.style.setProperty("--claim-y", `${next.y}%`);
+        }
       }
       frame = window.requestAnimationFrame(move);
     };
     frame = window.requestAnimationFrame(move);
     return () => window.cancelAnimationFrame(frame);
-  }, [favorite, favoriteIsResponding]);
+  }, [favorite?.id, favoriteIsResponding]);
 
   const displayPosition = (animal: AnimalAgent) => {
     const response = [...responses].reverse().find((item) => item.animalId === animal.id);
     if (response && response.phase !== "noticing" && response.phase !== "rejecting") return { x: response.x, y: response.y };
-    if (animal.id === favorite?.id && favoritePosition?.id === animal.id) return favoritePosition;
     return { x: animal.x, y: animal.y };
+  };
+
+  const interactionPosition = (animal: AnimalAgent) => {
+    if (animal.id === favorite?.id && favoritePositionRef.current?.id === animal.id) return favoritePositionRef.current;
+    return displayPosition(animal);
   };
 
   const throwFood = (targetX: number, targetY: number) => {
     if (state.endedBy || state.activeEventId || particles.length > 0) return;
-    const nowPerformance = window.performance.now();
-    const now = Date.now();
+    const clock = feedClock();
+    const nowPerformance = clock.motion;
+    const now = clock.wall;
     const id = now * 1_000 + sequence.current++;
     const startX = clamp(50 + (targetX - 50) * 0.16, 42, 58);
     const startY = 96;
@@ -1947,19 +1921,13 @@ function SimulationScene({
     const duration = clamp(620 + distance * 5.4, 700, 1080);
     const reserved = new Set(responses.filter((response) => response.winner && response.phase !== "landing").map((response) => response.animalId));
     const ranked = state.pigeons
-      .map((animal) => ({ animal, position: displayPosition(animal) }))
+      .map((animal) => ({ animal, position: interactionPosition(animal) }))
       .map((entry) => ({ ...entry, distance: Math.hypot(entry.position.x - targetX, entry.position.y - targetY) }))
       .filter((entry) => entry.distance <= detectionRadius(entry.animal))
       .sort((left, right) => left.distance - right.distance || left.animal.id - right.animal.id);
 
-    let winnerIndex = -1;
     const probabilities = ranked.map(({ animal }) => acceptanceProbability(animal, selectedFood, state, now));
-    for (let index = 0; index < ranked.length; index += 1) {
-      if (!reserved.has(ranked[index].animal.id) && Math.random() < probabilities[index]) {
-        winnerIndex = index;
-        break;
-      }
-    }
+    const winnerIndex = acceptingAnimalIndex(ranked.map(({ animal }) => animal), probabilities, reserved);
     const winner = winnerIndex >= 0 ? ranked[winnerIndex].animal : null;
     const attemptDelay = Math.max(0, winnerIndex) * 280;
     const eatDelay = duration + attemptDelay + 820;
@@ -2008,7 +1976,7 @@ function SimulationScene({
           ? { ...response, phase: response.winner || state.pigeons.find((animal) => animal.id === response.animalId)?.hasAcceptedFood ? "approach" : "rejecting" }
           : response,
       ));
-    }, duration + 80);
+    }, 160);
 
     const resolveTimer = window.setTimeout(() => {
       onResolve({ id, animalId: winner?.id ?? null, food: selectedFood, x: targetX, y: targetY, declinedBefore: winnerIndex >= 0 ? winnerIndex : ranked.length });
@@ -2046,7 +2014,7 @@ function SimulationScene({
     event.preventDefault();
     event.stopPropagation();
     if (deathEffects.some((effect) => effect.animal.id === animal.id)) return;
-    const position = displayPosition(animal);
+    const position = interactionPosition(animal);
     const id = deathSequence.current++;
     setDeathEffects((current) => [...current, { id, animal, x: position.x, y: position.y }]);
     setResponses((current) => current.filter((response) => response.animalId !== animal.id));
@@ -2055,7 +2023,6 @@ function SimulationScene({
     timers.current.push(timer);
   };
 
-  const favoriteResponse = favorite ? responses.find((response) => response.animalId === favorite.id) : undefined;
   const cityCount = state.pigeons.filter((animal) => animal.hasAcceptedFood).length;
   const stableSpeciesCount = speciesOrder.filter((species) => {
     const profile = speciesProfiles[species];
@@ -2077,8 +2044,8 @@ function SimulationScene({
       onPointerMove={onPointerMove}
       role="application"
       style={{
-        "--wildlife-atlas": wildlifeAtlas ? `url("${wildlifeAtlas}")` : "none",
-        "--extra-atlas": extraAtlas ? `url("${extraAtlas}")` : "none",
+        "--wildlife-atlas": "url('/wildlife-motion-atlas-transparent.webp')",
+        "--extra-atlas": "url('/fox-hedgehog-motion-atlas-transparent.webp')",
       } as React.CSSProperties}
       tabIndex={0}
     >
@@ -2114,7 +2081,7 @@ function SimulationScene({
         })}
       </div>
 
-      <div className="v6-animal-layer">
+      <div className="v6-animal-layer" ref={animalLayerRef}>
         {state.pigeons.map((animal) => {
           const response = [...responses].reverse().find((item) => item.animalId === animal.id);
           const position = displayPosition(animal);
@@ -2139,8 +2106,8 @@ function SimulationScene({
               style={{
                 "--x": `${position.x}%`,
                 "--y": `${position.y}%`,
-                "--claim-x": `${position.x}%`,
-                "--claim-y": `${position.y}%`,
+                "--claim-x": isFavorite && !response ? undefined : `${position.x}%`,
+                "--claim-y": isFavorite && !response ? undefined : `${position.y}%`,
                 "--tilt": `${((animal.id % 5) - 2) * 0.7}deg`,
                 "--scale": 1,
                 "--speed": `${6.8 + (animal.id % 5) * 0.35}s`,
@@ -2149,7 +2116,7 @@ function SimulationScene({
               } as React.CSSProperties}
               tabIndex={0}
             >
-              <AnimalSprite animal={animal} atlasReady={Boolean(wildlifeAtlas && extraAtlas)} phase={phase} />
+              <AnimalSprite animal={animal} />
               {isFavorite ? <span aria-hidden="true" className="host-favorite-heart">♥</span> : null}
               <span className="sr-only">{animal.species === "pigeon" ? wordFromCaseMask(animal.caseMask) : speciesNames.en[animal.species]}</span>
             </div>
@@ -2171,7 +2138,7 @@ function SimulationScene({
                 "--death-tilt": "0deg",
               } as React.CSSProperties}
             >
-              <AnimalSprite animal={effect.animal} atlasReady={Boolean(wildlifeAtlas && extraAtlas)} />
+              <AnimalSprite animal={effect.animal} />
               {Array.from({ length: 12 }, (_, index) => (
                 <i
                   className="pigeon-feather"
@@ -2191,19 +2158,7 @@ function SimulationScene({
       </div>
 
       <div aria-hidden="true" className="food-particle-layer">
-        {particles.map((particle) => {
-          const position = projectilePosition(particle, frameTime || particle.launchedAt);
-          return (
-            <span
-              className={`food-particle v6-food-${particle.food} ${position.landed ? "food-particle-landed" : ""}`}
-              data-food-id={particle.id}
-              key={particle.id}
-              style={{ "--food-x": `${position.x}%`, "--food-y": `${position.y}%`, "--food-color": foodData[particle.food].color } as React.CSSProperties}
-            >
-              {foodData[particle.food].symbol}
-            </span>
-          );
-        })}
+        {particles.map((particle) => <FoodParticleSprite key={particle.id} particle={particle} />)}
       </div>
 
       <div aria-hidden="true" className="feed-launcher"><b>{foodData[selectedFood].symbol}</b></div>
@@ -2211,7 +2166,7 @@ function SimulationScene({
 
       <div className={`v6-favorite-plaque ${favorite ? "has-favorite" : "is-empty"}`} data-host-favorite-id={favorite?.id} role="status">
         <div className="v6-favorite-portrait">
-          {favorite ? <AnimalSprite animal={favorite} atlasReady={Boolean(wildlifeAtlas && extraAtlas)} phase={favoriteResponse?.phase ?? "idle"} /> : <span>♥</span>}
+          {favorite ? <AnimalSprite animal={favorite} /> : <span>♥</span>}
         </div>
         <span><small>{copy.hostFavorite}</small><strong>{favorite ? speciesNames[language][favorite.species] : copy.favoriteEmpty}</strong>{favorite ? <b>{favorite.feedCount} {copy.feeds}</b> : null}</span>
         {favorite ? <i aria-label={copy.protected}>♥</i> : null}

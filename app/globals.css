@@ -74,7 +74,8 @@
 
 .v6-extra-wildlife {
   background-image: var(--extra-atlas) !important;
-  background-position: 0% var(--extra-y) !important;
+  background-position-x: 0%;
+  background-position-y: var(--extra-y) !important;
   background-size: 400% 200% !important;
 }
 
@@ -5245,4 +5246,44 @@ body {
     gap: 0.25rem;
     grid-template-columns: minmax(4.5rem, 1fr) auto minmax(4.2rem, 1fr);
   }
+}
+
+/* V8 sprite geometry and compositor budget. */
+.ecosystem-v7 .v6-animal.animal-agent-fox,
+.ecosystem-v7 .v6-animal.animal-agent-hedgehog,
+.ecosystem-v7 .wildlife-death-effect.animal-agent-fox,
+.ecosystem-v7 .wildlife-death-effect.animal-agent-hedgehog {
+  aspect-ratio: 1 / 1;
+}
+
+.ecosystem-v7 .v6-animal.animal-agent-fox,
+.ecosystem-v7 .wildlife-death-effect.animal-agent-fox {
+  width: clamp(3rem, 4.35vw, 4.55rem);
+}
+
+.ecosystem-v7 .v6-animal.animal-agent-hedgehog,
+.ecosystem-v7 .wildlife-death-effect.animal-agent-hedgehog {
+  width: clamp(2.45rem, 3.35vw, 3.5rem);
+}
+
+.ecosystem-v7 .v6-animal.animal-agent-swan,
+.ecosystem-v7 .wildlife-death-effect.animal-agent-swan {
+  width: clamp(3.55rem, 4.9vw, 5.15rem);
+}
+
+.ecosystem-v7 .v6-animal {
+  contain: layout paint style;
+}
+
+.ecosystem-v7 .wildlife-bird-sprite,
+.ecosystem-v7 .pigeon-bird-sprite {
+  image-rendering: auto;
+  will-change: auto;
+}
+
+.ecosystem-v7 .v6-phase-approach .wildlife-bird-sprite,
+.ecosystem-v7 .v6-phase-approach .pigeon-bird-sprite,
+.ecosystem-v7 .v6-phase-eating .wildlife-bird-sprite,
+.ecosystem-v7 .v6-phase-landing .wildlife-bird-sprite {
+  will-change: background-position;
 }
