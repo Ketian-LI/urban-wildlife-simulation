@@ -878,6 +878,41 @@ function runGeneration(state: EcosystemState, now: number) {
     }
   }
 
+  const absentSpecies = speciesOrder.filter(
+    (species) => species !== "pigeon" && !state.pigeons.some((animal) => animal.species === species),
+  );
+  if (
+    state.animalSpeciesUnlocked
+    && state.pigeons.length >= MAX_ANIMALS
+    && absentSpecies.length > 0
+    && state.generations % 2 === 0
+  ) {
+    const preferredArrival = !state.firstSquirrelSeeded ? "squirrel" : weightedSpecies(state, now);
+    const arrivingSpecies = absentSpecies.includes(preferredArrival)
+      ? preferredArrival
+      : absentSpecies[(state.generations + state.nextPigeonId) % absentSpecies.length];
+    const migrant = state.pigeons
+      .filter((animal) => animal.id !== state.favoriteId)
+      .sort((a, b) => a.feedCount - b.feedCount || Number(a.hasAcceptedFood) - Number(b.hasAcceptedFood) || a.id - b.id)[0];
+
+    if (migrant) {
+      state.pigeons = state.pigeons.filter((animal) => animal.id !== migrant.id);
+      const arrival = addAnimal(state, arrivingSpecies, "outside");
+      if (arrival) {
+        state.firstSquirrelSeeded ||= arrivingSpecies === "squirrel";
+        changed = true;
+        pushNote(
+          state,
+          note(
+            `At the 30-animal limit, a lightly fed ${speciesNames.en[migrant.species].toLowerCase()} migrated out and a ${speciesNames.en[arrivingSpecies].toLowerCase()} arrived through changing habitat conditions.`,
+            `在30只动物的承载上限下，一只投喂较少的${speciesNames.zh[migrant.species]}迁出，变化中的栖息条件迎来了一只${speciesNames.zh[arrivingSpecies]}。`,
+            now,
+          ),
+        );
+      }
+    }
+  }
+
   if (state.animalSpeciesUnlocked && state.pigeons.length < MAX_ANIMALS) {
     if (!state.firstSquirrelSeeded) {
       const squirrel = addAnimal(state, "squirrel", "outside");

@@ -92,6 +92,10 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /phase: "landing"/);
   assert.match(simulation, /nutrition >= 3/);
   assert.match(simulation, /function runGeneration/);
+  assert.match(simulation, /const absentSpecies = speciesOrder\.filter/);
+  assert.match(simulation, /state\.pigeons\.length >= MAX_ANIMALS/);
+  assert.match(simulation, /animal\.id !== state\.favoriteId/);
+  assert.match(simulation, /a lightly fed \$\{speciesNames\.en\[migrant\.species\]/);
   assert.match(simulation, /const endedBy = pillarOrder\.find\(\(pillar\) => state\[pillar\] <= 0\)/);
   assert.match(simulation, /role="alertdialog"/);
   assert.match(simulation, /function chooseEvent/);
