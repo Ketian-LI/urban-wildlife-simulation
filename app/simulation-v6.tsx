@@ -2,25 +2,24 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const STORAGE_KEY = "urban-pigeon-collective-v6";
-const LEGACY_STORAGE_KEY = "urban-pigeon-collective-v5";
+const STORAGE_KEY = "urban-pigeon-collective-v7";
+const LEGACY_STORAGE_KEY = "urban-pigeon-collective-v6";
 const PRESENCE_STORAGE_KEY = "urban-pigeon-presence-id-v1";
 const LANGUAGE_STORAGE_KEY = "urban-pigeon-language-v1";
 const TUTORIAL_STORAGE_KEY = "urban-pigeon-tutorial-v2";
 const PRESENCE_HEARTBEAT_MS = 15_000;
 const PRESENCE_RETRY_MS = 5_000;
 const CLOUD_SAVE_INTERVAL_MS = 5_000;
-const INITIAL_ANIMALS = 15;
+const INITIAL_ANIMALS = 21;
 const MAX_ANIMALS = 30;
 const GENERATION_MS = 28_000;
-const FIRST_EVENT_MS = 36_000;
 const FOOD_LIFETIME_MS = 7_200;
 const DEATH_ANIMATION_MS = 1_400;
-const TOTAL_PIGEON_COLORS = 4;
 
 type Language = "en" | "zh";
 type CloudSyncStatus = "local" | "loading" | "saving" | "saved" | "error";
-type PillarKey = "vitality" | "foraging" | "habitat" | "coexistence";
+type PillarKey = "quantity" | "satiety" | "comfort" | "coexistence";
+type EndReason = PillarKey | "species-loss";
 type Species =
   | "pigeon"
   | "squirrel"
@@ -44,6 +43,8 @@ type EventId =
   | "leftovers"
   | "squirrel-cache"
   | "swan-fountain"
+  | "cat-territory"
+  | "dog-pack"
   | "fox-corridor"
   | "hedgehog-shrubs"
   | "favorite-example"
@@ -100,21 +101,25 @@ type Policies = {
   fountain: boolean;
 };
 
+type SpeciesVital = {
+  satiety: number;
+  comfort: number;
+  dangerTurns: number;
+};
+
 type EcosystemState = {
-  version: 6;
+  version: 7;
   pigeons: AnimalAgent[];
   nextPigeonId: number;
-  vitality: number;
-  foraging: number;
-  habitat: number;
+  speciesVitals: Record<Species, SpeciesVital>;
   coexistence: number;
   generations: number;
   lastUpdated: number;
   nextGenerationAt: number;
-  nextEventAt: number;
   activeEventId: EventId | null;
   lastEventId: EventId | null;
-  endedBy: PillarKey | null;
+  eventSpecies: Species | null;
+  endedBy: EndReason | null;
   endedAt: number | null;
   favoriteId: number | null;
   collectedPlumages: Plumage[];
@@ -158,7 +163,8 @@ type DeathEffect = {
   y: number;
 };
 
-type PillarDeltas = Partial<Record<PillarKey, number>>;
+type LegacyPillarKey = "vitality" | "foraging" | "habitat";
+type PillarDeltas = Partial<Record<Exclude<PillarKey, "quantity"> | LegacyPillarKey, number>>;
 type EventChoice = {
   label: Record<Language, string>;
   result: Record<Language, string>;
@@ -167,6 +173,7 @@ type EventChoice = {
   spawn?: Species;
 };
 type EventDefinition = {
+  species?: Species;
   eyebrow: Record<Language, string>;
   title: Record<Language, string>;
   body: Record<Language, string>;
@@ -175,9 +182,9 @@ type EventDefinition = {
 };
 
 const pillarOrder: PillarKey[] = [
-  "vitality",
-  "foraging",
-  "habitat",
+  "quantity",
+  "satiety",
+  "comfort",
   "coexistence",
 ];
 const pigeonLetters = "pigeon";
@@ -191,6 +198,24 @@ const speciesOrder: Species[] = [
   "fox",
   "hedgehog",
 ];
+
+const speciesProfiles: Record<Species, {
+  stableMin: number;
+  idealMin: number;
+  idealMax: number;
+  satietyWeight: number;
+  comfortWeight: number;
+  coexistenceWeight: number;
+  hungerDecay: number;
+}> = {
+  pigeon: { stableMin: 3, idealMin: 3, idealMax: 6, satietyWeight: 0.5, comfortWeight: 0.2, coexistenceWeight: 0.3, hungerDecay: 7 },
+  squirrel: { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.35, comfortWeight: 0.4, coexistenceWeight: 0.25, hungerDecay: 5 },
+  swan: { stableMin: 2, idealMin: 2, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.45, coexistenceWeight: 0.25, hungerDecay: 4 },
+  "stray-cat": { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.45, comfortWeight: 0.2, coexistenceWeight: 0.35, hungerDecay: 6 },
+  "stray-dog": { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.4, comfortWeight: 0.35, coexistenceWeight: 0.25, hungerDecay: 6 },
+  fox: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.3, coexistenceWeight: 0.4, hungerDecay: 4 },
+  hedgehog: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.5, coexistenceWeight: 0.2, hungerDecay: 4 },
+};
 const foodOrder: FoodType[] = [
   "grain",
   "nut",
@@ -249,17 +274,22 @@ const plumageNames: Record<Language, Record<Plumage, string>> = {
 
 const pillarNames: Record<Language, Record<PillarKey, string>> = {
   en: {
-    vitality: "Vitality",
-    foraging: "Foraging",
-    habitat: "Habitat",
+    quantity: "Quantity",
+    satiety: "Satiety",
+    comfort: "Comfort",
     coexistence: "Coexistence",
   },
   zh: {
-    vitality: "生命力",
-    foraging: "觅食力",
-    habitat: "栖息地",
-    coexistence: "共处度",
+    quantity: "数量",
+    satiety: "饱食度",
+    comfort: "舒适度",
+    coexistence: "相处度",
   },
+};
+
+const endReasonNames: Record<Language, Record<EndReason, string>> = {
+  en: { ...pillarNames.en, "species-loss": "Species loss" },
+  zh: { ...pillarNames.zh, "species-loss": "物种消失" },
 };
 
 const uiCopy = {
@@ -268,6 +298,7 @@ const uiCopy = {
     cycle: "City cycle",
     online: "Online",
     population: "Population",
+    stableGroups: "Stable groups",
     wildPark: "Wild park",
     cityPlaza: "Marble plaza",
     hostFavorite: "Host favorite",
@@ -277,7 +308,11 @@ const uiCopy = {
     foodTray: "Choose food",
     fieldGuide: "Field journal",
     colors: "Pigeon colors",
-    species: "Species observed",
+    species: "Species survival",
+    stableLine: "safe line",
+    survival: "survival",
+    atRisk: "at risk",
+    stable: "stable",
     notes: "Recent causes",
     tutorial: "Tutorial",
     language: "Language",
@@ -292,7 +327,7 @@ const uiCopy = {
     left: "Choose left option",
     right: "Choose right option",
     gameOver: "This city cycle has ended",
-    gameOverBody: "One of the four conditions needed for coexistence reached zero.",
+    gameOverBody: "A shared condition reached zero, or one species disappeared after its rescue window.",
     newCycle: "Begin a new city cycle",
     survived: "Cycles observed",
     tutorialTitle: "Observe, feed, then live with the result",
@@ -301,14 +336,15 @@ const uiCopy = {
     tutorialNext: "Next",
     tutorialFinish: "Enter the park",
     tutorialStep: "Step",
-    collectivePressure: "Every click feeds; more visitors amplify collective pressure",
-    throwAria: "Choose food, then click the plaza to throw it",
+    collectivePressure: "Each feeding becomes a species decision",
+    throwAria: "Choose food, throw it, then resolve the animal event",
   },
   zh: {
     brand: "城市野生动物模拟",
     cycle: "城市周期",
     online: "当前在线",
     population: "动物数量",
+    stableGroups: "稳定物种",
     wildPark: "野生公园",
     cityPlaza: "大理石广场",
     hostFavorite: "最喜爱的动物",
@@ -318,7 +354,11 @@ const uiCopy = {
     foodTray: "选择食物",
     fieldGuide: "观察日志",
     colors: "鸽子羽色",
-    species: "已观察物种",
+    species: "物种生存状态",
+    stableLine: "安全线",
+    survival: "生存值",
+    atRisk: "危险",
+    stable: "稳定",
     notes: "近期原因",
     tutorial: "教程",
     language: "语言",
@@ -333,7 +373,7 @@ const uiCopy = {
     left: "选择左侧方案",
     right: "选择右侧方案",
     gameOver: "本轮城市周期已经结束",
-    gameOverBody: "维持共处所需的四项条件中，有一项降到了零。",
+    gameOverBody: "某项共同条件降至零，或有物种在抢救期后消失。",
     newCycle: "开始新的城市周期",
     survived: "已观察周期",
     tutorialTitle: "观察、投喂，并面对之后的变化",
@@ -342,8 +382,8 @@ const uiCopy = {
     tutorialNext: "下一步",
     tutorialFinish: "进入公园",
     tutorialStep: "步骤",
-    collectivePressure: "每次点击都会投食；在线人数越多，集体压力越明显",
-    throwAria: "先选择食物，再点击广场投掷",
+    collectivePressure: "每次投喂都会成为一次物种决策",
+    throwAria: "选择食物并投掷，然后处理该动物的事件",
   },
 } as const;
 
@@ -358,12 +398,12 @@ const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
       body: "Animals turn, lean, hesitate or retreat before deciding. The nearest animal tries first; refusal passes the chance to the next.",
     },
     {
-      title: "Watch patterns become events",
-      body: "The city remembers frequency, leftovers, food type and hotspots. Repeated patterns create decision cards with delayed consequences.",
+      title: "Every feeding becomes a decision",
+      body: "Once an animal accepts or rejects food, resolve its species event before feeding again. Directional clues reveal the likely trade-off.",
     },
     {
       title: "Keep four conditions alive",
-      body: "Vitality, foraging, habitat and coexistence must all remain above zero. There is no final victory, but any one reaching zero ends the current cycle.",
+      body: "Quantity, satiety, comfort and coexistence must remain above zero. Each species also has a different safe population line and a three-turn rescue window.",
     },
   ],
   zh: [
@@ -376,12 +416,12 @@ const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
       body: "动物会先转头、前倾、犹豫或后退。距离最近的动物先尝试，拒绝后机会轮到下一只。",
     },
     {
-      title: "让行为形成事件",
-      body: "城市会记住投喂频率、残留、食物种类和热点。重复模式会形成带有延迟后果的城市事件。",
+      title: "每次投喂都会成为决策",
+      body: "动物接受或拒绝食物后，需要先处理对应物种事件才能继续投喂。方向提示会告诉你选择的大致影响。",
     },
     {
       title: "维持四项生存条件",
-      body: "生命力、觅食力、栖息地和共处度都必须高于零。游戏没有固定通关，但任意一项归零都会结束本轮周期。",
+      body: "数量、饱食度、舒适度和相处度都必须高于零。每个物种还有不同的安全数量，并拥有三轮抢救时间。",
     },
   ],
 };
@@ -398,6 +438,7 @@ const preference: Record<Species, Record<FoodType, number>> = {
 
 const events: Record<EventId, EventDefinition> = {
   "feeding-crowd": {
+    species: "pigeon",
     eyebrow: { en: "A pattern becomes public", zh: "投喂模式正在扩散" },
     title: { en: "A crowd gathers at the feeding hotspot", zh: "投喂热点周围聚集了人群" },
     body: { en: "Other visitors have started copying the concentrated feeding pattern they observed.", zh: "其他游客开始模仿他们看到的集中投喂方式。" },
@@ -430,6 +471,7 @@ const events: Record<EventId, EventDefinition> = {
     },
   },
   "squirrel-cache": {
+    species: "squirrel",
     eyebrow: { en: "Food changes space", zh: "食物改变了空间" },
     title: { en: "Squirrels are caching nuts beside the trees", zh: "松鼠开始在树边储藏坚果" },
     body: { en: "A repeated food route is becoming part of the park.", zh: "一条反复出现的食物路线正在成为公园的一部分。" },
@@ -437,7 +479,6 @@ const events: Record<EventId, EventDefinition> = {
       label: { en: "Protect the cache", zh: "保护储藏点" },
       result: { en: "Tree-edge habitat became more active.", zh: "树林边缘的栖息活动增加了。" },
       deltas: { habitat: 8, coexistence: -2 },
-      spawn: "squirrel",
     },
     right: {
       label: { en: "Clear the path", zh: "清理步道" },
@@ -446,6 +487,7 @@ const events: Record<EventId, EventDefinition> = {
     },
   },
   "swan-fountain": {
+    species: "swan",
     eyebrow: { en: "A new territory", zh: "新的领地" },
     title: { en: "A swan guards the fountain feeding area", zh: "一只天鹅开始守卫喷泉投喂区" },
     body: { en: "Other animals now avoid a route they previously used.", zh: "其他动物开始避开过去经常使用的路线。" },
@@ -454,16 +496,48 @@ const events: Record<EventId, EventDefinition> = {
       result: { en: "The fountain remained usable by several species.", zh: "多个物种仍然可以使用喷泉区域。" },
       deltas: { habitat: 7, coexistence: 2 },
       policy: { fountain: true },
-      spawn: "swan",
     },
     right: {
       label: { en: "Close the fountain edge", zh: "封闭喷泉边缘" },
       result: { en: "Conflict fell, but water habitat contracted.", zh: "冲突减少了，但水域栖息空间缩小。" },
       deltas: { coexistence: 8, habitat: -8 },
       policy: { fountain: false },
+      },
+  },
+  "cat-territory": {
+    species: "stray-cat",
+    eyebrow: { en: "A fed cat draws a boundary", zh: "被投喂的猫划出了边界" },
+    title: { en: "The cat begins guarding this feeding place", zh: "流浪猫开始守住这个投喂位置" },
+    body: { en: "A reliable meal helps this cat, but nearby animals now hesitate to cross its territory.", zh: "稳定食物帮助了这只猫，但附近动物开始犹豫是否穿过它的领地。" },
+    left: {
+      label: { en: "Keep one feeding station", zh: "保留固定投喂点" },
+      result: { en: "The cat settled, while shared space became more tense.", zh: "流浪猫安定下来，但共享空间变得更加紧张。" },
+      deltas: { satiety: 10, comfort: 5, coexistence: -8 },
+    },
+    right: {
+      label: { en: "Move the next meal", zh: "移动下一次投喂" },
+      result: { en: "The boundary softened and the cat kept searching.", zh: "领地边界减弱，流浪猫继续寻找食物。" },
+      deltas: { satiety: 4, comfort: -2, coexistence: 7 },
+    },
+  },
+  "dog-pack": {
+    species: "stray-dog",
+    eyebrow: { en: "One dog calls to the others", zh: "一只狗开始呼唤同伴" },
+    title: { en: "The feeding place is becoming a meeting point", zh: "投喂位置正在变成流浪狗的集合点" },
+    body: { en: "Dogs benefit from company, although a visible pack can worry other park users.", zh: "流浪狗需要同伴，但明显聚集的犬群也会让其他公园使用者担忧。" },
+    left: {
+      label: { en: "Let the pack gather", zh: "允许犬群聚集" },
+      result: { en: "The dogs relaxed together and public tolerance fell.", zh: "流浪狗一起放松下来，但公众容忍度下降。" },
+      deltas: { satiety: 8, comfort: 10, coexistence: -7 },
+    },
+    right: {
+      label: { en: "Scatter treats along the path", zh: "沿步道分散食物" },
+      result: { en: "The dogs moved as a loose group and conflict stayed low.", zh: "流浪狗以较松散的群体移动，冲突保持较低。" },
+      deltas: { satiety: 5, comfort: 3, coexistence: 6 },
     },
   },
   "fox-corridor": {
+    species: "fox",
     eyebrow: { en: "Night visitor", zh: "夜间访客" },
     title: { en: "A fox follows the smell of leftover food", zh: "一只狐狸循着残留食物的气味来到公园" },
     body: { en: "Smaller animals retreat while the park edge becomes more active.", zh: "小型动物暂时退开，公园边缘变得更加活跃。" },
@@ -472,7 +546,6 @@ const events: Record<EventId, EventDefinition> = {
       result: { en: "The fox entered the wider habitat network.", zh: "狐狸进入了更广阔的栖息网络。" },
       deltas: { habitat: 8, vitality: -3, coexistence: -2 },
       policy: { shrubs: true },
-      spawn: "fox",
     },
     right: {
       label: { en: "Increase night lighting", zh: "增加夜间照明" },
@@ -482,6 +555,7 @@ const events: Record<EventId, EventDefinition> = {
     },
   },
   "hedgehog-shrubs": {
+    species: "hedgehog",
     eyebrow: { en: "A quiet arrival", zh: "安静的新访客" },
     title: { en: "A hedgehog appears beneath the shrubs", zh: "一只刺猬出现在灌木下面" },
     body: { en: "Low disturbance and insect food have opened a small night route.", zh: "较低的干扰和昆虫食物形成了一条小型夜间路线。" },
@@ -490,7 +564,6 @@ const events: Record<EventId, EventDefinition> = {
       result: { en: "Shelter increased while the path narrowed.", zh: "庇护空间增加了，步道则变窄了一些。" },
       deltas: { habitat: 10, coexistence: -3 },
       policy: { shrubs: true },
-      spawn: "hedgehog",
     },
     right: {
       label: { en: "Restore the formal border", zh: "恢复整齐边界" },
@@ -677,19 +750,69 @@ function createAnimal(
   };
 }
 
-function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): EcosystemState {
-  const pigeons = Array.from(
-    { length: carriedFavorite ? INITIAL_ANIMALS - 1 : INITIAL_ANIMALS },
-    (_, index) => createAnimal(index, "pigeon", "outside", now),
+function makeSpeciesVitals(): Record<Species, SpeciesVital> {
+  return {
+    pigeon: { satiety: 66, comfort: 67, dangerTurns: 0 },
+    squirrel: { satiety: 64, comfort: 72, dangerTurns: 0 },
+    swan: { satiety: 63, comfort: 70, dangerTurns: 0 },
+    "stray-cat": { satiety: 62, comfort: 65, dangerTurns: 0 },
+    "stray-dog": { satiety: 64, comfort: 69, dangerTurns: 0 },
+    fox: { satiety: 59, comfort: 66, dangerTurns: 0 },
+    hedgehog: { satiety: 61, comfort: 72, dangerTurns: 0 },
+  };
+}
+
+function speciesCount(state: Pick<EcosystemState, "pigeons">, species: Species) {
+  return state.pigeons.filter((animal) => animal.species === species).length;
+}
+
+function weightedSpeciesMetric(state: EcosystemState, metric: "satiety" | "comfort") {
+  if (state.pigeons.length === 0) return 0;
+  const total = speciesOrder.reduce(
+    (sum, species) => sum + state.speciesVitals[species][metric] * speciesCount(state, species),
+    0,
   );
-  let nextPigeonId = pigeons.length;
+  return clamp(total / state.pigeons.length);
+}
+
+function pillarValue(state: EcosystemState, pillar: PillarKey) {
+  if (pillar === "quantity") return state.pigeons.length;
+  if (pillar === "satiety" || pillar === "comfort") return weightedSpeciesMetric(state, pillar);
+  return state.coexistence;
+}
+
+function speciesSurvival(state: EcosystemState, species: Species) {
+  const profile = speciesProfiles[species];
+  const vital = state.speciesVitals[species];
+  const count = speciesCount(state, species);
+  const socialPenalty = Math.max(0, profile.stableMin - count) * 14;
+  const crowdingPenalty = Math.max(0, count - profile.idealMax) * 9;
+  return clamp(
+    vital.satiety * profile.satietyWeight
+      + vital.comfort * profile.comfortWeight
+      + state.coexistence * profile.coexistenceWeight
+      - socialPenalty
+      - crowdingPenalty,
+  );
+}
+
+function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): EcosystemState {
+  const pigeons: AnimalAgent[] = [];
+  for (const species of speciesOrder) {
+    for (let index = 0; index < 3; index += 1) {
+      pigeons.push(createAnimal(pigeons.length, species, "outside", now));
+    }
+  }
+  const nextPigeonId = INITIAL_ANIMALS;
   let favoriteId: number | null = null;
 
   if (carriedFavorite) {
-    const favoritePosition = positionFor(nextPigeonId, "inside", carriedFavorite.species);
+    const replaceIndex = pigeons.findIndex((animal) => animal.species === carriedFavorite.species);
+    const replacement = pigeons[replaceIndex];
+    const favoritePosition = positionFor(replacement.id, "inside", carriedFavorite.species);
     const favorite = {
       ...carriedFavorite,
-      id: nextPigeonId,
+      id: replacement.id,
       x: favoritePosition.x,
       y: favoritePosition.y,
       hasAcceptedFood: true,
@@ -698,37 +821,34 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
       satietyUntil: 0,
       bornAt: now,
     };
-    pigeons.push(favorite);
+    pigeons[replaceIndex] = favorite;
     favoriteId = favorite.id;
-    nextPigeonId += 1;
   }
 
   return {
-    version: 6,
+    version: 7,
     pigeons,
     nextPigeonId,
-    vitality: 72,
-    foraging: 66,
-    habitat: 68,
+    speciesVitals: makeSpeciesVitals(),
     coexistence: 74,
     generations: 1,
     lastUpdated: now,
     nextGenerationAt: now + GENERATION_MS,
-    nextEventAt: now + FIRST_EVENT_MS,
     activeEventId: null,
     lastEventId: null,
+    eventSpecies: null,
     endedBy: null,
     endedAt: null,
     favoriteId,
     collectedPlumages: [],
-    discoveredSpecies: ["pigeon"],
-    animalSpeciesUnlocked: false,
-    firstSquirrelSeeded: false,
+    discoveredSpecies: [...speciesOrder],
+    animalSpeciesUnlocked: true,
+    firstSquirrelSeeded: true,
     feedingHistory: [],
     events: [
       note(
-        "Fifteen animals begin a new city cycle. Every throw will become part of its history.",
-        "十五只动物开始了新的城市周期。每一次投食都会成为这座城市历史的一部分。",
+        "Twenty-one animals begin together: three from each of the seven species.",
+        "二十一只动物共同开始：七个物种各三只。",
         now,
       ),
     ],
@@ -738,30 +858,43 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
 
 function checkForEnd(state: EcosystemState, now = Date.now()) {
   if (state.endedBy) return state;
-  const endedBy = pillarOrder.find((pillar) => state[pillar] <= 0) ?? null;
+  const missingSpecies = speciesOrder.find((species) => speciesCount(state, species) === 0);
+  const endedBy: EndReason | null = missingSpecies
+    ? "species-loss"
+    : pillarOrder.find((pillar) => pillarValue(state, pillar) <= 0) ?? null;
   if (!endedBy) return state;
 
-  state[endedBy] = 0;
+  if (endedBy === "coexistence") state.coexistence = 0;
   state.endedBy = endedBy;
   state.endedAt = now;
   state.activeEventId = null;
   pushNote(
     state,
     note(
-      `${pillarNames.en[endedBy]} reached zero. This city cycle ended.`,
-      `${pillarNames.zh[endedBy]}降到了零，本轮城市周期结束。`,
+      endedBy === "species-loss"
+        ? "A species disappeared after its rescue window. This city cycle ended."
+        : `${pillarNames.en[endedBy]} reached zero. This city cycle ended.`,
+      endedBy === "species-loss"
+        ? "一个物种在抢救期后消失，本轮城市周期结束。"
+        : `${pillarNames.zh[endedBy]}降到了零，本轮城市周期结束。`,
       now,
     ),
   );
   return state;
 }
 
-function applyDeltas(state: EcosystemState, deltas: PillarDeltas) {
-  for (const pillar of pillarOrder) {
-    if (typeof deltas[pillar] === "number") {
-      state[pillar] = clamp(state[pillar] + (deltas[pillar] ?? 0));
-    }
+function applyDeltas(state: EcosystemState, deltas: PillarDeltas, targetSpecies?: Species) {
+  const satietyDelta = deltas.satiety ?? deltas.vitality ?? 0;
+  const comfortDelta = deltas.comfort ?? (deltas.foraging ?? 0) + (deltas.habitat ?? 0);
+  const targets = targetSpecies ? [targetSpecies] : speciesOrder;
+  for (const species of targets) {
+    state.speciesVitals[species] = {
+      ...state.speciesVitals[species],
+      satiety: clamp(state.speciesVitals[species].satiety + satietyDelta),
+      comfort: clamp(state.speciesVitals[species].comfort + comfortDelta),
+    };
   }
+  state.coexistence = clamp(state.coexistence + (deltas.coexistence ?? 0));
   return checkForEnd(state);
 }
 
@@ -769,62 +902,18 @@ function recentFeeds(state: EcosystemState, now: number, windowMs: number) {
   return state.feedingHistory.filter((record) => now - record.at <= windowMs);
 }
 
-function foodCount(records: FeedRecord[], food: FoodType) {
-  return records.filter((record) => record.food === food).length;
-}
-
-function hotspotStrength(records: FeedRecord[]) {
-  const cells = new Map<string, number>();
-  for (const record of records) {
-    const key = `${Math.round(record.x / 10)}:${Math.round(record.y / 10)}`;
-    cells.set(key, (cells.get(key) ?? 0) + 1);
-  }
-  return Math.max(0, ...cells.values());
-}
-
-function chooseEvent(state: EcosystemState, now = Date.now()): EventId {
-  const weakest = [...pillarOrder].sort((a, b) => state[a] - state[b])[0];
-  if (state[weakest] <= 25) return `crisis-${weakest}` as EventId;
-
-  const recent = recentFeeds(state, now, 55_000);
-  const rejected = recent.filter((record) => record.accepted === false).length;
-  const favoriteFeeds = recent.filter((record) => record.favorite && record.accepted).length;
-  const contextual: EventId[] = [];
-
-  if (hotspotStrength(recent) >= 5 || recent.length >= 10) contextual.push("feeding-crowd");
-  if (rejected >= 3) contextual.push("leftovers");
-  if (foodCount(recent, "nut") >= 3) contextual.push("squirrel-cache");
-  if (foodCount(recent, "greens") >= 3) contextual.push("swan-fountain");
-  if (foodCount(recent, "meat") >= 3) contextual.push("fox-corridor");
-  if (foodCount(recent, "insect") >= 3) contextual.push("hedgehog-shrubs");
-  if (favoriteFeeds >= 3) contextual.push("favorite-example");
-  if (recent.length === 0 && state.habitat >= 50) contextual.push("quiet-foraging");
-
-  const fallback: EventId[] = ["sealed-bins", "garden-maintenance", "visitor-group"];
-  const pool = contextual.length > 0 ? contextual : fallback;
-  const withoutRepeat = pool.filter((id) => id !== state.lastEventId);
-  const candidates = withoutRepeat.length > 0 ? withoutRepeat : pool;
-  return candidates[(state.generations * 7 + recent.length * 3) % candidates.length];
-}
-
-function weightedSpecies(state: EcosystemState, now = Date.now()) {
-  const recent = recentFeeds(state, now, 120_000);
-  const weights: Record<Species, number> = {
-    pigeon: 1.2 + foodCount(recent, "grain") * 0.35,
-    squirrel: 0.45 + foodCount(recent, "nut") * 0.8 + state.habitat / 130,
-    swan: 0.3 + foodCount(recent, "greens") * 0.8 + (state.policies.fountain ? 0.9 : 0),
-    "stray-cat": 0.4 + foodCount(recent, "fish") * 0.75 + state.coexistence / 210,
-    "stray-dog": 0.4 + foodCount(recent, "biscuit") * 0.75 + state.coexistence / 210,
-    fox: 0.12 + foodCount(recent, "meat") * 0.9 + (state.policies.shrubs ? state.habitat / 150 : 0),
-    hedgehog: 0.12 + foodCount(recent, "insect") * 0.95 + (state.policies.shrubs ? state.habitat / 140 : 0),
+function chooseFeedingEvent(species: Species | null): EventId {
+  if (!species) return "leftovers";
+  const eventBySpecies: Record<Species, EventId> = {
+    pigeon: "feeding-crowd",
+    squirrel: "squirrel-cache",
+    swan: "swan-fountain",
+    "stray-cat": "cat-territory",
+    "stray-dog": "dog-pack",
+    fox: "fox-corridor",
+    hedgehog: "hedgehog-shrubs",
   };
-  const total = speciesOrder.reduce((sum, species) => sum + weights[species], 0);
-  let cursor = ((state.nextPigeonId * 47 + state.generations * 19) % 997) / 997 * total;
-  for (const species of speciesOrder) {
-    cursor -= weights[species];
-    if (cursor <= 0) return species;
-  }
-  return "pigeon";
+  return eventBySpecies[species];
 }
 
 function addAnimal(state: EcosystemState, species: Species, zone: "inside" | "outside" = "outside") {
@@ -854,58 +943,46 @@ function createChild(state: EcosystemState, parent: AnimalAgent, now: number) {
 
 function runGeneration(state: EcosystemState, now: number) {
   state.generations += 1;
-  let changed = false;
+  state.speciesVitals = Object.fromEntries(
+    speciesOrder.map((species) => {
+      const profile = speciesProfiles[species];
+      const count = speciesCount(state, species);
+      const current = state.speciesVitals[species];
+      const socialComfort = count < profile.stableMin
+        ? -6 * (profile.stableMin - count)
+        : count > profile.idealMax
+          ? -4 * (count - profile.idealMax)
+          : 1;
+      return [species, {
+        ...current,
+        satiety: clamp(current.satiety - profile.hungerDecay),
+        comfort: clamp(current.comfort + socialComfort),
+      }];
+    }),
+  ) as Record<Species, SpeciesVital>;
 
-  const readyParent = state.pigeons
-    .filter((animal) => animal.nutrition >= 3)
-    .sort((a, b) => b.nutrition - a.nutrition || a.id - b.id)[0];
-  if (readyParent && state.pigeons.length < MAX_ANIMALS) {
-    const parentIndex = state.pigeons.findIndex((animal) => animal.id === readyParent.id);
-    const nextAnimals = state.pigeons.map((animal) => ({ ...animal }));
-    nextAnimals[parentIndex].nutrition = Math.max(0, nextAnimals[parentIndex].nutrition - 3);
-    state.pigeons = nextAnimals;
-    const child = createChild(state, nextAnimals[parentIndex], now);
-    if (child) {
-      changed = true;
-      pushNote(
-        state,
-        note(
-          `After several successful feeds and a full city cycle, a new ${speciesNames.en[child.species].toLowerCase()} appeared beside its parent.`,
-          `经过多次成功进食和一个完整城市周期，一只新的${speciesNames.zh[child.species]}出现在亲代旁边。`,
-          now,
-        ),
-      );
-    }
-  }
+  for (const species of speciesOrder) {
+    const profile = speciesProfiles[species];
+    const count = speciesCount(state, species);
+    const survival = speciesSurvival(state, species);
+    const endangered = count < profile.stableMin || survival < 30;
+    const dangerTurns = endangered
+      ? state.speciesVitals[species].dangerTurns + 1
+      : Math.max(0, state.speciesVitals[species].dangerTurns - 1);
+    state.speciesVitals[species] = { ...state.speciesVitals[species], dangerTurns };
 
-  const absentSpecies = speciesOrder.filter(
-    (species) => species !== "pigeon" && !state.pigeons.some((animal) => animal.species === species),
-  );
-  if (
-    state.animalSpeciesUnlocked
-    && state.pigeons.length >= MAX_ANIMALS
-    && absentSpecies.length > 0
-    && state.generations % 2 === 0
-  ) {
-    const preferredArrival = !state.firstSquirrelSeeded ? "squirrel" : weightedSpecies(state, now);
-    const arrivingSpecies = absentSpecies.includes(preferredArrival)
-      ? preferredArrival
-      : absentSpecies[(state.generations + state.nextPigeonId) % absentSpecies.length];
-    const migrant = state.pigeons
-      .filter((animal) => animal.id !== state.favoriteId)
-      .sort((a, b) => a.feedCount - b.feedCount || Number(a.hasAcceptedFood) - Number(b.hasAcceptedFood) || a.id - b.id)[0];
-
-    if (migrant) {
-      state.pigeons = state.pigeons.filter((animal) => animal.id !== migrant.id);
-      const arrival = addAnimal(state, arrivingSpecies, "outside");
-      if (arrival) {
-        state.firstSquirrelSeeded ||= arrivingSpecies === "squirrel";
-        changed = true;
+    if (dangerTurns >= 3) {
+      const removable = state.pigeons
+        .filter((animal) => animal.species === species && animal.id !== state.favoriteId)
+        .sort((a, b) => a.feedCount - b.feedCount || b.appetite - a.appetite || a.id - b.id)[0];
+      if (removable) {
+        state.pigeons = state.pigeons.filter((animal) => animal.id !== removable.id);
+        state.speciesVitals[species].dangerTurns = 0;
         pushNote(
           state,
           note(
-            `At the 30-animal limit, a lightly fed ${speciesNames.en[migrant.species].toLowerCase()} migrated out and a ${speciesNames.en[arrivingSpecies].toLowerCase()} arrived through changing habitat conditions.`,
-            `在30只动物的承载上限下，一只投喂较少的${speciesNames.zh[migrant.species]}迁出，变化中的栖息条件迎来了一只${speciesNames.zh[arrivingSpecies]}。`,
+            `A ${speciesNames.en[species].toLowerCase()} was lost after three cycles below its survival line.`,
+            `一只${speciesNames.zh[species]}在连续三个周期低于生存线后消失了。`,
             now,
           ),
         );
@@ -913,58 +990,38 @@ function runGeneration(state: EcosystemState, now: number) {
     }
   }
 
-  if (state.animalSpeciesUnlocked && state.pigeons.length < MAX_ANIMALS) {
-    if (!state.firstSquirrelSeeded) {
-      const squirrel = addAnimal(state, "squirrel", "outside");
-      if (squirrel) {
-        state.firstSquirrelSeeded = true;
-        changed = true;
-      }
-    } else if ((state.generations + state.nextPigeonId) % 3 !== 0) {
-      const species = weightedSpecies(state, now);
-      const arrival = addAnimal(state, species, "outside");
-      if (arrival) {
-        changed = true;
-        pushNote(
-          state,
-          note(
-            `Recent food and habitat conditions attracted a ${speciesNames.en[species].toLowerCase()} to the park edge.`,
-            `近期食物和栖息条件吸引了一只${speciesNames.zh[species]}来到公园边缘。`,
-            now,
-          ),
-        );
+  if (state.pigeons.length < MAX_ANIMALS) {
+    const candidates = speciesOrder.filter((species) => {
+      const profile = speciesProfiles[species];
+      const vital = state.speciesVitals[species];
+      return speciesCount(state, species) < profile.idealMax
+        && vital.satiety >= 68
+        && vital.comfort >= 62
+        && speciesSurvival(state, species) >= 65;
+    });
+    const species = candidates[(state.generations + state.nextPigeonId) % Math.max(1, candidates.length)];
+    if (species && (state.generations + speciesOrder.indexOf(species)) % 2 === 0) {
+      const parent = state.pigeons
+        .filter((animal) => animal.species === species)
+        .sort((a, b) => b.feedCount - a.feedCount || a.id - b.id)[0];
+      if (parent) {
+        const child = createChild(state, parent, now);
+        if (child) {
+          state.speciesVitals[species].satiety = clamp(state.speciesVitals[species].satiety - 8);
+          pushNote(
+            state,
+            note(
+              `Stable food, comfort and group size allowed a new ${speciesNames.en[species].toLowerCase()} to appear.`,
+              `稳定的食物、舒适度和群体数量让一只新的${speciesNames.zh[species]}出现了。`,
+              now,
+            ),
+          );
+        }
       }
     }
   }
 
-  if ((state.coexistence < 18 || state.habitat < 14) && state.pigeons.length > 4) {
-    const removable = state.pigeons
-      .filter((animal) => animal.id !== state.favoriteId)
-      .sort((a, b) => a.feedCount - b.feedCount || a.id - b.id)[0];
-    if (removable) {
-      state.pigeons = state.pigeons.filter((animal) => animal.id !== removable.id);
-      changed = true;
-      pushNote(
-        state,
-        note(
-          `A ${speciesNames.en[removable.species].toLowerCase()} migrated away as city conditions tightened.`,
-          `城市条件收紧后，一只${speciesNames.zh[removable.species]}迁离了这里。`,
-          now,
-        ),
-      );
-    }
-  }
-
-  if (!changed && state.pigeons.length >= MAX_ANIMALS) {
-    pushNote(
-      state,
-      note(
-        "The city remained at its 30-animal capacity; no new birth or arrival could enter this cycle.",
-        "城市仍然处于30只动物的承载上限，本周期没有新的出生或迁入。",
-        now,
-      ),
-    );
-  }
+  checkForEnd(state, now);
 }
 
 function advanceState(current: EcosystemState, now = Date.now()) {
@@ -979,18 +1036,13 @@ function advanceState(current: EcosystemState, now = Date.now()) {
     feedingHistory: current.feedingHistory.filter((record) => now - record.at <= 180_000),
     events: [...current.events],
     policies: { ...current.policies },
+    speciesVitals: Object.fromEntries(speciesOrder.map((species) => [species, { ...current.speciesVitals[species] }])) as Record<Species, SpeciesVital>,
     lastUpdated: now,
   };
 
   const recent = recentFeeds(next, now, 22_000);
-  if (recent.length === 0 && next.habitat >= 35) {
-    next.foraging = clamp(next.foraging + elapsed * 0.045);
-  }
   if (recent.every((record) => record.accepted !== false)) {
     next.coexistence = clamp(next.coexistence + elapsed * 0.014);
-  }
-  if (next.policies.shrubs && next.policies.fountain) {
-    next.habitat = clamp(next.habitat + elapsed * 0.006);
   }
 
   let generationGuard = 0;
@@ -1000,9 +1052,6 @@ function advanceState(current: EcosystemState, now = Date.now()) {
     generationGuard += 1;
   }
 
-  if (!next.activeEventId && now >= next.nextEventAt) {
-    next.activeEventId = chooseEvent(next, now);
-  }
   return checkForEnd(next, now);
 }
 
@@ -1022,8 +1071,12 @@ function recordThrowState(
     events: [...advanced.events],
   };
   if (burst > 0) {
-    next.foraging = clamp(next.foraging - Math.min(0.5, burst * 0.08 * pressure));
     next.coexistence = clamp(next.coexistence - Math.min(0.45, burst * 0.06 * pressure));
+    for (const species of speciesOrder) {
+      next.speciesVitals[species].comfort = clamp(
+        next.speciesVitals[species].comfort - Math.min(0.5, burst * 0.08 * pressure),
+      );
+    }
   }
   return checkForEnd(next, record.at);
 }
@@ -1065,6 +1118,8 @@ function resolveFeedState(
 
   if (outcome.animalId === null) {
     next.coexistence = clamp(next.coexistence - 0.65);
+    next.activeEventId = chooseFeedingEvent(null);
+    next.eventSpecies = null;
     pushNote(
       next,
       note(
@@ -1103,8 +1158,12 @@ function resolveFeedState(
       ? { ...record, species: animal.species, favorite: animal.id === next.favoriteId }
       : record,
   );
-  next.vitality = clamp(next.vitality + 0.45 + suitability * 0.65);
-  next.foraging = clamp(next.foraging - 0.18 - Math.min(0.55, repetition * 0.08));
+  next.speciesVitals[animal.species] = {
+    ...next.speciesVitals[animal.species],
+    satiety: clamp(next.speciesVitals[animal.species].satiety + 5 + suitability * 7),
+    comfort: clamp(next.speciesVitals[animal.species].comfort + (suitability >= 0.7 ? 2 : -1)),
+    dangerTurns: Math.max(0, next.speciesVitals[animal.species].dangerTurns - 1),
+  };
   if (repetition >= 5) next.coexistence = clamp(next.coexistence - 0.28);
 
   if (animal.species === "pigeon" && !next.collectedPlumages.includes(animal.plumage)) {
@@ -1119,23 +1178,9 @@ function resolveFeedState(
     );
   }
 
-  if (!next.animalSpeciesUnlocked && next.collectedPlumages.length === TOTAL_PIGEON_COLORS) {
-    next.animalSpeciesUnlocked = true;
-    const squirrel = addAnimal(next, "squirrel", "outside");
-    if (squirrel) {
-      next.firstSquirrelSeeded = true;
-      pushNote(
-        next,
-        note(
-          "All four pigeon colors were observed. A squirrel entered first; future species now respond to food and habitat conditions.",
-          "四种鸽子羽色都已被观察。松鼠率先进入，之后的物种将根据食物与栖息条件出现。",
-          now,
-        ),
-      );
-    }
-  }
-
   next.favoriteId = strongestFavorite(next.pigeons, next.favoriteId);
+  next.activeEventId = chooseFeedingEvent(animal.species);
+  next.eventSpecies = animal.species;
   const declinedText = outcome.declinedBefore > 0
     ? ` after ${outcome.declinedBefore} nearer ${outcome.declinedBefore === 1 ? "animal" : "animals"} declined`
     : "";
@@ -1159,9 +1204,10 @@ function killAnimalState(current: EcosystemState, animalId: number) {
     pigeons: current.pigeons.filter((candidate) => candidate.id !== animalId),
     favoriteId: current.favoriteId === animalId ? null : current.favoriteId,
     events: [...current.events],
-    vitality: clamp(current.vitality - 7),
+    speciesVitals: Object.fromEntries(speciesOrder.map((species) => [species, { ...current.speciesVitals[species] }])) as Record<Species, SpeciesVital>,
     coexistence: clamp(current.coexistence - 3),
   };
+  next.speciesVitals[animal.species].comfort = clamp(next.speciesVitals[animal.species].comfort - 10);
   pushNote(
     next,
     note(
@@ -1180,14 +1226,15 @@ function applyEventChoiceState(current: EcosystemState, side: "left" | "right") 
   const next: EcosystemState = {
     ...current,
     pigeons: current.pigeons.map((animal) => ({ ...animal })),
+    speciesVitals: Object.fromEntries(speciesOrder.map((species) => [species, { ...current.speciesVitals[species] }])) as Record<Species, SpeciesVital>,
     policies: { ...current.policies, ...choice.policy },
     events: [...current.events],
     activeEventId: null,
     lastEventId: current.activeEventId,
-    nextEventAt: now + 52_000 + ((current.generations * 7) % 23) * 1_000,
+    eventSpecies: null,
     lastUpdated: now,
   };
-  applyDeltas(next, choice.deltas);
+  applyDeltas(next, choice.deltas, definition.species ?? current.eventSpecies ?? undefined);
   if (!next.endedBy && choice.spawn) addAnimal(next, choice.spawn, "outside");
   pushNote(next, note(choice.result.en, choice.result.zh, now));
   return checkForEnd(next, now);
@@ -1197,13 +1244,7 @@ function restartAfterEnd(current: EcosystemState) {
   const favorite = current.pigeons.find((animal) => animal.id === current.favoriteId);
   const restarted = makeInitialState(Date.now(), favorite);
   restarted.collectedPlumages = [...current.collectedPlumages];
-  restarted.discoveredSpecies = [...current.discoveredSpecies];
-  restarted.animalSpeciesUnlocked = current.animalSpeciesUnlocked;
-  restarted.firstSquirrelSeeded = false;
-  if (restarted.animalSpeciesUnlocked && !favorite) {
-    const squirrel = addAnimal(restarted, "squirrel", "outside");
-    restarted.firstSquirrelSeeded = Boolean(squirrel);
-  }
+  restarted.discoveredSpecies = [...speciesOrder];
   pushNote(
     restarted,
     note(
@@ -1225,7 +1266,7 @@ function isPlumage(value: unknown): value is Plumage {
 function restoreState(value: unknown): EcosystemState {
   const now = Date.now();
   if (!value || typeof value !== "object") return makeInitialState(now);
-  const parsed = value as Partial<EcosystemState> & { dependency?: number; foraging?: number };
+  const parsed = value as Partial<EcosystemState> & { version?: number };
   const rawAnimals = Array.isArray(parsed.pigeons) ? parsed.pigeons : [];
   const pigeons = rawAnimals.slice(0, MAX_ANIMALS).map((entry, index) => {
     const saved = entry as Partial<AnimalAgent>;
@@ -1253,46 +1294,64 @@ function restoreState(value: unknown): EcosystemState {
   });
 
   if (pigeons.length === 0) return makeInitialState(now);
-  const isV6 = parsed.version === 6;
   const favoriteCandidate = Number(parsed.favoriteId);
-  const fallbackFavorite = [...pigeons]
+  const favorite = pigeons.find((animal) => animal.id === favoriteCandidate) ?? [...pigeons]
     .filter((animal) => animal.feedCount > 0)
-    .sort((a, b) => b.feedCount - a.feedCount || a.id - b.id)[0]?.id ?? null;
-  const favoriteId = pigeons.some((animal) => animal.id === favoriteCandidate)
-    ? favoriteCandidate
-    : fallbackFavorite;
+    .sort((a, b) => b.feedCount - a.feedCount || a.id - b.id)[0];
   const collectedPlumages = Array.isArray(parsed.collectedPlumages)
     ? parsed.collectedPlumages.filter(isPlumage)
     : pigeons.filter((animal) => animal.species === "pigeon" && animal.feedCount > 0).map((animal) => animal.plumage);
-  const discoveredSpecies = Array.isArray(parsed.discoveredSpecies)
-    ? parsed.discoveredSpecies.filter(isSpecies)
-    : [...new Set(pigeons.map((animal) => animal.species))];
+
+  if (parsed.version !== 7) {
+    const migrated = makeInitialState(now, favorite);
+    migrated.collectedPlumages = [...new Set(collectedPlumages)];
+    pushNote(
+      migrated,
+      note(
+        "The simulation was rebuilt with three animals from each species; the host favorite kept its identity.",
+        "模拟已按每个物种三只重新建立，玩家最喜爱的动物保留了原有身份。",
+        now,
+      ),
+    );
+    return migrated;
+  }
+
   const base = makeInitialState(now);
+  const savedVitals = parsed.speciesVitals as Partial<Record<Species, Partial<SpeciesVital>>> | undefined;
+  const speciesVitals = Object.fromEntries(speciesOrder.map((species) => {
+    const fallback = base.speciesVitals[species];
+    const saved = savedVitals?.[species];
+    return [species, {
+      satiety: clamp(finiteOr(saved?.satiety, fallback.satiety)),
+      comfort: clamp(finiteOr(saved?.comfort, fallback.comfort)),
+      dangerTurns: clamp(Math.trunc(finiteOr(saved?.dangerTurns, 0)), 0, 3),
+    }];
+  })) as Record<Species, SpeciesVital>;
+  const favoriteId = favorite?.id ?? null;
+  const validEndReasons: EndReason[] = [...pillarOrder, "species-loss"];
   const restored: EcosystemState = {
     ...base,
     ...parsed,
-    version: 6,
+    version: 7,
     pigeons,
     nextPigeonId: Math.max(...pigeons.map((animal) => animal.id), 0) + 1,
-    vitality: clamp(isV6 ? finiteOr(parsed.vitality, 72) : 72),
-    foraging: clamp(isV6 ? finiteOr(parsed.foraging, 66) : clamp(finiteOr(parsed.foraging, 0.66) * 100)),
-    habitat: clamp(isV6 ? finiteOr(parsed.habitat, 68) : 68),
-    coexistence: clamp(isV6 ? finiteOr(parsed.coexistence, 74) : 74),
+    speciesVitals,
+    coexistence: clamp(finiteOr(parsed.coexistence, 74)),
     favoriteId,
     collectedPlumages: [...new Set(collectedPlumages)],
-    discoveredSpecies: [...new Set(["pigeon" as Species, ...discoveredSpecies])],
-    animalSpeciesUnlocked: Boolean(parsed.animalSpeciesUnlocked) || collectedPlumages.length >= TOTAL_PIGEON_COLORS,
-    firstSquirrelSeeded: Boolean(parsed.firstSquirrelSeeded) || pigeons.some((animal) => animal.species === "squirrel"),
-    feedingHistory: isV6 && Array.isArray(parsed.feedingHistory) ? parsed.feedingHistory.slice(-90) as FeedRecord[] : [],
-    events: isV6 && Array.isArray(parsed.events) ? parsed.events.slice(-18) as FieldNote[] : base.events,
-    policies: isV6 && parsed.policies ? { ...base.policies, ...parsed.policies } : base.policies,
-    activeEventId: isV6 && parsed.activeEventId && parsed.activeEventId in events ? parsed.activeEventId : null,
-    lastEventId: isV6 && parsed.lastEventId && parsed.lastEventId in events ? parsed.lastEventId : null,
-    endedBy: isV6 && pillarOrder.includes(parsed.endedBy as PillarKey) ? parsed.endedBy as PillarKey : null,
-    endedAt: isV6 ? Number(parsed.endedAt) || null : null,
+    discoveredSpecies: [...speciesOrder],
+    animalSpeciesUnlocked: true,
+    firstSquirrelSeeded: true,
+    feedingHistory: Array.isArray(parsed.feedingHistory) ? parsed.feedingHistory.slice(-90) as FeedRecord[] : [],
+    events: Array.isArray(parsed.events) ? parsed.events.slice(-18) as FieldNote[] : base.events,
+    policies: parsed.policies ? { ...base.policies, ...parsed.policies } : base.policies,
+    activeEventId: parsed.activeEventId && parsed.activeEventId in events ? parsed.activeEventId : null,
+    lastEventId: parsed.lastEventId && parsed.lastEventId in events ? parsed.lastEventId : null,
+    eventSpecies: isSpecies(parsed.eventSpecies) ? parsed.eventSpecies : null,
+    endedBy: validEndReasons.includes(parsed.endedBy as EndReason) ? parsed.endedBy as EndReason : null,
+    endedAt: Number(parsed.endedAt) || null,
     lastUpdated: now,
     nextGenerationAt: Math.max(now + 3_000, Number(parsed.nextGenerationAt) || now + GENERATION_MS),
-    nextEventAt: Math.max(now + 3_000, Number(parsed.nextEventAt) || now + FIRST_EVENT_MS),
   };
   return checkForEnd(restored, now);
 }
@@ -1566,11 +1625,17 @@ function EventCard({
 }) {
   const definition = events[eventId];
   const copy = uiCopy[language];
-  const preview = (deltas: PillarDeltas) =>
-    pillarOrder
-      .filter((pillar) => deltas[pillar])
-      .map((pillar) => `${pillarNames[language][pillar]} ${(deltas[pillar] ?? 0) > 0 ? "+" : "-"}`)
+  const preview = (deltas: PillarDeltas) => {
+    const normalized: Partial<Record<Exclude<PillarKey, "quantity">, number>> = {
+      satiety: deltas.satiety ?? deltas.vitality,
+      comfort: deltas.comfort ?? (deltas.foraging ?? 0) + (deltas.habitat ?? 0),
+      coexistence: deltas.coexistence,
+    };
+    return (["satiety", "comfort", "coexistence"] as const)
+      .filter((pillar) => normalized[pillar])
+      .map((pillar) => `${pillarNames[language][pillar]} ${(normalized[pillar] ?? 0) > 0 ? "+" : "-"}`)
       .join(" · ");
+  };
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1641,12 +1706,20 @@ function FieldJournal({ state, language }: { state: EcosystemState; language: La
             ))}
           </div>
           <h3>{copy.species}</h3>
-          <div className="v6-journal-species">
-            {speciesOrder.map((species) => (
-              <span className={state.discoveredSpecies.includes(species) ? "is-found" : ""} key={species}>
-                {state.discoveredSpecies.includes(species) ? speciesNames[language][species] : "???"}
-              </span>
-            ))}
+          <div className="v7-species-status">
+            {speciesOrder.map((species) => {
+              const count = speciesCount(state, species);
+              const profile = speciesProfiles[species];
+              const survival = Math.round(speciesSurvival(state, species));
+              const danger = state.speciesVitals[species].dangerTurns > 0 || count < profile.stableMin || survival < 30;
+              return (
+                <div className={danger ? "is-at-risk" : "is-stable"} key={species}>
+                  <span><strong>{speciesNames[language][species]}</strong><small>{danger ? copy.atRisk : copy.stable}</small></span>
+                  <b>{count}<i>/ {profile.stableMin} {copy.stableLine}</i></b>
+                  <em><i style={{ width: `${survival}%` }} /><small>{copy.survival} {survival}</small></em>
+                </div>
+              );
+            })}
           </div>
           <h3>{copy.notes}</h3>
           <ol>
@@ -1864,7 +1937,7 @@ function SimulationScene({
   };
 
   const throwFood = (targetX: number, targetY: number) => {
-    if (state.endedBy) return;
+    if (state.endedBy || state.activeEventId || particles.length > 0) return;
     const nowPerformance = window.performance.now();
     const now = Date.now();
     const id = now * 1_000 + sequence.current++;
@@ -1984,11 +2057,15 @@ function SimulationScene({
 
   const favoriteResponse = favorite ? responses.find((response) => response.animalId === favorite.id) : undefined;
   const cityCount = state.pigeons.filter((animal) => animal.hasAcceptedFood).length;
+  const stableSpeciesCount = speciesOrder.filter((species) => {
+    const profile = speciesProfiles[species];
+    return speciesCount(state, species) >= profile.stableMin && speciesSurvival(state, species) >= 30;
+  }).length;
 
   return (
     <section
       aria-label={copy.throwAria}
-      className="ecosystem ecosystem-v6"
+      className="ecosystem ecosystem-v6 ecosystem-v7"
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
@@ -2016,19 +2093,25 @@ function SimulationScene({
       <div className="city-circle" aria-hidden="true" />
       <div className="habitat-label habitat-label-wild"><span>{copy.wildPark}</span><strong>{state.pigeons.length - cityCount}</strong></div>
       <div className="habitat-label habitat-label-city"><span>{copy.cityPlaza}</span><strong>{cityCount}</strong></div>
-      <div className="plaza-population" role="status"><span>{copy.population}</span><strong>{state.pigeons.length}/{MAX_ANIMALS}</strong></div>
+      <div className="plaza-population" role="status"><span>{copy.stableGroups}</span><strong>{stableSpeciesCount}/7</strong></div>
       <div className="plaza-metrics">
-        {pillarOrder.map((pillar, index) => (
-          <div
-            aria-label={`${pillarNames[language][pillar]} ${Math.round(state[pillar])}`}
-            className={`plaza-metric plaza-metric-${index + 1} ${state[pillar] <= 25 ? "is-critical" : ""}`}
-            key={pillar}
-            role="status"
-            style={{ "--metric-value": `${state[pillar]}%` } as React.CSSProperties}
-          >
-            <span>{pillarNames[language][pillar]}</span><strong>{Math.round(state[pillar])}</strong><i />
-          </div>
-        ))}
+        {pillarOrder.map((pillar, index) => {
+          const value = pillarValue(state, pillar);
+          const display = pillar === "quantity" ? `${state.pigeons.length}/${MAX_ANIMALS}` : Math.round(value);
+          const percentage = pillar === "quantity" ? state.pigeons.length / MAX_ANIMALS * 100 : value;
+          const critical = pillar === "quantity" ? stableSpeciesCount < speciesOrder.length : value <= 25;
+          return (
+            <div
+              aria-label={`${pillarNames[language][pillar]} ${display}`}
+              className={`plaza-metric plaza-metric-${index + 1} ${critical ? "is-critical" : ""}`}
+              key={pillar}
+              role="status"
+              style={{ "--metric-value": `${percentage}%` } as React.CSSProperties}
+            >
+              <span>{pillarNames[language][pillar]}</span><strong>{display}</strong><i />
+            </div>
+          );
+        })}
       </div>
 
       <div className="v6-animal-layer">
@@ -2320,13 +2403,14 @@ export function UrbanPigeonSimulation({
       {state.endedBy ? (
         <div className="v6-modal-backdrop">
           <section aria-modal="true" className="v6-game-over" role="alertdialog">
-            <p>{pillarNames[language][state.endedBy]} · 0</p>
+            <p>{endReasonNames[language][state.endedBy]}</p>
             <h2>{copy.gameOver}</h2>
             <span>{copy.gameOverBody}</span>
             <div className="v6-end-pillars">
               {pillarOrder.map((pillar) => (
                 <div className={pillar === state.endedBy ? "is-zero" : ""} key={pillar}>
-                  <small>{pillarNames[language][pillar]}</small><strong>{Math.round(state[pillar])}</strong>
+                  <small>{pillarNames[language][pillar]}</small>
+                  <strong>{pillar === "quantity" ? `${state.pigeons.length}/${MAX_ANIMALS}` : Math.round(pillarValue(state, pillar))}</strong>
                 </div>
               ))}
             </div>

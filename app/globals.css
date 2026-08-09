@@ -5136,3 +5136,113 @@ body {
     width: auto;
   }
 }
+
+/* V7 species survival panel and decision-paced feeding loop. */
+.ecosystem-v7 .v6-journal > section {
+  width: min(28rem, 44vw);
+}
+
+.v7-species-status {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.v7-species-status > div {
+  align-items: center;
+  background: #e1e5d8;
+  border-left: 3px solid #63805f;
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: minmax(5.2rem, 1fr) auto minmax(5.5rem, 1.1fr);
+  min-height: 2rem;
+  padding: 0.28rem 0.38rem;
+}
+
+.v7-species-status > div.is-at-risk {
+  background: #f1ddd2;
+  border-left-color: #b44b32;
+}
+
+.v7-species-status span,
+.v7-species-status b,
+.v7-species-status em {
+  min-width: 0;
+}
+
+.v7-species-status span {
+  display: flex;
+  flex-direction: column;
+}
+
+.v7-species-status strong,
+.v7-species-status b,
+.v7-species-status small {
+  font-size: clamp(0.38rem, 0.58vw, 0.62rem);
+  letter-spacing: 0;
+}
+
+.v7-species-status span small {
+  color: #607064;
+  font-weight: 500;
+}
+
+.v7-species-status .is-at-risk span small {
+  color: #9a3c2c;
+  font-weight: 750;
+}
+
+.v7-species-status b {
+  color: #263b30;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.v7-species-status b i {
+  color: #66716a;
+  font-size: 0.82em;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.v7-species-status em {
+  background: #c4ccc0;
+  height: 0.46rem;
+  overflow: visible;
+  position: relative;
+}
+
+.v7-species-status em > i {
+  background: #4e7d51;
+  display: block;
+  height: 100%;
+  max-width: 100%;
+}
+
+.v7-species-status .is-at-risk em > i {
+  background: #b44b32;
+}
+
+.v7-species-status em small {
+  color: #3f4b44;
+  font-style: normal;
+  left: 0;
+  line-height: 1;
+  position: absolute;
+  top: calc(100% + 0.1rem);
+  white-space: nowrap;
+}
+
+.ecosystem-v7:has(.v6-event-card) {
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .ecosystem-v7 .v6-journal > section {
+    width: min(22rem, 88vw);
+  }
+
+  .v7-species-status > div {
+    gap: 0.25rem;
+    grid-template-columns: minmax(4.5rem, 1fr) auto minmax(4.2rem, 1fr);
+  }
+}

@@ -28,10 +28,10 @@ test("server-renders the endless urban wildlife scene", async () => {
   assert.match(html, /Urban Wildlife Simulation/);
   assert.match(html, /City cycle/);
   assert.match(html, />Online</);
-  assert.match(html, /15<!-- -->\/<!-- -->30/);
-  assert.match(html, /Vitality/);
-  assert.match(html, /Foraging/);
-  assert.match(html, /Habitat/);
+  assert.match(html, /21(?:<!-- -->)?\/(?:<!-- -->)?30/);
+  assert.match(html, /Quantity/);
+  assert.match(html, /Satiety/);
+  assert.match(html, /Comfort/);
   assert.match(html, /Coexistence/);
   assert.match(html, /Choose food/);
   assert.match(html, /Grain/);
@@ -46,7 +46,10 @@ test("server-renders the endless urban wildlife scene", async () => {
   assert.match(html, /Sign in with ChatGPT/);
   assert.match(html, /href="\/signin-with-chatgpt\?return_to=%2F"/);
   assert.match(html, /animal-agent-pigeon/);
-  assert.equal([...html.matchAll(/data-animal-id="\d+"/g)].length, 15);
+  assert.equal([...html.matchAll(/data-animal-id="\d+"/g)].length, 21);
+  for (const species of ["pigeon", "squirrel", "swan", "stray-cat", "stray-dog", "fox", "hedgehog"]) {
+    assert.equal([...html.matchAll(new RegExp(`data-species="${species}"`, "g"))].length, 3);
+  }
   assert.doesNotMatch(html, /accessory|wardrobe|outfit/i);
   assert.doesNotMatch(html, /feed cooldown|genetic diversity|<sup/i);
 });
@@ -76,12 +79,17 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(simulation, /const INITIAL_ANIMALS = 15/);
+  assert.match(simulation, /const INITIAL_ANIMALS = 21/);
   assert.match(simulation, /const MAX_ANIMALS = 30/);
-  assert.match(simulation, /const STORAGE_KEY = "urban-pigeon-collective-v6"/);
+  assert.match(simulation, /const STORAGE_KEY = "urban-pigeon-collective-v7"/);
   assert.match(simulation, /type Species =[\s\S]*?"pigeon"[\s\S]*?"squirrel"[\s\S]*?"swan"[\s\S]*?"stray-cat"[\s\S]*?"stray-dog"[\s\S]*?"fox"[\s\S]*?"hedgehog"/);
   assert.match(simulation, /type FoodType =[\s\S]*?"grain"[\s\S]*?"nut"[\s\S]*?"greens"[\s\S]*?"fish"[\s\S]*?"biscuit"[\s\S]*?"meat"[\s\S]*?"insect"/);
-  assert.match(simulation, /const pillarOrder: PillarKey\[\] = \[[\s\S]*?"vitality"[\s\S]*?"foraging"[\s\S]*?"habitat"[\s\S]*?"coexistence"[\s\S]*?\]/);
+  assert.match(simulation, /const pillarOrder: PillarKey\[\] = \[[\s\S]*?"quantity"[\s\S]*?"satiety"[\s\S]*?"comfort"[\s\S]*?"coexistence"[\s\S]*?\]/);
+  assert.match(simulation, /const speciesProfiles:[\s\S]*?stableMin:[\s\S]*?idealMax:[\s\S]*?satietyWeight:[\s\S]*?comfortWeight:[\s\S]*?coexistenceWeight:/);
+  assert.match(simulation, /for \(const species of speciesOrder\)[\s\S]*?index < 3/);
+  assert.match(simulation, /function weightedSpeciesMetric/);
+  assert.match(simulation, /function speciesSurvival/);
+  assert.match(simulation, /dangerTurns >= 3/);
   assert.match(simulation, /function acceptanceProbability/);
   assert.match(simulation, /\.sort\(\(left, right\) => left\.distance - right\.distance \|\| left\.animal\.id - right\.animal\.id\)/);
   assert.match(simulation, /let winnerIndex = -1/);
@@ -90,15 +98,14 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /phase: "noticing"/);
   assert.match(simulation, /\? "approach" : "rejecting"/);
   assert.match(simulation, /phase: "landing"/);
-  assert.match(simulation, /nutrition >= 3/);
   assert.match(simulation, /function runGeneration/);
-  assert.match(simulation, /const absentSpecies = speciesOrder\.filter/);
-  assert.match(simulation, /state\.pigeons\.length >= MAX_ANIMALS/);
+  assert.match(simulation, /state\.pigeons\.length < MAX_ANIMALS/);
   assert.match(simulation, /animal\.id !== state\.favoriteId/);
-  assert.match(simulation, /a lightly fed \$\{speciesNames\.en\[migrant\.species\]/);
-  assert.match(simulation, /const endedBy = pillarOrder\.find\(\(pillar\) => state\[pillar\] <= 0\)/);
+  assert.match(simulation, /A species disappeared after its rescue window/);
   assert.match(simulation, /role="alertdialog"/);
-  assert.match(simulation, /function chooseEvent/);
+  assert.match(simulation, /function chooseFeedingEvent/);
+  assert.match(simulation, /next\.activeEventId = chooseFeedingEvent\(animal\.species\)/);
+  assert.match(simulation, /state\.activeEventId \|\| particles\.length > 0/);
   assert.match(simulation, /feedingHistory\.filter/);
   assert.match(simulation, /activeEventId/);
   assert.match(simulation, /favoritePosition/);
@@ -117,6 +124,7 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(css, /\.v6-event-card/);
   assert.match(css, /\.v6-game-over/);
   assert.match(css, /\.v6-animal-sprite/);
+  assert.match(css, /\.v7-species-status/);
   assert.match(css, /--extra-atlas/);
   assert.match(css, /opacity: 1/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
