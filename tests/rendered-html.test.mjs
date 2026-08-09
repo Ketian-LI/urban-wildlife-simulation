@@ -150,6 +150,12 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /const MIN_COLOR_VARIETIES = 3/);
   assert.match(simulation, /const NEW_ANIMAL_SPECIES_COUNT = 3/);
   assert.match(simulation, /const initialPigeonPlumages: Plumage\[\]/);
+  assert.match(simulation, /squirrelSpecies: "Squirrel"/);
+  assert.match(simulation, /swanSpecies: "Swan"/);
+  assert.match(simulation, /straySpecies: "Stray cats & dogs"/);
+  assert.match(simulation, /squirrelSpecies: "松鼠"/);
+  assert.match(simulation, /swanSpecies: "天鹅"/);
+  assert.match(simulation, /straySpecies: "流浪猫狗"/);
   assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /const CITY_FOOD_DETECTION_RADIUS = 24/);

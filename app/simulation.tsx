@@ -132,9 +132,10 @@ const uiCopy = {
     colorGuideHint: "Feed a color successfully to catalogue it.",
     colorGuideUnknown: "Unknown color",
     speciesLocked: "Catalogue all four colors to reveal the next species stage.",
-    speciesUnlocked: "Next stage unlocked: three animal species",
+    speciesUnlocked: "New species: squirrel, swan, and stray cats & dogs",
     squirrelSpecies: "Squirrel",
-    unknownSpecies: "Species pending",
+    swanSpecies: "Swan",
+    straySpecies: "Stray cats & dogs",
     rareAccessoryCarrier: "carries a rare accessory",
     signInWithChatGPT: "Sign in with ChatGPT",
     signOut: "Sign out",
@@ -192,9 +193,10 @@ const uiCopy = {
     colorGuideHint: "成功喂食一种羽色，即可将它收入图鉴。",
     colorGuideUnknown: "未知羽色",
     speciesLocked: "集齐四种羽色后，将开启下一个物种阶段。",
-    speciesUnlocked: "下一阶段已解锁：三种动物",
+    speciesUnlocked: "新物种：松鼠、天鹅、流浪猫狗",
     squirrelSpecies: "松鼠",
-    unknownSpecies: "物种待定",
+    swanSpecies: "天鹅",
+    straySpecies: "流浪猫狗",
     rareAccessoryCarrier: "携带一件稀有配饰",
     signInWithChatGPT: "使用 ChatGPT 登录",
     signOut: "退出登录",
@@ -243,7 +245,7 @@ const tutorialSteps = {
     },
     {
       title: "Catalogue feather colors",
-      body: "Successfully feed each of the four feather colors to add it to the field guide. Completing all four entries reveals three new animal-species slots for the next stage.",
+      body: "Successfully feed each of the four feather colors to add it to the field guide. Completing all four entries reveals squirrel, swan, and stray cats and dogs for the next stage.",
     },
   ],
   zh: [
@@ -265,7 +267,7 @@ const tutorialSteps = {
     },
     {
       title: "收集鸽子羽色",
-      body: "分别成功喂食四种羽色，即可逐项点亮图鉴。全部收集完成后，将开启包含三种动物的下一阶段。",
+      body: "分别成功喂食四种羽色，即可逐项点亮图鉴。全部收集完成后，将解锁松鼠、天鹅和流浪猫狗。",
     },
   ],
 } as const;
@@ -2887,6 +2889,11 @@ function PigeonColorGuide({
   language: Language;
 }) {
   const copy = uiCopy[language];
+  const speciesNames = [
+    copy.squirrelSpecies,
+    copy.swanSpecies,
+    copy.straySpecies,
+  ];
   const [isOpen, setIsOpen] = useState(false);
   const guideRef = useRef<HTMLElement>(null);
 
@@ -3045,9 +3052,7 @@ function PigeonColorGuide({
                   <i>{String(speciesIndex + 1).padStart(2, "0")}</i>
                   <b>
                     {animalSpeciesUnlocked
-                      ? speciesIndex === 0
-                        ? copy.squirrelSpecies
-                        : copy.unknownSpecies
+                      ? speciesNames[speciesIndex]
                       : "???"}
                   </b>
                 </span>
