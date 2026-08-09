@@ -10,10 +10,10 @@ const PRESENCE_HEARTBEAT_MS = 15_000;
 const PRESENCE_RETRY_MS = 5_000;
 const MAX_FEED_COOLDOWN_MS = 3_000;
 const INITIAL_PIGEONS = 15;
-const MAX_PIGEONS = 30;
+const MAX_ANIMALS = 30;
 const TOTAL_COLOR_VARIETIES = 4;
 const MIN_COLOR_VARIETIES = 3;
-const NEW_ANIMAL_SPECIES_COUNT = 3;
+const NEW_ANIMAL_SPECIES_COUNT = 4;
 const GENERATION_SECONDS = 12;
 const HUNGER_INTERVAL_SECONDS = 1;
 const FEEDING_SAFETY_MS = 5000;
@@ -32,6 +32,8 @@ type Plumage =
   | "charcoal"
   | "silver"
   | "rust";
+
+type Species = "pigeon" | "squirrel" | "swan" | "stray-cat" | "stray-dog";
 
 type Language = "en" | "zh";
 type CloudSyncStatus = "local" | "loading" | "saving" | "saved" | "error";
@@ -132,10 +134,11 @@ const uiCopy = {
     colorGuideHint: "Feed a color successfully to catalogue it.",
     colorGuideUnknown: "Unknown color",
     speciesLocked: "Catalogue all four colors to reveal the next species stage.",
-    speciesUnlocked: "New species: squirrel, swan, and stray cats & dogs",
+    speciesUnlocked: "New species now enter the park with equal odds",
     squirrelSpecies: "Squirrel",
     swanSpecies: "Swan",
-    straySpecies: "Stray cats & dogs",
+    strayCatSpecies: "Stray cat",
+    strayDogSpecies: "Stray dog",
     rareAccessoryCarrier: "carries a rare accessory",
     signInWithChatGPT: "Sign in with ChatGPT",
     signOut: "Sign out",
@@ -153,7 +156,7 @@ const uiCopy = {
     restartDescription:
       "Fewer than three feather colors remain. Restart the ecosystem to restore fifteen pigeons spanning all four colors.",
     restartAction: "Restart ecosystem",
-    throwFoodAria: "Throw food into the animated illustrated pigeon population",
+    throwFoodAria: "Throw food into the animated illustrated animal population",
     tutorialEyebrow: "Field guide",
     tutorialTitle: "How this ecosystem works",
     tutorialSkip: "Skip",
@@ -193,10 +196,11 @@ const uiCopy = {
     colorGuideHint: "成功喂食一种羽色，即可将它收入图鉴。",
     colorGuideUnknown: "未知羽色",
     speciesLocked: "集齐四种羽色后，将开启下一个物种阶段。",
-    speciesUnlocked: "新物种：松鼠、天鹅、流浪猫狗",
+    speciesUnlocked: "新物种已加入公园，并以相同概率刷新",
     squirrelSpecies: "松鼠",
     swanSpecies: "天鹅",
-    straySpecies: "流浪猫狗",
+    strayCatSpecies: "流浪猫",
+    strayDogSpecies: "流浪狗",
     rareAccessoryCarrier: "携带一件稀有配饰",
     signInWithChatGPT: "使用 ChatGPT 登录",
     signOut: "退出登录",
@@ -214,7 +218,7 @@ const uiCopy = {
     restartDescription:
       "场上已经少于三种羽色。重新开始后，将恢复包含全部四种羽色的十五只鸽子。",
     restartAction: "重新开始",
-    throwFoodAria: "点击场景，将食物投向动态鸽群",
+    throwFoodAria: "点击场景，将食物投向动态动物群体",
     tutorialEyebrow: "观察指南",
     tutorialTitle: "这个生态系统如何运行",
     tutorialSkip: "跳过",
@@ -245,7 +249,7 @@ const tutorialSteps = {
     },
     {
       title: "Catalogue feather colors",
-      body: "Successfully feed each of the four feather colors to add it to the field guide. Completing all four entries reveals squirrel, swan, and stray cats and dogs for the next stage.",
+      body: "Successfully feed all four feather colors to begin the wildlife stage with a squirrel. Later arrivals have equal chances to be a pigeon, squirrel, swan, stray cat, or stray dog; all five species share the 30-animal capacity.",
     },
   ],
   zh: [
@@ -267,13 +271,14 @@ const tutorialSteps = {
     },
     {
       title: "收集鸽子羽色",
-      body: "分别成功喂食四种羽色，即可逐项点亮图鉴。全部收集完成后，将解锁松鼠、天鹅和流浪猫狗。",
+      body: "分别成功喂食四种羽色后，野生动物阶段会先出现一只松鼠。此后鸽子、松鼠、天鹅、流浪猫和流浪狗各有 20% 的刷新概率，五种动物共同使用 30 只的承载上限。",
     },
   ],
 } as const;
 
 type PigeonAgent = {
   id: number;
+  species: Species;
   plumage: Plumage;
   feedCount: number;
   caseSeed: number;
@@ -307,6 +312,7 @@ type EcosystemState = {
   initialAccessorySeeded: boolean;
   collectedPlumages: Plumage[];
   animalSpeciesUnlocked: boolean;
+  firstSquirrelSeeded: boolean;
 };
 
 type Metric = {
@@ -341,8 +347,10 @@ type FoodClaim = {
 type PigeonDeathEffect = {
   id: number;
   pigeonId: number;
+  species: Species;
   plumage: Plumage;
   spriteIndex: number;
+  wildlifeRow: number;
   zone: "inside" | "outside";
   word: string;
   palette: string[];
@@ -362,6 +370,35 @@ const initialEvents = [
 ];
 
 const pigeonLetters = "pigeon";
+const speciesOrder: Species[] = [
+  "pigeon",
+  "squirrel",
+  "swan",
+  "stray-cat",
+  "stray-dog",
+];
+const wildlifeSpecies: Species[] = [
+  "squirrel",
+  "swan",
+  "stray-cat",
+  "stray-dog",
+];
+const speciesNames: Record<Language, Record<Species, string>> = {
+  en: {
+    pigeon: "pigeon",
+    squirrel: "squirrel",
+    swan: "swan",
+    "stray-cat": "stray cat",
+    "stray-dog": "stray dog",
+  },
+  zh: {
+    pigeon: "鸽子",
+    squirrel: "松鼠",
+    swan: "天鹅",
+    "stray-cat": "流浪猫",
+    "stray-dog": "流浪狗",
+  },
+};
 const plumageOrder: Plumage[] = [
   "grey",
   "white",
@@ -387,6 +424,12 @@ const featherPalettes: Record<Plumage, string[]> = {
   charcoal: ["#161b1d", "#343c3f", "#26343a", "#4a5960", "#23272a", "#5c6466"],
   silver: ["#c5ccca", "#9ea9aa", "#dce0dc", "#7e8c90", "#b6c0c2", "#eef0eb"],
   rust: ["#6e362c", "#a14f38", "#c16d4d", "#7f4a3b", "#d18a64", "#59352f"],
+};
+const wildlifeEffectPalettes: Record<Exclude<Species, "pigeon">, string[]> = {
+  squirrel: ["#76513a", "#a86f42", "#c59664", "#5c5144", "#e1c49b", "#3c3027"],
+  swan: ["#f7f3e8", "#d8d4c9", "#8a8d88", "#f0eee7", "#d77d35", "#252a28"],
+  "stray-cat": ["#2f302c", "#5b5344", "#83745e", "#c2ad86", "#393630", "#d2b05c"],
+  "stray-dog": ["#704a2d", "#a66d3d", "#d6b27b", "#f0dfbd", "#4b392c", "#8c5c38"],
 };
 
 const plumageNames: Record<Language, Record<Plumage, string>> = {
@@ -454,8 +497,8 @@ const exactEventTranslations = new Map<string, string>([
     "鸽群安静地完成了一次调整，细微的行为差异被延续下来。",
   ],
   [
-    "All four pigeon colors were catalogued. Three animal species are ready for the next stage.",
-    "四种鸽子羽色已经全部收入图鉴。下一阶段的三种动物已经解锁。",
+    "All four pigeon colors were catalogued. A squirrel arrived first; all five species now have equal refresh odds.",
+    "四种鸽子羽色已经全部收入图鉴。松鼠率先出现，此后五种动物拥有相同的刷新概率。",
   ],
 ]);
 
@@ -467,6 +510,17 @@ function translatedPlumage(plumage: string, language: Language) {
   return plumageOrder.includes(plumage as Plumage)
     ? plumageNames.zh[plumage as Plumage]
     : plumage;
+}
+
+function translatedAnimalDescription(description: string) {
+  if (description.endsWith(" pigeon")) {
+    return `${translatedPlumage(description.slice(0, -7), "zh")}鸽子`;
+  }
+
+  const species = speciesOrder.find(
+    (candidate) => speciesNames.en[candidate] === description,
+  );
+  return species ? speciesNames.zh[species] : description;
 }
 
 function translatedRefreshSuffix(suffix: string) {
@@ -522,6 +576,29 @@ function translateEvent(event: string, language: Language) {
   }
 
   match = event.match(
+    /^(\d+) new wild (?:animal arrived|animals arrived); the latest was a (.+)\. Each of the five species has a 20% refresh chance\.$/,
+  );
+  if (match) {
+    return `野生公园新增 ${match[1]} 只动物；最近出现的是${translatedAnimalDescription(
+      match[2],
+    )}。五种动物的刷新概率均为 20%。`;
+  }
+
+  match = event.match(
+    /^One city animal died from hunger; (\d+) remain, while wild animals stayed safe\.(.*)$/,
+  );
+  if (match) {
+    return `一只城市动物因饥饿死亡；场上还剩 ${match[1]} 只，野生动物未受影响。`;
+  }
+
+  match = event.match(
+    /^(\d+) city animals died during the feeding pause; wild animals outside were unaffected\.(.*)$/,
+  );
+  if (match) {
+    return `停止喂食期间有 ${match[1]} 只城市动物死亡；圈外野生动物未受影响。`;
+  }
+
+  match = event.match(
     /^One city bird died from hunger; (\d+) remain, while wild birds stayed safe\.(.*)$/,
   );
   if (match) {
@@ -541,10 +618,17 @@ function translateEvent(event: string, language: Language) {
 
   const feedingTail = (tail: string) => {
     let tailMatch = tail.match(
-      /^and divided into two; the field now holds (\d+) birds\.$/,
+      /^and divided into two; the field now holds (\d+) (?:birds|animals)\.$/,
     );
     if (tailMatch) {
-      return `并分裂成两只；场上现在共有 ${tailMatch[1]} 只鸽子。`;
+      return `并分裂出一只同种动物；场上现在共有 ${tailMatch[1]} 只动物。`;
+    }
+
+    tailMatch = tail.match(
+      /^and divided\. At the shared 30-animal capacity, (\d+) least-fed (?:animal was|animals were) removed\.$/,
+    );
+    if (tailMatch) {
+      return `并分裂出一只同种动物。达到 30 只的共同上限后，系统移除了 ${tailMatch[1]} 只进食次数最少的动物。`;
     }
 
     tailMatch = tail.match(
@@ -556,6 +640,39 @@ function translateEvent(event: string, language: Language) {
 
     return tail;
   };
+
+  match = event.match(/^The nearest (.+) ate the pellet (.*)$/);
+  if (match) {
+    return `距离最近的${translatedAnimalDescription(match[1])}吃到了食物，${feedingTail(
+      match[2],
+    )}`;
+  }
+
+  match = event.match(
+    /^After (\d+) nearer (?:animal|animals) declined, the (.+) ate the pellet (.*)$/,
+  );
+  if (match) {
+    return `前面 ${match[1]} 只更近的动物拒绝后，${translatedAnimalDescription(
+      match[2],
+    )}吃到了食物，${feedingTail(match[3])}`;
+  }
+
+  match = event.match(
+    /^All (\d+) animals declined the pellet in nearest-first order; the closest was a (.+) with (\d+)% boldness\.$/,
+  );
+  if (match) {
+    return `按照由近到远的顺序，${match[1]} 只动物都拒绝了食物；最近的是大胆程度为 ${match[3]}% 的${translatedAnimalDescription(
+      match[2],
+    )}。`;
+  }
+
+  match = event.match(
+    /^A (.+) died after direct human action in the (city plaza|wild park); (\d+) animals remain\.$/,
+  );
+  if (match) {
+    const habitat = match[2] === "city plaza" ? "城市广场" : "野生公园";
+    return `一只${translatedAnimalDescription(match[1])}因人类直接操作在${habitat}死亡；场上还剩 ${match[3]} 只动物。`;
+  }
 
   match = event.match(/^The nearest ([a-z-]+) bird ate the pellet (.*)$/);
   if (match) {
@@ -666,7 +783,11 @@ function pigeonStyleSignature(
 }
 
 function pigeonColorVarietyCount(pigeons: PigeonAgent[]) {
-  return new Set(pigeons.map((pigeon) => pigeon.plumage)).size;
+  return new Set(
+    pigeons
+      .filter((pigeon) => pigeon.species === "pigeon")
+      .map((pigeon) => pigeon.plumage),
+  ).size;
 }
 
 function pigeonLetterPalette(
@@ -697,7 +818,7 @@ function averageBoldness(pigeons: PigeonAgent[]) {
 
 function hostFavoritePigeon(pigeons: PigeonAgent[]) {
   return pigeons.reduce<PigeonAgent | undefined>((favorite, pigeon) => {
-    if (pigeon.feedCount <= 0) {
+    if (pigeon.species !== "pigeon" || pigeon.feedCount <= 0) {
       return favorite;
     }
 
@@ -730,6 +851,7 @@ function createOuterPigeon(
 ): PigeonAgent {
   return {
     id,
+    species: "pigeon",
     plumage: style.plumage,
     feedCount: 0,
     caseSeed: (id * 17) % 97,
@@ -746,6 +868,30 @@ function createOuterPigeon(
   };
 }
 
+function createOuterWildlife(
+  id: number,
+  species: Exclude<Species, "pigeon">,
+  boldness = clamp(0.28 + ((id * 31) % 53) / 100, 0.12, 0.94),
+): PigeonAgent {
+  return {
+    ...createOuterPigeon(id, initialPigeonStyle(id), boldness),
+    species,
+    accessory: null,
+  };
+}
+
+function createSameSpeciesChild(
+  id: number,
+  parent: PigeonAgent,
+  boldness: number,
+) {
+  if (parent.species === "pigeon") {
+    return createOuterPigeon(id, inheritedPigeonStyle(parent), boldness);
+  }
+
+  return createOuterWildlife(id, parent.species, boldness);
+}
+
 function inheritedPigeonStyle(template: PigeonAgent) {
   return {
     plumage: template.plumage,
@@ -755,20 +901,30 @@ function inheritedPigeonStyle(template: PigeonAgent) {
   };
 }
 
-function createRefreshedOuterPigeon(
+function createRefreshedOuterAnimal(
   id: number,
   pigeons: PigeonAgent[],
+  wildlifeUnlocked: boolean,
   random = Math.random,
 ) {
-  if (pigeons.length === 0) {
+  const species = wildlifeUnlocked
+    ? speciesOrder[Math.min(speciesOrder.length - 1, Math.floor(random() * speciesOrder.length))]
+    : "pigeon";
+
+  if (species !== "pigeon") {
+    return createOuterWildlife(id, species);
+  }
+
+  const pigeonTemplates = pigeons.filter((pigeon) => pigeon.species === "pigeon");
+  if (pigeonTemplates.length === 0) {
     return createOuterPigeon(id);
   }
 
   const templateIndex = Math.min(
-    pigeons.length - 1,
-    Math.floor(random() * pigeons.length),
+    pigeonTemplates.length - 1,
+    Math.floor(random() * pigeonTemplates.length),
   );
-  const template = pigeons[templateIndex];
+  const template = pigeonTemplates[templateIndex];
   const style = inheritedPigeonStyle(template);
   const boldnessMutation = (((id * 29) % 9) - 4) * 0.008;
 
@@ -784,9 +940,15 @@ function guaranteeAccessoryCarrier(
   unlockedAccessories: AccessoryId[] = [],
   seed = 7,
 ) {
+  const eligibleIndices = pigeons
+    .map((pigeon, index) => ({ pigeon, index }))
+    .filter(({ pigeon }) => pigeon.species === "pigeon")
+    .map(({ index }) => index);
   if (
-    pigeons.length === 0 ||
-    pigeons.some((pigeon) => pigeon.accessory !== null)
+    eligibleIndices.length === 0 ||
+    pigeons.some(
+      (pigeon) => pigeon.species === "pigeon" && pigeon.accessory !== null,
+    )
   ) {
     return;
   }
@@ -797,7 +959,7 @@ function guaranteeAccessoryCarrier(
   const accessoryPool =
     lockedAccessories.length > 0 ? lockedAccessories : accessoryIds;
   const normalizedSeed = Math.abs(Math.trunc(seed));
-  const pigeonIndex = normalizedSeed % pigeons.length;
+  const pigeonIndex = eligibleIndices[normalizedSeed % eligibleIndices.length];
   const accessoryIndex =
     (normalizedSeed * 7 + 3) % accessoryPool.length;
 
@@ -835,6 +997,7 @@ function makeInitialState(now = Date.now()): EcosystemState {
     initialAccessorySeeded: true,
     collectedPlumages: [],
     animalSpeciesUnlocked: false,
+    firstSquirrelSeeded: false,
   };
 }
 
@@ -885,6 +1048,8 @@ function restartEcosystemState(
       : null;
   restarted.collectedPlumages = [...current.collectedPlumages];
   restarted.animalSpeciesUnlocked = current.animalSpeciesUnlocked;
+  restarted.firstSquirrelSeeded = false;
+  seedFirstSquirrel(restarted, now);
   restarted.events = [
     `The ecosystem restarted after color diversity fell to ${colorVarietyCount} of ${TOTAL_COLOR_VARIETIES} varieties.`,
     ...initialEvents,
@@ -905,9 +1070,15 @@ function maybeSpawnRareAccessory(
   elapsedSeconds: number,
   random = Math.random,
 ) {
+  const eligibleIndices = state.pigeons
+    .map((pigeon, index) => ({ pigeon, index }))
+    .filter(({ pigeon }) => pigeon.species === "pigeon")
+    .map(({ index }) => index);
   if (
-    state.pigeons.length === 0 ||
-    state.pigeons.some((pigeon) => pigeon.accessory !== null)
+    eligibleIndices.length === 0 ||
+    state.pigeons.some(
+      (pigeon) => pigeon.species === "pigeon" && pigeon.accessory !== null,
+    )
   ) {
     return;
   }
@@ -935,10 +1106,12 @@ function maybeSpawnRareAccessory(
         Math.floor(random() * accessoryPool.length),
       )
     ];
-  const pigeonIndex = Math.min(
-    state.pigeons.length - 1,
-    Math.floor(random() * state.pigeons.length),
-  );
+  const pigeonIndex = eligibleIndices[
+    Math.min(
+      eligibleIndices.length - 1,
+      Math.floor(random() * eligibleIndices.length),
+    )
+  ];
 
   state.pigeons[pigeonIndex] = {
     ...state.pigeons[pigeonIndex],
@@ -966,13 +1139,14 @@ function generationEvent(before: EcosystemState, after: EcosystemState) {
   return "The flock adjusted quietly; small behavioral differences carried forward.";
 }
 
-function replenishOuterPigeons(state: EcosystemState) {
+function replenishOuterAnimals(state: EcosystemState) {
   let refreshedCount = 0;
 
   while (state.pigeons.length < INITIAL_PIGEONS) {
-    const refreshed = createRefreshedOuterPigeon(
+    const refreshed = createRefreshedOuterAnimal(
       state.nextPigeonId,
       state.pigeons,
+      state.animalSpeciesUnlocked,
     );
     state.pigeons.push(refreshed);
     state.nextPigeonId += 1;
@@ -980,6 +1154,40 @@ function replenishOuterPigeons(state: EcosystemState) {
   }
 
   return refreshedCount;
+}
+
+function seedFirstSquirrel(state: EcosystemState, now = Date.now()) {
+  if (
+    !state.animalSpeciesUnlocked ||
+    state.firstSquirrelSeeded ||
+    state.pigeons.length >= MAX_ANIMALS
+  ) {
+    return false;
+  }
+
+  state.pigeons.push({
+    ...createOuterWildlife(state.nextPigeonId, "squirrel", 0.62),
+    bornAt: now,
+    protectedUntil: now + SPLIT_ANIMATION_MS + 100,
+  });
+  state.nextPigeonId += 1;
+  state.firstSquirrelSeeded = true;
+  return true;
+}
+
+function refreshOneWildAnimal(state: EcosystemState) {
+  if (!state.animalSpeciesUnlocked || state.pigeons.length >= MAX_ANIMALS) {
+    return null;
+  }
+
+  const refreshed = createRefreshedOuterAnimal(
+    state.nextPigeonId,
+    state.pigeons,
+    true,
+  );
+  state.pigeons.push(refreshed);
+  state.nextPigeonId += 1;
+  return refreshed;
 }
 
 function applyHungerDeaths(
@@ -1030,23 +1238,23 @@ function applyHungerDeaths(
   }
 
   const refreshedCount =
-    actualDeaths > 0 ? replenishOuterPigeons(state) : 0;
+    actualDeaths > 0 ? replenishOuterAnimals(state) : 0;
   const refreshMessage =
     refreshedCount > 0
       ? ` ${refreshedCount} new wild ${
-          refreshedCount === 1 ? "bird arrived" : "birds arrived"
-        } outside with a style inherited from the current flock.`
+          refreshedCount === 1 ? "animal arrived" : "animals arrived"
+        } outside from the five-species refresh pool.`
       : "";
 
   if (actualDeaths === 1) {
     pushEvent(
       state,
-      `One city bird died from hunger; ${state.pigeons.length} remain, while wild birds stayed safe.${refreshMessage}`,
+      `One city animal died from hunger; ${state.pigeons.length} remain, while wild animals stayed safe.${refreshMessage}`,
     );
   } else if (actualDeaths > 0) {
     pushEvent(
       state,
-      `${actualDeaths} city birds died during the feeding pause; wild birds outside were unaffected.${refreshMessage}`,
+      `${actualDeaths} city animals died during the feeding pause; wild animals outside were unaffected.${refreshMessage}`,
     );
   }
 }
@@ -1071,6 +1279,13 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
     pigeons: diversityChecked.pigeons.map((pigeon) => ({ ...pigeon })),
     events: [...diversityChecked.events],
   };
+
+  if (seedFirstSquirrel(next, now)) {
+    pushEvent(
+      next,
+      "All four pigeon colors were catalogued. A squirrel arrived first; all five species now have equal refresh odds.",
+    );
+  }
 
   const feedingProtectedUntil = Number(next.feedingProtectedUntil) || 0;
   if (now <= feedingProtectedUntil) {
@@ -1130,6 +1345,13 @@ function advanceState(current: EcosystemState, now = Date.now()): EcosystemState
     }
 
     pushEvent(next, generationEvent(before, next));
+    const refreshed = refreshOneWildAnimal(next);
+    if (refreshed) {
+      pushEvent(
+        next,
+        `1 new wild animal arrived; the latest was a ${speciesNames.en[refreshed.species]}. Each of the five species has a 20% refresh chance.`,
+      );
+    }
   } else {
     next.humanFoodSignal = clamp(
       next.humanFoodSignal * Math.pow(0.985, elapsedSeconds),
@@ -1155,7 +1377,7 @@ function restoreState(savedState: unknown) {
     const initial = makeInitialState();
     const pigeons =
       Array.isArray(parsed.pigeons) && parsed.pigeons.length > 0
-        ? parsed.pigeons.slice(0, MAX_PIGEONS).map((pigeon, index) => {
+        ? parsed.pigeons.slice(0, MAX_ANIMALS).map((pigeon, index) => {
             const savedPigeon = pigeon as Partial<PigeonAgent>;
             const numericId = Number(savedPigeon.id);
             const id = Number.isFinite(numericId) ? Math.trunc(numericId) : index;
@@ -1166,6 +1388,9 @@ function restoreState(savedState: unknown) {
               : fallback.caseSeed;
             const numericColorSeed = Number(savedPigeon.colorSeed);
             const numericBoldness = Number(savedPigeon.boldness);
+            const species = speciesOrder.includes(savedPigeon.species as Species)
+              ? (savedPigeon.species as Species)
+              : "pigeon";
             const plumage = initialPigeonPlumages.includes(
               savedPigeon.plumage as Plumage,
             )
@@ -1176,6 +1401,7 @@ function restoreState(savedState: unknown) {
               ...fallback,
               ...savedPigeon,
               id,
+              species,
               plumage,
               feedCount: Math.max(0, Math.trunc(Number(savedPigeon.feedCount) || 0)),
               caseSeed,
@@ -1195,7 +1421,8 @@ function restoreState(savedState: unknown) {
               birthX: Number(savedPigeon.birthX) || 0,
               birthY: Number(savedPigeon.birthY) || 0,
               bornAt: Number(savedPigeon.bornAt) || 0,
-              accessory: isAccessoryId(savedPigeon.accessory)
+              accessory:
+                species === "pigeon" && isAccessoryId(savedPigeon.accessory)
                 ? savedPigeon.accessory
                 : null,
             };
@@ -1226,6 +1453,7 @@ function restoreState(savedState: unknown) {
           : pigeons
               .filter(
                 (pigeon) =>
+                  pigeon.species === "pigeon" &&
                   pigeon.feedCount > 0 &&
                   initialPigeonPlumages.includes(pigeon.plumage),
               )
@@ -1236,6 +1464,9 @@ function restoreState(savedState: unknown) {
       parsed.animalSpeciesUnlocked === true ||
       parsed.squirrelUnlocked === true ||
       collectedPlumages.length === TOTAL_COLOR_VARIETIES;
+    const firstSquirrelSeeded =
+      parsed.firstSquirrelSeeded === true ||
+      pigeons.some((pigeon) => pigeon.species === "squirrel");
     if (parsed.initialAccessorySeeded !== true) {
       guaranteeAccessoryCarrier(
         pigeons,
@@ -1244,7 +1475,7 @@ function restoreState(savedState: unknown) {
       );
     }
 
-    return advanceState({
+    const restored = {
       ...initial,
       ...parsed,
       pigeons,
@@ -1254,6 +1485,7 @@ function restoreState(savedState: unknown) {
       favoriteAccessory,
       collectedPlumages,
       animalSpeciesUnlocked,
+      firstSquirrelSeeded,
       initialAccessorySeeded: true,
       restartColorVarietyCount:
         parsed.restartColorVarietyCount !== null &&
@@ -1261,7 +1493,13 @@ function restoreState(savedState: unknown) {
         Number.isFinite(Number(parsed.restartColorVarietyCount))
           ? Math.max(0, Math.trunc(Number(parsed.restartColorVarietyCount)))
           : null,
-    });
+    } satisfies EcosystemState;
+
+    if (animalSpeciesUnlocked) {
+      seedFirstSquirrel(restored);
+    }
+
+    return advanceState(restored);
   } catch {
     return makeInitialState();
   }
@@ -1340,7 +1578,10 @@ function feedPigeonState(
   }
 
   const pigeons = advanced.pigeons.map((pigeon) => ({ ...pigeon }));
-  const carriedAccessory = pigeons[parentIndex].accessory;
+  const carriedAccessory =
+    pigeons[parentIndex].species === "pigeon"
+      ? pigeons[parentIndex].accessory
+      : null;
   pigeons[parentIndex].feedCount += 1;
   pigeons[parentIndex].boldness = clamp(pigeons[parentIndex].boldness + 0.015, 0.05, 0.95);
   pigeons[parentIndex].hasAcceptedFood = true;
@@ -1348,11 +1589,10 @@ function feedPigeonState(
   pigeons[parentIndex].accessory = null;
   const parent = pigeons[parentIndex];
   const inheritedMutation = (((advanced.nextPigeonId * 29) % 9) - 4) * 0.008;
-  const childStyle = inheritedPigeonStyle(parent);
   const child: PigeonAgent = {
-    ...createOuterPigeon(
+    ...createSameSpeciesChild(
       advanced.nextPigeonId,
-      childStyle,
+      parent,
       clamp(parent.boldness + inheritedMutation, 0.05, 0.95),
     ),
     hasAcceptedFood: true,
@@ -1363,7 +1603,9 @@ function feedPigeonState(
   };
   pigeons.push(child);
 
-  const isNewPlumage = !advanced.collectedPlumages.includes(parent.plumage);
+  const isNewPlumage =
+    parent.species === "pigeon" &&
+    !advanced.collectedPlumages.includes(parent.plumage);
   const collectedPlumages = isNewPlumage
     ? [...advanced.collectedPlumages, parent.plumage]
     : [...advanced.collectedPlumages];
@@ -1371,8 +1613,20 @@ function feedPigeonState(
     !advanced.animalSpeciesUnlocked &&
     collectedPlumages.length === TOTAL_COLOR_VARIETIES;
 
-  let removed: PigeonAgent | undefined;
-  if (pigeons.length > MAX_PIGEONS) {
+  let nextPigeonId = advanced.nextPigeonId + 1;
+  let firstSquirrelSeeded = advanced.firstSquirrelSeeded;
+  if (animalSpeciesJustUnlocked) {
+    pigeons.push({
+      ...createOuterWildlife(nextPigeonId, "squirrel", 0.62),
+      bornAt,
+      protectedUntil: bornAt + SPLIT_ANIMATION_MS + 100,
+    });
+    nextPigeonId += 1;
+    firstSquirrelSeeded = true;
+  }
+
+  const removed: PigeonAgent[] = [];
+  while (pigeons.length > MAX_ANIMALS) {
     const favoriteId = hostFavoritePigeon(pigeons)?.id;
     const removablePigeons = pigeons
       .map((pigeon, index) => ({ pigeon, index }))
@@ -1382,19 +1636,20 @@ function feedPigeonState(
     );
     const indexedPigeons =
       unprotectedPigeons.length > 0 ? unprotectedPigeons : removablePigeons;
-    const minimumFeedCount = Math.min(
-      ...indexedPigeons.map(({ pigeon }) => pigeon.feedCount),
-    );
+    if (indexedPigeons.length === 0) {
+      break;
+    }
+    const minimumFeedCount = Math.min(...indexedPigeons.map(({ pigeon }) => pigeon.feedCount));
     const candidates = indexedPigeons
       .filter(({ pigeon }) => pigeon.feedCount === minimumFeedCount);
     const selected = candidates[Math.floor(Math.random() * candidates.length)];
-    [removed] = pigeons.splice(selected.index, 1);
+    removed.push(...pigeons.splice(selected.index, 1));
   }
 
   const next: EcosystemState = {
     ...advanced,
     pigeons,
-    nextPigeonId: advanced.nextPigeonId + 1,
+    nextPigeonId,
     hungerClock: 0,
     humanFoodSignal: clamp(advanced.humanFoodSignal + 0.28, 0, 1),
     dependency: clamp(advanced.dependency + 0.007, 0.05, 0.95),
@@ -1408,23 +1663,30 @@ function feedPigeonState(
     collectedPlumages,
     animalSpeciesUnlocked:
       advanced.animalSpeciesUnlocked || animalSpeciesJustUnlocked,
+    firstSquirrelSeeded,
   };
+  const parentName =
+    parent.species === "pigeon"
+      ? `${parent.plumage} pigeon`
+      : speciesNames.en[parent.species];
   const feedingLead =
     declinedBefore === 0
-      ? `The nearest ${parent.plumage} bird ate the pellet`
+      ? `The nearest ${parentName} ate the pellet`
       : `After ${declinedBefore} nearer ${
-          declinedBefore === 1 ? "bird" : "birds"
-        } declined, the ${parent.plumage} bird ate the pellet`;
+          declinedBefore === 1 ? "animal" : "animals"
+        } declined, the ${parentName} ate the pellet`;
 
-  if (removed) {
+  if (removed.length > 0) {
     pushEvent(
       next,
-      `${feedingLead} and divided. At capacity, a randomly selected bird with ${removed.feedCount} feeds was removed.`,
+      `${feedingLead} and divided. At the shared 30-animal capacity, ${removed.length} least-fed ${
+        removed.length === 1 ? "animal was" : "animals were"
+      } removed.`,
     );
   } else {
     pushEvent(
       next,
-      `${feedingLead} and divided into two; the field now holds ${pigeons.length} birds.`,
+      `${feedingLead} and divided into two; the field now holds ${pigeons.length} animals.`,
     );
   }
 
@@ -1447,7 +1709,7 @@ function feedPigeonState(
   if (animalSpeciesJustUnlocked) {
     pushEvent(
       next,
-      "All four pigeon colors were catalogued. Three animal species are ready for the next stage.",
+      "All four pigeon colors were catalogued. A squirrel arrived first; all five species now have equal refresh odds.",
     );
   }
 
@@ -1489,9 +1751,11 @@ function rejectFoodState(
   };
   pushEvent(
     next,
-    `All ${attemptedCount} pigeons declined the pellet in nearest-first order; the closest was a ${
-      pigeon.plumage
-    } bird with ${formatPercent(pigeon.boldness)} boldness.`,
+    `All ${attemptedCount} animals declined the pellet in nearest-first order; the closest was a ${
+      pigeon.species === "pigeon"
+        ? `${pigeon.plumage} pigeon`
+        : speciesNames.en[pigeon.species]
+    } with ${formatPercent(pigeon.boldness)} boldness.`,
   );
   return next;
 }
@@ -1510,7 +1774,11 @@ function killPigeonState(current: EcosystemState, pigeonId: number) {
   const habitat = pigeon.hasAcceptedFood ? "city plaza" : "wild park";
   pushEvent(
     next,
-    `A ${pigeon.plumage} pigeon died after direct human action in the ${habitat}; ${next.pigeons.length} birds remain.`,
+    `A ${
+      pigeon.species === "pigeon"
+        ? `${pigeon.plumage} pigeon`
+        : speciesNames.en[pigeon.species]
+    } died after direct human action in the ${habitat}; ${next.pigeons.length} animals remain.`,
   );
   return markRestartRequiredIfColorVarietyTooLow(next);
 }
@@ -1629,7 +1897,7 @@ function metricDetails(
   return [
     {
       label: language === "zh" ? "数量" : "Population",
-      value: `${state.pigeons.length}/${MAX_PIGEONS}`,
+      value: `${state.pigeons.length}/${MAX_ANIMALS}`,
       detail:
         language === "zh"
           ? `城市 ${insideCount} / 野外 ${
@@ -1638,7 +1906,7 @@ function metricDetails(
           : `${insideCount} city / ${
               state.pigeons.length - insideCount
             } wild / ${colorVarietyCount}/${TOTAL_COLOR_VARIETIES} colors`,
-      percent: state.pigeons.length / MAX_PIGEONS,
+      percent: state.pigeons.length / MAX_ANIMALS,
     },
     {
       label: language === "zh" ? "大胆程度" : "Boldness",
@@ -1691,6 +1959,81 @@ function projectilePosition(particle: FoodParticle, now: number) {
   return { x, y, landed: progress >= 1 };
 }
 
+let wildlifeAtlasPromise: Promise<string> | null = null;
+
+function loadWildlifeAtlas() {
+  if (wildlifeAtlasPromise) {
+    return wildlifeAtlasPromise;
+  }
+
+  wildlifeAtlasPromise = new Promise<string>((resolve, reject) => {
+    const image = new Image();
+    image.decoding = "async";
+    image.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) {
+        reject(new Error("Wildlife atlas canvas is unavailable."));
+        return;
+      }
+
+      context.drawImage(image, 0, 0);
+      const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+      const visited = new Uint8Array(canvas.width * canvas.height);
+      const queue = new Int32Array(canvas.width * canvas.height);
+      let queueStart = 0;
+      let queueEnd = 0;
+
+      const enqueueBackground = (pixelIndex: number) => {
+        if (visited[pixelIndex]) {
+          return;
+        }
+        const offset = pixelIndex * 4;
+        const red = pixels.data[offset];
+        const green = pixels.data[offset + 1];
+        const blue = pixels.data[offset + 2];
+        const channelSpread = Math.max(red, green, blue) - Math.min(red, green, blue);
+        if (Math.min(red, green, blue) <= 225 || channelSpread >= 24) {
+          return;
+        }
+        visited[pixelIndex] = 1;
+        queue[queueEnd] = pixelIndex;
+        queueEnd += 1;
+      };
+
+      for (let x = 0; x < canvas.width; x += 1) {
+        enqueueBackground(x);
+        enqueueBackground((canvas.height - 1) * canvas.width + x);
+      }
+      for (let y = 1; y < canvas.height - 1; y += 1) {
+        enqueueBackground(y * canvas.width);
+        enqueueBackground(y * canvas.width + canvas.width - 1);
+      }
+
+      while (queueStart < queueEnd) {
+        const pixelIndex = queue[queueStart];
+        queueStart += 1;
+        const x = pixelIndex % canvas.width;
+        const y = Math.floor(pixelIndex / canvas.width);
+        pixels.data[pixelIndex * 4 + 3] = 0;
+        if (x > 0) enqueueBackground(pixelIndex - 1);
+        if (x + 1 < canvas.width) enqueueBackground(pixelIndex + 1);
+        if (y > 0) enqueueBackground(pixelIndex - canvas.width);
+        if (y + 1 < canvas.height) enqueueBackground(pixelIndex + canvas.width);
+      }
+
+      context.putImageData(pixels, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    image.onerror = () => reject(new Error("Wildlife atlas could not be loaded."));
+    image.src = "/wildlife-motion-atlas.png";
+  });
+
+  return wildlifeAtlasPromise;
+}
+
 function pigeonVisuals(state: EcosystemState) {
   const now = Date.now();
 
@@ -1708,7 +2051,10 @@ function pigeonVisuals(state: EcosystemState) {
       : clamp(64 + Math.sin(angle) * 31 * radius, 30, 95);
     const isBold = agent.boldness >= 0.5;
     const feedingAcceptance = agent.hasAcceptedFood ? 1 : agent.boldness;
-    const word = wordFromCaseMask(agent.caseMask);
+    const word =
+      agent.species === "pigeon"
+        ? wordFromCaseMask(agent.caseMask)
+        : speciesNames.en[agent.species];
     const uniformScale = 1;
     const isNewborn =
       Number(agent.bornAt) > 0 &&
@@ -1728,9 +2074,19 @@ function pigeonVisuals(state: EcosystemState) {
       speed: 6.4 + (agent.caseSeed % 7) * 0.42,
       scale: uniformScale,
       spriteIndex: plumageOrder.indexOf(agent.plumage),
+      wildlifeRow:
+        agent.species === "pigeon"
+          ? -1
+          : wildlifeSpecies.indexOf(agent.species),
       word,
-      palette: pigeonLetterPalette(agent),
-      styleSignature: pigeonStyleSignature(agent),
+      palette:
+        agent.species === "pigeon"
+          ? pigeonLetterPalette(agent)
+          : wildlifeEffectPalettes[agent.species],
+      styleSignature:
+        agent.species === "pigeon"
+          ? pigeonStyleSignature(agent)
+          : `${agent.species}:${agent.id % 997}`,
       tilt: ((agent.caseSeed % 5) - 2) * 0.9,
     };
   });
@@ -1797,6 +2153,19 @@ function pigeonAriaLabel(
       ? `，佩戴${accessoryDefinition(equippedAccessory).names.zh}`
       : `, wearing ${accessoryDefinition(equippedAccessory).names.en}`
     : "";
+
+  if (pigeon.agent.species !== "pigeon") {
+    const animalName = speciesNames[language][pigeon.agent.species];
+    if (language === "zh") {
+      return `${animalName}，大胆程度 ${boldness}，接受喂食概率 ${acceptance}，${
+        pigeon.zone === "inside" ? "位于城市广场" : "位于野生公园"
+      }，已进食 ${pigeon.agent.feedCount} 次`;
+    }
+
+    return `${animalName}, boldness ${boldness}, feeding acceptance ${acceptance}, ${
+      pigeon.zone === "inside" ? "in the city plaza" : "in the wild park"
+    }, fed ${pigeon.agent.feedCount} times`;
+  }
 
   if (language === "zh") {
     return `${plumage}鸽子，文字基因为 ${pigeon.word}，大胆程度 ${boldness}，接受喂食概率 ${acceptance}，${
@@ -1898,6 +2267,7 @@ function PigeonField({
   const [deathEffects, setDeathEffects] = useState<PigeonDeathEffect[]>([]);
   const [frameTime, setFrameTime] = useState(0);
   const [lastThrowAt, setLastThrowAt] = useState(0);
+  const [wildlifeAtlasUrl, setWildlifeAtlasUrl] = useState<string | null>(null);
   const sequence = useRef(0);
   const deathSequence = useRef(0);
   const timers = useRef<number[]>([]);
@@ -1951,6 +2321,24 @@ function PigeonField({
     },
     [],
   );
+
+  useEffect(() => {
+    let active = true;
+    void loadWildlifeAtlas()
+      .then((atlasUrl) => {
+        if (active) {
+          setWildlifeAtlasUrl(atlasUrl);
+        }
+      })
+      .catch(() => {
+        if (active) {
+          setWildlifeAtlasUrl("/wildlife-motion-atlas.png");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const throwFood = (targetX: number, targetY: number) => {
     const launchedAt = window.performance.now();
@@ -2100,8 +2488,10 @@ function PigeonField({
       {
         id: effectId,
         pigeonId: pigeon.id,
+        species: pigeon.agent.species,
         plumage: pigeon.agent.plumage,
         spriteIndex: pigeon.spriteIndex,
+        wildlifeRow: pigeon.wildlifeRow,
         zone: pigeon.zone,
         word: pigeon.word,
         palette: pigeon.palette,
@@ -2131,6 +2521,13 @@ function PigeonField({
       onKeyDown={handleKeyDown}
       onPointerDown={handlePointerDown}
       role="button"
+      style={
+        {
+          "--wildlife-atlas": wildlifeAtlasUrl
+            ? `url("${wildlifeAtlasUrl}")`
+            : "none",
+        } as React.CSSProperties
+      }
       tabIndex={0}
     >
       <header className="scene-header">
@@ -2282,8 +2679,8 @@ function PigeonField({
       <div
         aria-label={
           language === "zh"
-            ? `大理石城市广场内有 ${cityPigeonCount} 只鸽子`
-            : `${cityPigeonCount} pigeons inside the marble city plaza`
+            ? `大理石城市广场内有 ${cityPigeonCount} 只动物`
+            : `${cityPigeonCount} animals inside the marble city plaza`
         }
         className="city-circle"
         role="status"
@@ -2420,9 +2817,13 @@ function PigeonField({
                 isHostFavorite,
                 isHostFavorite ? equippedFavoriteAccessory : null,
               )}
-              className={`pigeon-word ${
+              className={`pigeon-word animal-agent animal-agent-${pigeon.agent.species} ${
                 pigeon.isBold ? "pigeon-word-bold" : "pigeon-word-shy"
               } pigeon-word-${pigeon.agent.plumage} pigeon-word-${pigeon.zone} ${
+                pigeon.agent.species === "pigeon"
+                  ? "pigeon-agent"
+                  : `wildlife-agent ${wildlifeAtlasUrl ? "is-atlas-ready" : ""}`
+              } ${
                 claim
                   ? `pigeon-word-claiming pigeon-word-${claim.phase} pigeon-word-${claim.response}`
                   : ""
@@ -2431,6 +2832,7 @@ function PigeonField({
               }`}
               data-food-response={claim?.response}
               data-pigeon-id={pigeon.id}
+              data-species={pigeon.agent.species}
               data-style-signature={pigeon.styleSignature}
               key={pigeon.id}
               onContextMenu={(event) =>
@@ -2448,6 +2850,7 @@ function PigeonField({
                   "--speed": `${pigeon.speed}s`,
                   "--flight-duration": claim ? `${claim.flightDuration}ms` : "620ms",
                   "--motion-y": `${pigeon.spriteIndex * 14.285714}%`,
+                  "--wildlife-y": `${pigeon.wildlifeRow * 33.333333}%`,
                   "--scale": pigeon.scale.toFixed(2),
                   "--tilt": `${pigeon.tilt}deg`,
                   animationDelay:
@@ -2457,7 +2860,11 @@ function PigeonField({
                 } as React.CSSProperties
               }
             >
-              <span aria-hidden="true" className="pigeon-bird-sprite" />
+              {pigeon.agent.species === "pigeon" ? (
+                <span aria-hidden="true" className="pigeon-bird-sprite" />
+              ) : (
+                <span aria-hidden="true" className="wildlife-bird-sprite" />
+              )}
               {pigeon.agent.accessory ? (
                 <>
                   <PigeonAccessory accessoryId={pigeon.agent.accessory} />
@@ -2506,7 +2913,9 @@ function PigeonField({
       <div aria-hidden="true" className="pigeon-death-layer">
         {deathEffects.map((effect) => (
           <div
-            className={`pigeon-death-effect pigeon-death-effect-${effect.zone}`}
+            className={`pigeon-death-effect pigeon-death-effect-${effect.zone} animal-agent-${effect.species} ${
+              effect.species === "pigeon" ? "" : "wildlife-death-effect"
+            }`}
             data-pigeon-death-id={effect.pigeonId}
             key={effect.id}
             style={
@@ -2516,13 +2925,21 @@ function PigeonField({
                 "--death-scale": effect.scale,
                 "--death-tilt": `${effect.tilt}deg`,
                 "--motion-y": `${effect.spriteIndex * 14.285714}%`,
+                "--wildlife-y": `${effect.wildlifeRow * 33.333333}%`,
               } as React.CSSProperties
             }
           >
-            <span
-              aria-hidden="true"
-              className={`pigeon-death-bird pigeon-death-bird-${effect.plumage}`}
-            />
+            {effect.species === "pigeon" ? (
+              <span
+                aria-hidden="true"
+                className={`pigeon-death-bird pigeon-death-bird-${effect.plumage}`}
+              />
+            ) : (
+              <span
+                aria-hidden="true"
+                className="wildlife-death-bird"
+              />
+            )}
             <span className="pigeon-death-word">
               {[...effect.word].map((letter, letterIndex) => {
                 const letterAngle =
@@ -2892,7 +3309,8 @@ function PigeonColorGuide({
   const speciesNames = [
     copy.squirrelSpecies,
     copy.swanSpecies,
-    copy.straySpecies,
+    copy.strayCatSpecies,
+    copy.strayDogSpecies,
   ];
   const [isOpen, setIsOpen] = useState(false);
   const guideRef = useRef<HTMLElement>(null);
@@ -3250,6 +3668,7 @@ function TutorialDialog({
               <span>01</span>
               <span>02</span>
               <span>03</span>
+              <span>04</span>
             </div>
           ) : null}
         </div>

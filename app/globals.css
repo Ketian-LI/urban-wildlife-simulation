@@ -2254,6 +2254,164 @@ body {
   }
 }
 
+/* Four-frame wildlife atlas: idle, prepare, approach, eat */
+.wildlife-agent {
+  --body-height: 1;
+  --body-width: 1;
+  aspect-ratio: 3 / 2;
+  width: clamp(3rem, 4.7vw, 4.9rem);
+}
+
+.wildlife-agent.animal-agent-squirrel {
+  width: clamp(2.55rem, 3.8vw, 4rem);
+}
+
+.wildlife-agent.animal-agent-swan {
+  width: clamp(3.7rem, 5.5vw, 5.7rem);
+}
+
+.wildlife-agent.animal-agent-stray-cat {
+  width: clamp(3.25rem, 4.8vw, 5rem);
+}
+
+.wildlife-agent.animal-agent-stray-dog {
+  width: clamp(3.6rem, 5.35vw, 5.55rem);
+}
+
+.wildlife-bird-sprite,
+.wildlife-death-bird {
+  backface-visibility: hidden;
+  background-image: var(--wildlife-atlas);
+  background-position: 0% var(--wildlife-y);
+  background-repeat: no-repeat;
+  background-size: 400% 400%;
+  display: block;
+  inset: 0;
+  pointer-events: none;
+  position: absolute;
+  transform: scaleX(var(--body-width)) scaleY(var(--body-height));
+  transform-origin: 50% 72%;
+  will-change: background-position;
+}
+
+.wildlife-agent:not(.is-atlas-ready) .wildlife-bird-sprite {
+  visibility: hidden;
+}
+
+.wildlife-agent.pigeon-word-inside {
+  --body-height: 1.04;
+  --body-width: 1.04;
+}
+
+.wildlife-agent::after {
+  bottom: 7%;
+  left: 18%;
+  right: 18%;
+}
+
+.wildlife-agent.pigeon-word-flying {
+  animation: wildlife-approach-motion var(--flight-duration) ease-in-out both;
+}
+
+.wildlife-agent.pigeon-word-flying .wildlife-bird-sprite {
+  animation: wildlife-approach-frames var(--flight-duration) step-end both;
+}
+
+.wildlife-agent.pigeon-word-landing .wildlife-bird-sprite {
+  animation: wildlife-eat-frame 760ms step-end both;
+}
+
+.wildlife-death-effect {
+  aspect-ratio: 3 / 2;
+  width: clamp(3rem, 4.7vw, 4.9rem);
+}
+
+.wildlife-death-effect.animal-agent-squirrel {
+  width: clamp(2.55rem, 3.8vw, 4rem);
+}
+
+.wildlife-death-effect.animal-agent-swan {
+  width: clamp(3.7rem, 5.5vw, 5.7rem);
+}
+
+.wildlife-death-effect.animal-agent-stray-cat {
+  width: clamp(3.25rem, 4.8vw, 5rem);
+}
+
+.wildlife-death-effect.animal-agent-stray-dog {
+  width: clamp(3.6rem, 5.35vw, 5.55rem);
+}
+
+.wildlife-death-bird {
+  animation: pigeon-bird-dissolve 780ms cubic-bezier(0.18, 0.72, 0.22, 1) both;
+}
+
+@keyframes wildlife-approach-frames {
+  0%,
+  18% {
+    background-position-x: 33.333333%;
+  }
+
+  18.1%,
+  100% {
+    background-position-x: 66.666667%;
+  }
+}
+
+@keyframes wildlife-eat-frame {
+  0%,
+  100% {
+    background-position-x: 100%;
+  }
+}
+
+@keyframes wildlife-approach-motion {
+  0% {
+    transform: translate(-50%, -50%) rotate(var(--tilt)) scale(var(--scale));
+  }
+
+  22% {
+    transform: translate(-50%, -56%) rotate(0deg) scale(var(--scale));
+  }
+
+  60% {
+    transform: translate(-50%, -53%) rotate(0deg) scale(var(--scale));
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(0deg) scale(var(--scale));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wildlife-agent.pigeon-word-flying,
+  .wildlife-agent.pigeon-word-flying .wildlife-bird-sprite,
+  .wildlife-agent.pigeon-word-landing .wildlife-bird-sprite,
+  .wildlife-death-bird {
+    animation: none;
+  }
+
+  .wildlife-agent.pigeon-word-flying .wildlife-bird-sprite {
+    background-position-x: 66.666667%;
+  }
+
+  .wildlife-agent.pigeon-word-landing .wildlife-bird-sprite {
+    background-position-x: 100%;
+  }
+}
+
+@media (max-width: 680px) {
+  .wildlife-agent,
+  .wildlife-death-effect {
+    width: 3.7rem;
+  }
+
+  .wildlife-agent.animal-agent-squirrel,
+  .wildlife-death-effect.animal-agent-squirrel {
+    width: 3rem;
+  }
+}
+
 /* Language controls and first-visit field guide */
 .simulation-stage .content-grid {
   position: relative;
@@ -3934,7 +4092,7 @@ body {
 .species-slot-list {
   display: grid;
   gap: 0.35rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-top: 0.42rem;
 }
 
@@ -4017,7 +4175,7 @@ body {
 .tutorial-species-row {
   display: grid;
   gap: 0.7rem;
-  grid-template-columns: repeat(3, 3.2rem);
+  grid-template-columns: repeat(4, 3.2rem);
 }
 
 .tutorial-species-row span {

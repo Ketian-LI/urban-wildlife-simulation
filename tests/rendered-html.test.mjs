@@ -30,8 +30,8 @@ test("server-renders the illustrated flock", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>Urban Pigeon Simulation<\/title>/i);
-  assert.match(html, /animated illustrated pigeon population/);
-  assert.match(html, /pigeon-word pigeon-word-bold/);
+  assert.match(html, /animated illustrated animal population/);
+  assert.match(html, /pigeon-word animal-agent animal-agent-pigeon pigeon-word-bold/);
   assert.match(html, /represented by PiGeoN/);
   assert.match(html, /represented by pIgEon/);
   assert.match(html, /Online now/);
@@ -57,7 +57,7 @@ test("server-renders the illustrated flock", async () => {
   assert.doesNotMatch(html, /pigeon-word-silver/);
   assert.doesNotMatch(html, /pigeon-word-rust/);
   assert.match(html, /4\/4 colors/);
-  assert.match(html, /Throw food into the animated illustrated pigeon population/);
+  assert.match(html, /Throw food into the animated illustrated animal population/);
   assert.match(html, /property="og:image"/);
   assert.match(html, /Sign in with ChatGPT/);
   assert.match(html, /Saved on this device/);
@@ -144,18 +144,21 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /1 << letterIndex/);
   assert.match(simulation, /const featherPalettes/);
   assert.match(simulation, /const INITIAL_PIGEONS = 15/);
-  assert.match(simulation, /const MAX_PIGEONS = 30/);
+  assert.match(simulation, /const MAX_ANIMALS = 30/);
   assert.match(simulation, /const STORAGE_KEY = "urban-pigeon-collective-v5"/);
   assert.match(simulation, /const TOTAL_COLOR_VARIETIES = 4/);
   assert.match(simulation, /const MIN_COLOR_VARIETIES = 3/);
-  assert.match(simulation, /const NEW_ANIMAL_SPECIES_COUNT = 3/);
+  assert.match(simulation, /const NEW_ANIMAL_SPECIES_COUNT = 4/);
+  assert.match(simulation, /type Species = "pigeon" \| "squirrel" \| "swan" \| "stray-cat" \| "stray-dog"/);
   assert.match(simulation, /const initialPigeonPlumages: Plumage\[\]/);
   assert.match(simulation, /squirrelSpecies: "Squirrel"/);
   assert.match(simulation, /swanSpecies: "Swan"/);
-  assert.match(simulation, /straySpecies: "Stray cats & dogs"/);
+  assert.match(simulation, /strayCatSpecies: "Stray cat"/);
+  assert.match(simulation, /strayDogSpecies: "Stray dog"/);
   assert.match(simulation, /squirrelSpecies: "松鼠"/);
   assert.match(simulation, /swanSpecies: "天鹅"/);
-  assert.match(simulation, /straySpecies: "流浪猫狗"/);
+  assert.match(simulation, /strayCatSpecies: "流浪猫"/);
+  assert.match(simulation, /strayDogSpecies: "流浪狗"/);
   assert.match(simulation, /const FEEDING_SAFETY_MS = 5000/);
   assert.match(simulation, /const SPLIT_ANIMATION_MS = 1800/);
   assert.match(simulation, /const CITY_FOOD_DETECTION_RADIUS = 24/);
@@ -197,6 +200,8 @@ test("keeps the pigeon simulation visual system in source", async () => {
     /pigeon\.feedCount === favorite\.feedCount && pigeon\.id < favorite\.id/,
   );
   assert.match(simulation, /function createOuterPigeon/);
+  assert.match(simulation, /function createOuterWildlife/);
+  assert.match(simulation, /function createSameSpeciesChild/);
   assert.match(simulation, /function guaranteeAccessoryCarrier/);
   assert.match(simulation, /guaranteeAccessoryCarrier\(pigeons\)/);
   assert.match(simulation, /initialAccessorySeeded: boolean/);
@@ -206,11 +211,11 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /collectedPlumages: \[\]/);
   assert.match(simulation, /animalSpeciesUnlocked: false/);
   assert.match(simulation, /function inheritedPigeonStyle/);
-  assert.match(simulation, /const childStyle = inheritedPigeonStyle\(parent\)/);
+  assert.match(simulation, /createSameSpeciesChild\(/);
   assert.match(simulation, /const style = inheritedPigeonStyle\(template\)/);
   assert.doesNotMatch(simulation, /mutatePigeonStyle/);
   assert.match(simulation, /function pigeonColorVarietyCount/);
-  assert.match(simulation, /new Set\(pigeons\.map\(\(pigeon\) => pigeon\.plumage\)\)\.size/);
+  assert.match(simulation, /pigeon\.species === "pigeon"/);
   assert.match(simulation, /restartColorVarietyCount: number \| null/);
   assert.match(simulation, /function markRestartRequiredIfColorVarietyTooLow/);
   assert.match(simulation, /colorVarietyCount >= MIN_COLOR_VARIETIES/);
@@ -236,10 +241,13 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /Restart ecosystem/);
   assert.match(simulation, /restartButtonRef\.current\?\.focus\(\)/);
   assert.match(simulation, /return markRestartRequiredIfColorVarietyTooLow\(next\)/);
-  assert.match(simulation, /function createRefreshedOuterPigeon/);
-  assert.match(simulation, /function replenishOuterPigeons/);
+  assert.match(simulation, /function createRefreshedOuterAnimal/);
+  assert.match(simulation, /function replenishOuterAnimals/);
+  assert.match(simulation, /function seedFirstSquirrel/);
+  assert.match(simulation, /function refreshOneWildAnimal/);
+  assert.match(simulation, /speciesOrder\[Math\.min/);
   assert.match(simulation, /while \(state\.pigeons\.length < INITIAL_PIGEONS\)/);
-  assert.match(simulation, /const template = pigeons\[templateIndex\]/);
+  assert.match(simulation, /const template = pigeonTemplates\[templateIndex\]/);
   assert.match(simulation, /function applyHungerDeaths/);
   assert.match(simulation, /pigeon\.hasAcceptedFood &&/);
   assert.match(simulation, /pigeon\.id !== favoriteId &&/);
@@ -247,9 +255,9 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /protectedUntil: number/);
   assert.match(simulation, /accepted \? flightDuration \+ 100 : 0/);
   assert.match(simulation, /feedPigeonState/);
-  assert.match(simulation, /const carriedAccessory = pigeons\[parentIndex\]\.accessory/);
+  assert.match(simulation, /const carriedAccessory =/);
   assert.match(simulation, /pigeons\[parentIndex\]\.accessory = null/);
-  assert.match(simulation, /const isNewPlumage = !advanced\.collectedPlumages\.includes/);
+  assert.match(simulation, /const isNewPlumage =/);
   assert.match(simulation, /collectedPlumages\.length === TOTAL_COLOR_VARIETIES/);
   assert.match(simulation, /advanced\.animalSpeciesUnlocked \|\| animalSpeciesJustUnlocked/);
   assert.match(simulation, /All four pigeon colors were catalogued/);
@@ -268,7 +276,7 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /const \[deathEffects, setDeathEffects\]/);
   assert.match(
     simulation,
-    /className=\{`pigeon-death-effect pigeon-death-effect-\$\{effect\.zone\}`\}/,
+    /pigeon-death-effect-\$\{effect\.zone\}/,
   );
   assert.match(simulation, /className="pigeon-feather"/);
   assert.match(simulation, /Array\.from\(\{ length: 12 \}/);
@@ -324,7 +332,7 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /const uniformScale = 1/);
   assert.match(simulation, /scale: uniformScale/);
   assert.doesNotMatch(simulation, /individualScale/);
-  assert.match(simulation, /palette: pigeonLetterPalette\(agent\)/);
+  assert.match(simulation, /pigeonLetterPalette\(agent\)/);
   assert.match(simulation, /spriteIndex: plumageOrder\.indexOf\(agent\.plumage\)/);
   assert.match(simulation, /data-style-signature=\{pigeon\.styleSignature\}/);
   assert.match(simulation, /data-host-favorite-id=\{favoritePigeon\?\.id\}/);
@@ -400,6 +408,9 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(css, /\.pigeon-word-label/);
   assert.match(css, /\.pigeon-bird-sprite/);
   assert.match(css, /url\("\/pigeon-motion-atlas\.webp"\)/);
+  assert.match(css, /\.wildlife-bird-sprite/);
+  assert.match(css, /@keyframes wildlife-approach-frames/);
+  assert.match(css, /@keyframes wildlife-eat-frame/);
   assert.doesNotMatch(
     css,
     /url\("\/pigeon-(?:idle|crouch|half-open|flight|downstroke|landing|settle)-atlas\.webp"\)/,
@@ -523,7 +534,7 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulationStateRoute, /ownerIdForEmail/);
   assert.match(simulationStateRoute, /crypto\.subtle\.digest\("SHA-256"/);
   assert.match(simulationStateRoute, /MAX_STATE_BYTES = 256_000/);
-  assert.match(simulationStateRoute, /MAX_PIGEONS = 30/);
+  assert.match(simulationStateRoute, /MAX_ANIMALS = 30/);
   assert.match(simulationStateRoute, /onConflictDoUpdate/);
   assert.match(databaseSchema, /presenceSessions/);
   assert.match(databaseSchema, /lastSeen: integer\("last_seen"\)/);
@@ -536,5 +547,6 @@ test("keeps the pigeon simulation visual system in source", async () => {
   await access(new URL("../public/og.png", import.meta.url));
   await access(new URL("../public/equestrian-monument.png", import.meta.url));
   await access(new URL("../public/pigeon-motion-atlas.webp", import.meta.url));
+  await access(new URL("../public/wildlife-motion-atlas.png", import.meta.url));
   await access(new URL("../drizzle/0001_glossy_warbird.sql", import.meta.url));
 });

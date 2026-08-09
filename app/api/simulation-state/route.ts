@@ -3,7 +3,7 @@ import { simulationSaves } from "../../../db/schema";
 import { getChatGPTUser } from "../../chatgpt-auth";
 
 const MAX_STATE_BYTES = 256_000;
-const MAX_PIGEONS = 30;
+const MAX_ANIMALS = 30;
 
 async function ownerIdForEmail(email: string) {
   const bytes = new TextEncoder().encode(email.trim().toLowerCase());
@@ -70,7 +70,7 @@ export async function POST(request: Request) {
       !state ||
       typeof state !== "object" ||
       !Array.isArray((state as { pigeons?: unknown }).pigeons) ||
-      (state as { pigeons: unknown[] }).pigeons.length > MAX_PIGEONS
+      (state as { pigeons: unknown[] }).pigeons.length > MAX_ANIMALS
     ) {
       return noStoreJson({ error: "A valid simulation state is required." }, 400);
     }
