@@ -3,7 +3,7 @@ import { simulationSaves } from "../../../db/schema";
 import { getChatGPTUser } from "../../chatgpt-auth";
 
 const MAX_STATE_BYTES = 256_000;
-const MAX_PIGEONS = 50;
+const MAX_PIGEONS = 30;
 
 async function ownerIdForEmail(email: string) {
   const bytes = new TextEncoder().encode(email.trim().toLowerCase());

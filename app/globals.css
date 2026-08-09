@@ -3897,16 +3897,19 @@ body {
   color: #737a75;
 }
 
-.squirrel-discovery {
-  align-items: center;
+.species-discovery {
   border-top: 1px solid #bec5be;
-  display: flex;
-  gap: 0.55rem;
-  min-height: 3rem;
   padding: 0.5rem 0.7rem;
 }
 
-.squirrel-discovery > span {
+.species-discovery-heading {
+  align-items: center;
+  display: flex;
+  gap: 0.55rem;
+  min-height: 2.2rem;
+}
+
+.species-discovery-heading > span {
   align-items: center;
   background: #858c87;
   border: 1px solid #676f69;
@@ -3922,24 +3925,75 @@ body {
   width: 2.4rem;
 }
 
-.squirrel-discovery > strong {
+.species-discovery-heading > strong {
   color: #66716a;
   font-size: 0.6rem;
   line-height: 1.25;
 }
 
-.squirrel-discovery.is-unlocked {
+.species-slot-list {
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-top: 0.42rem;
+}
+
+.species-discovery.is-locked .species-slot-list {
+  display: none;
+}
+
+.species-slot {
+  background: #dedfd8;
+  border: 1px solid #b3b8b1;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.32rem 0.38rem;
+}
+
+.species-slot i {
+  color: #838b85;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.44rem;
+  font-style: normal;
+}
+
+.species-slot b {
+  color: #727a74;
+  font-size: 0.52rem;
+  margin-top: 0.08rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.species-discovery.is-unlocked {
   background: #e6edda;
   border-top-color: #8ba06f;
 }
 
-.squirrel-discovery.is-unlocked > span {
+.species-discovery.is-unlocked .species-discovery-heading > span {
   background: #b18427;
   border-color: #75581d;
 }
 
-.squirrel-discovery.is-unlocked > strong {
+.species-discovery.is-unlocked .species-discovery-heading > strong {
   color: #315a42;
+}
+
+.species-discovery.is-unlocked .species-slot {
+  background: #f5f2e7;
+  border-color: #93a383;
+}
+
+.species-discovery.is-unlocked .species-slot:first-child {
+  background: #e0ead7;
+  border-color: #6e8a61;
+}
+
+.species-discovery.is-unlocked .species-slot b {
+  color: #385242;
 }
 
 .tutorial-visual-4 {
@@ -3958,6 +4012,26 @@ body {
   border-radius: 50%;
   height: 1.65rem;
   width: 1.65rem;
+}
+
+.tutorial-species-row {
+  display: grid;
+  gap: 0.7rem;
+  grid-template-columns: repeat(3, 3.2rem);
+}
+
+.tutorial-species-row span {
+  align-items: center;
+  background: #e7eadf;
+  border: 1px solid #6f8175;
+  border-radius: 4px;
+  color: #315a42;
+  display: flex;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.68rem;
+  font-weight: 800;
+  height: 2.5rem;
+  justify-content: center;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -9,10 +9,11 @@ const TUTORIAL_STORAGE_KEY = "urban-pigeon-tutorial-v1";
 const PRESENCE_HEARTBEAT_MS = 15_000;
 const PRESENCE_RETRY_MS = 5_000;
 const MAX_FEED_COOLDOWN_MS = 3_000;
-const INITIAL_PIGEONS = 30;
-const MAX_PIGEONS = 50;
-const TOTAL_COLOR_VARIETIES = 8;
-const MIN_COLOR_VARIETIES = 7;
+const INITIAL_PIGEONS = 15;
+const MAX_PIGEONS = 30;
+const TOTAL_COLOR_VARIETIES = 4;
+const MIN_COLOR_VARIETIES = 3;
+const NEW_ANIMAL_SPECIES_COUNT = 3;
 const GENERATION_SECONDS = 12;
 const HUNGER_INTERVAL_SECONDS = 1;
 const FEEDING_SAFETY_MS = 5000;
@@ -130,8 +131,10 @@ const uiCopy = {
     colorGuideCollected: "colors catalogued",
     colorGuideHint: "Feed a color successfully to catalogue it.",
     colorGuideUnknown: "Unknown color",
-    squirrelLocked: "Catalogue all eight colors to discover a new species.",
-    squirrelUnlocked: "New species unlocked: squirrel",
+    speciesLocked: "Catalogue all four colors to reveal the next species stage.",
+    speciesUnlocked: "Next stage unlocked: three animal species",
+    squirrelSpecies: "Squirrel",
+    unknownSpecies: "Species pending",
     rareAccessoryCarrier: "carries a rare accessory",
     signInWithChatGPT: "Sign in with ChatGPT",
     signOut: "Sign out",
@@ -147,7 +150,7 @@ const uiCopy = {
     restartTitle: "Genetic diversity is too low",
     varietiesRemain: "color varieties remain",
     restartDescription:
-      "Fewer than seven feather colors remain. Restart the ecosystem to restore thirty pigeons spanning all eight colors.",
+      "Fewer than three feather colors remain. Restart the ecosystem to restore fifteen pigeons spanning all four colors.",
     restartAction: "Restart ecosystem",
     throwFoodAria: "Throw food into the animated illustrated pigeon population",
     tutorialEyebrow: "Field guide",
@@ -188,8 +191,10 @@ const uiCopy = {
     colorGuideCollected: "种羽色已收集",
     colorGuideHint: "成功喂食一种羽色，即可将它收入图鉴。",
     colorGuideUnknown: "未知羽色",
-    squirrelLocked: "集齐八种羽色后，将发现一个新的物种。",
-    squirrelUnlocked: "新物种已解锁：松鼠",
+    speciesLocked: "集齐四种羽色后，将开启下一个物种阶段。",
+    speciesUnlocked: "下一阶段已解锁：三种动物",
+    squirrelSpecies: "松鼠",
+    unknownSpecies: "物种待定",
     rareAccessoryCarrier: "携带一件稀有配饰",
     signInWithChatGPT: "使用 ChatGPT 登录",
     signOut: "退出登录",
@@ -205,7 +210,7 @@ const uiCopy = {
     restartTitle: "基因多样性过低",
     varietiesRemain: "种羽色仍然存在",
     restartDescription:
-      "场上已经少于七种羽色。重新开始后，将恢复包含全部八种羽色的三十只鸽子。",
+      "场上已经少于三种羽色。重新开始后，将恢复包含全部四种羽色的十五只鸽子。",
     restartAction: "重新开始",
     throwFoodAria: "点击场景，将食物投向动态鸽群",
     tutorialEyebrow: "观察指南",
@@ -230,7 +235,7 @@ const tutorialSteps = {
     },
     {
       title: "Protect color diversity",
-      body: "The flock begins with eight feather colors. If fewer than seven remain, the simulation pauses and asks you to restart the ecosystem.",
+      body: "The flock begins with four feather colors. If fewer than three remain, the simulation pauses and asks you to restart the ecosystem.",
     },
     {
       title: "Discover rare accessories",
@@ -238,7 +243,7 @@ const tutorialSteps = {
     },
     {
       title: "Catalogue feather colors",
-      body: "Successfully feed each feather color to add it to the field guide. Completing all eight entries unlocks the squirrel as a new species.",
+      body: "Successfully feed each of the four feather colors to add it to the field guide. Completing all four entries reveals three new animal-species slots for the next stage.",
     },
   ],
   zh: [
@@ -252,7 +257,7 @@ const tutorialSteps = {
     },
     {
       title: "保护颜色多样性",
-      body: "鸽群最初拥有八种羽色。当场上少于七种羽色时，模拟会暂停并提示重新开始生态系统。",
+      body: "鸽群最初拥有四种羽色。当场上少于三种羽色时，模拟会暂停并提示重新开始生态系统。",
     },
     {
       title: "发现稀有配饰",
@@ -260,7 +265,7 @@ const tutorialSteps = {
     },
     {
       title: "收集鸽子羽色",
-      body: "分别成功喂食八种羽色，即可逐项点亮图鉴。全部收集完成后，将解锁松鼠这一新物种。",
+      body: "分别成功喂食四种羽色，即可逐项点亮图鉴。全部收集完成后，将开启包含三种动物的下一阶段。",
     },
   ],
 } as const;
@@ -299,7 +304,7 @@ type EcosystemState = {
   favoriteAccessory: AccessoryId | null;
   initialAccessorySeeded: boolean;
   collectedPlumages: Plumage[];
-  squirrelUnlocked: boolean;
+  animalSpeciesUnlocked: boolean;
 };
 
 type Metric = {
@@ -346,12 +351,12 @@ type PigeonDeathEffect = {
 };
 
 const initialEvents = [
-  "Thirty unfed birds begin in the wild park outside the marble city plaza.",
+  "Fifteen unfed birds begin in the wild park outside the marble city plaza.",
   "A feeding action protects the entire flock from hunger.",
   "After feeding stops, only city birds gradually die; wild birds remain safe outside.",
   "A bird that reaches a pellet divides into a matching pigeon at the same spot.",
-  "The initial flock spans eight feather colors and varied letter casing at a shared wild body size.",
-  "If fewer than seven color varieties remain, the ecosystem restarts with all eight colors.",
+  "The initial flock spans four feather colors and varied letter casing at a shared wild body size.",
+  "If fewer than three color varieties remain, the ecosystem restarts with all four colors.",
 ];
 
 const pigeonLetters = "pigeon";
@@ -364,6 +369,12 @@ const plumageOrder: Plumage[] = [
   "charcoal",
   "silver",
   "rust",
+];
+const initialPigeonPlumages: Plumage[] = [
+  "grey",
+  "white",
+  "spotted",
+  "brown",
 ];
 const featherPalettes: Record<Plumage, string[]> = {
   grey: ["#303737", "#727a79", "#315f5b", "#76566f", "#8d9492", "#3d4544"],
@@ -401,8 +412,8 @@ const plumageNames: Record<Language, Record<Plumage, string>> = {
 
 const exactEventTranslations = new Map<string, string>([
   [
-    "Thirty unfed birds begin in the wild park outside the marble city plaza.",
-    "三十只尚未接受人类喂食的鸽子从城市圈外的野生公园开始。",
+    "Fifteen unfed birds begin in the wild park outside the marble city plaza.",
+    "十五只尚未接受人类喂食的鸽子从城市圈外的野生公园开始。",
   ],
   [
     "A feeding action protects the entire flock from hunger.",
@@ -417,12 +428,12 @@ const exactEventTranslations = new Map<string, string>([
     "吃到食物的鸽子会在原地分裂出一只相同的鸽子。",
   ],
   [
-    "The initial flock spans eight feather colors and varied letter casing at a shared wild body size.",
-    "初始鸽群包含八种羽色和不同的字母大小写，野生体型保持一致。",
+    "The initial flock spans four feather colors and varied letter casing at a shared wild body size.",
+    "初始鸽群包含四种羽色和不同的字母大小写，野生体型保持一致。",
   ],
   [
-    "If fewer than seven color varieties remain, the ecosystem restarts with all eight colors.",
-    "颜色种类少于七种时，生态系统会要求重启并恢复全部八种颜色。",
+    "If fewer than three color varieties remain, the ecosystem restarts with all four colors.",
+    "颜色种类少于三种时，生态系统会要求重启并恢复全部四种颜色。",
   ],
   [
     "Birds that approached people first were more likely to survive and reproduce.",
@@ -441,8 +452,8 @@ const exactEventTranslations = new Map<string, string>([
     "鸽群安静地完成了一次调整，细微的行为差异被延续下来。",
   ],
   [
-    "All eight pigeon colors were catalogued. Squirrel species unlocked.",
-    "八种鸽子羽色已经全部收入图鉴。松鼠物种已解锁。",
+    "All four pigeon colors were catalogued. Three animal species are ready for the next stage.",
+    "四种鸽子羽色已经全部收入图鉴。下一阶段的三种动物已经解锁。",
   ],
 ]);
 
@@ -702,7 +713,8 @@ function hostFavoritePigeon(pigeons: PigeonAgent[]) {
 
 function initialPigeonStyle(id: number) {
   return {
-    plumage: plumageOrder[(id * 5) % plumageOrder.length],
+    plumage:
+      initialPigeonPlumages[(id * 5) % initialPigeonPlumages.length],
     caseMask: (id * 37) % (1 << pigeonLetters.length),
     colorSeed: (id * 53 + 11) % 997,
     sizeScale: 1,
@@ -820,7 +832,7 @@ function makeInitialState(now = Date.now()): EcosystemState {
     favoriteAccessory: null,
     initialAccessorySeeded: true,
     collectedPlumages: [],
-    squirrelUnlocked: false,
+    animalSpeciesUnlocked: false,
   };
 }
 
@@ -870,7 +882,7 @@ function restartEcosystemState(
       ? current.favoriteAccessory
       : null;
   restarted.collectedPlumages = [...current.collectedPlumages];
-  restarted.squirrelUnlocked = current.squirrelUnlocked;
+  restarted.animalSpeciesUnlocked = current.animalSpeciesUnlocked;
   restarted.events = [
     `The ecosystem restarted after color diversity fell to ${colorVarietyCount} of ${TOTAL_COLOR_VARIETIES} varieties.`,
     ...initialEvents,
@@ -1135,7 +1147,9 @@ function restoreState(savedState: unknown) {
       return makeInitialState();
     }
 
-    const parsed = savedState as Partial<EcosystemState>;
+    const parsed = savedState as Partial<EcosystemState> & {
+      squirrelUnlocked?: boolean;
+    };
     const initial = makeInitialState();
     const pigeons =
       Array.isArray(parsed.pigeons) && parsed.pigeons.length > 0
@@ -1150,7 +1164,9 @@ function restoreState(savedState: unknown) {
               : fallback.caseSeed;
             const numericColorSeed = Number(savedPigeon.colorSeed);
             const numericBoldness = Number(savedPigeon.boldness);
-            const plumage = plumageOrder.includes(savedPigeon.plumage as Plumage)
+            const plumage = initialPigeonPlumages.includes(
+              savedPigeon.plumage as Plumage,
+            )
               ? (savedPigeon.plumage as Plumage)
               : fallback.plumage;
 
@@ -1203,14 +1219,19 @@ function restoreState(savedState: unknown) {
       ...new Set(
         Array.isArray(parsed.collectedPlumages)
           ? parsed.collectedPlumages.filter((plumage): plumage is Plumage =>
-              plumageOrder.includes(plumage as Plumage),
+              initialPigeonPlumages.includes(plumage as Plumage),
             )
           : pigeons
-              .filter((pigeon) => pigeon.feedCount > 0)
+              .filter(
+                (pigeon) =>
+                  pigeon.feedCount > 0 &&
+                  initialPigeonPlumages.includes(pigeon.plumage),
+              )
               .map((pigeon) => pigeon.plumage),
       ),
     ];
-    const squirrelUnlocked =
+    const animalSpeciesUnlocked =
+      parsed.animalSpeciesUnlocked === true ||
       parsed.squirrelUnlocked === true ||
       collectedPlumages.length === TOTAL_COLOR_VARIETIES;
     if (parsed.initialAccessorySeeded !== true) {
@@ -1230,7 +1251,7 @@ function restoreState(savedState: unknown) {
       unlockedAccessories,
       favoriteAccessory,
       collectedPlumages,
-      squirrelUnlocked,
+      animalSpeciesUnlocked,
       initialAccessorySeeded: true,
       restartColorVarietyCount:
         parsed.restartColorVarietyCount !== null &&
@@ -1344,8 +1365,8 @@ function feedPigeonState(
   const collectedPlumages = isNewPlumage
     ? [...advanced.collectedPlumages, parent.plumage]
     : [...advanced.collectedPlumages];
-  const squirrelJustUnlocked =
-    !advanced.squirrelUnlocked &&
+  const animalSpeciesJustUnlocked =
+    !advanced.animalSpeciesUnlocked &&
     collectedPlumages.length === TOTAL_COLOR_VARIETIES;
 
   let removed: PigeonAgent | undefined;
@@ -1383,7 +1404,8 @@ function feedPigeonState(
         ? [...advanced.unlockedAccessories, carriedAccessory]
         : [...advanced.unlockedAccessories],
     collectedPlumages,
-    squirrelUnlocked: advanced.squirrelUnlocked || squirrelJustUnlocked,
+    animalSpeciesUnlocked:
+      advanced.animalSpeciesUnlocked || animalSpeciesJustUnlocked,
   };
   const feedingLead =
     declinedBefore === 0
@@ -1420,10 +1442,10 @@ function feedPigeonState(
     pushEvent(next, `Field guide entry added: ${parent.plumage} pigeon.`);
   }
 
-  if (squirrelJustUnlocked) {
+  if (animalSpeciesJustUnlocked) {
     pushEvent(
       next,
-      "All eight pigeon colors were catalogued. Squirrel species unlocked.",
+      "All four pigeon colors were catalogued. Three animal species are ready for the next stage.",
     );
   }
 
@@ -2856,13 +2878,13 @@ function AccessoryWardrobe({
 }
 
 function PigeonColorGuide({
+  animalSpeciesUnlocked,
   collectedPlumages,
   language,
-  squirrelUnlocked,
 }: {
+  animalSpeciesUnlocked: boolean;
   collectedPlumages: Plumage[];
   language: Language;
-  squirrelUnlocked: boolean;
 }) {
   const copy = uiCopy[language];
   const [isOpen, setIsOpen] = useState(false);
@@ -2898,7 +2920,7 @@ function PigeonColorGuide({
   return (
     <aside
       className={`pigeon-color-guide ${isOpen ? "is-open" : ""}`}
-      data-squirrel-unlocked={squirrelUnlocked}
+      data-animal-species-unlocked={animalSpeciesUnlocked}
       ref={guideRef}
     >
       <button
@@ -2955,7 +2977,7 @@ function PigeonColorGuide({
           </button>
         </header>
         <div className="pigeon-color-grid" role="list">
-          {plumageOrder.map((plumage, index) => {
+          {initialPigeonPlumages.map((plumage, index) => {
             const isCollected = collectedPlumages.includes(plumage);
             const palette = featherPalettes[plumage];
 
@@ -2999,15 +3021,39 @@ function PigeonColorGuide({
           })}
         </div>
         <div
-          className={`squirrel-discovery ${
-            squirrelUnlocked ? "is-unlocked" : "is-locked"
+          className={`species-discovery ${
+            animalSpeciesUnlocked ? "is-unlocked" : "is-locked"
           }`}
           role="status"
         >
-          <span aria-hidden="true">{squirrelUnlocked ? "NEW" : "08"}</span>
-          <strong>
-            {squirrelUnlocked ? copy.squirrelUnlocked : copy.squirrelLocked}
-          </strong>
+          <div className="species-discovery-heading">
+            <span aria-hidden="true">
+              {animalSpeciesUnlocked ? "NEW" : "04"}
+            </span>
+            <strong>
+              {animalSpeciesUnlocked ? copy.speciesUnlocked : copy.speciesLocked}
+            </strong>
+          </div>
+          <div className="species-slot-list">
+            {Array.from(
+              { length: NEW_ANIMAL_SPECIES_COUNT },
+              (_, speciesIndex) => (
+                <span
+                  className="species-slot"
+                  key={`species-${speciesIndex}`}
+                >
+                  <i>{String(speciesIndex + 1).padStart(2, "0")}</i>
+                  <b>
+                    {animalSpeciesUnlocked
+                      ? speciesIndex === 0
+                        ? copy.squirrelSpecies
+                        : copy.unknownSpecies
+                      : "???"}
+                  </b>
+                </span>
+              ),
+            )}
+          </div>
         </div>
       </section>
     </aside>
@@ -3169,7 +3215,7 @@ function TutorialDialog({
           {step === 2 ? (
             <>
               <div className="tutorial-color-row">
-                {plumageOrder.map((plumage) => (
+                {initialPigeonPlumages.map((plumage) => (
                   <i
                     key={plumage}
                     style={
@@ -3180,7 +3226,7 @@ function TutorialDialog({
                   />
                 ))}
               </div>
-              <strong>&lt; 7/8</strong>
+              <strong>&lt; 3/4</strong>
             </>
           ) : null}
           {step === 3 ? (
@@ -3192,6 +3238,13 @@ function TutorialDialog({
                   variant="wardrobe"
                 />
               ))}
+            </div>
+          ) : null}
+          {step === 4 ? (
+            <div className="tutorial-species-row">
+              <span>01</span>
+              <span>02</span>
+              <span>03</span>
             </div>
           ) : null}
         </div>
@@ -3536,9 +3589,9 @@ export function UrbanPigeonSimulation({
               unlockedAccessories={state.unlockedAccessories}
             />
             <PigeonColorGuide
+              animalSpeciesUnlocked={state.animalSpeciesUnlocked}
               collectedPlumages={state.collectedPlumages}
               language={language}
-              squirrelUnlocked={state.squirrelUnlocked}
             />
           </div>
         </div>
@@ -3556,7 +3609,9 @@ export function UrbanPigeonSimulation({
             <p className="eyebrow">{copy.restartEyebrow}</p>
             <h2 id="restart-dialog-title">{copy.restartTitle}</h2>
             <div className="restart-diversity-readout">
-              <strong>{state.restartColorVarietyCount}/8</strong>
+              <strong>
+                {state.restartColorVarietyCount}/{TOTAL_COLOR_VARIETIES}
+              </strong>
               <span>{copy.varietiesRemain}</span>
             </div>
             <p id="restart-dialog-description">{copy.restartDescription}</p>
