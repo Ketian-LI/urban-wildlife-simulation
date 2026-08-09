@@ -115,6 +115,13 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /activeEventId/);
   assert.match(simulation, /function pressureLevel/);
   assert.match(simulation, /function eventChoiceDeltas/);
+  assert.match(simulation, /function extremeDecision/);
+  assert.match(simulation, /function lockEffectDecision/);
+  assert.match(simulation, /function endFromOverflow/);
+  assert.match(simulation, /allowOverflow = false/);
+  assert.match(simulation, /lockedPillar: LockablePillar \| null/);
+  assert.match(simulation, /unlockAtGeneration/);
+  assert.match(simulation, /overflowedPillar/);
   assert.match(simulation, /Urban pressure rose to level/);
   assert.match(simulation, /className="v8-impact-chips"/);
   assert.match(simulation, /className="feed-launcher v8-feed-launcher"/);
@@ -139,6 +146,10 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(css, /\.ecosystem-v8 \.plaza-metrics/);
   assert.match(css, /\.v8-impact-chips/);
   assert.match(css, /\.v8-impact-toast/);
+  assert.match(css, /\.plaza-metric\.is-locked/);
+  assert.match(css, /\.plaza-metric\.is-high-risk/);
+  assert.match(css, /\.v9-event-flags/);
+  assert.match(css, /\.v6-end-pillars div\.is-overflow/);
   assert.match(css, /--extra-atlas/);
   assert.match(css, /--dog-atlas/);
   assert.match(css, /--swan-atlas/);
