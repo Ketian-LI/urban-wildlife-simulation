@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
-const STORAGE_KEY = "urban-pigeon-collective-v7";
-const LEGACY_STORAGE_KEY = "urban-pigeon-collective-v6";
+const STORAGE_KEY = "urban-pigeon-collective-v8";
+const LEGACY_STORAGE_KEY = "urban-pigeon-collective-v7";
 const PRESENCE_STORAGE_KEY = "urban-pigeon-presence-id-v1";
 const LANGUAGE_STORAGE_KEY = "urban-pigeon-language-v1";
 const TUTORIAL_STORAGE_KEY = "urban-pigeon-tutorial-v2";
@@ -12,8 +12,8 @@ const PRESENCE_RETRY_MS = 5_000;
 const CLOUD_SAVE_INTERVAL_MS = 5_000;
 const INITIAL_ANIMALS = 21;
 const MAX_ANIMALS = 30;
-const GENERATION_MS = 28_000;
-const FOOD_LIFETIME_MS = 7_200;
+const GENERATION_MS = 40_000;
+const FOOD_LIFETIME_MS = 4_000;
 const DEATH_ANIMATION_MS = 1_400;
 
 type Language = "en" | "zh";
@@ -28,14 +28,7 @@ type Species =
   | "stray-dog"
   | "fox"
   | "hedgehog";
-type FoodType =
-  | "grain"
-  | "nut"
-  | "greens"
-  | "fish"
-  | "biscuit"
-  | "meat"
-  | "insect";
+type FoodType = "food";
 type Plumage = "grey" | "white" | "spotted" | "brown";
 type Intent = "eager" | "curious" | "wary" | "refusing";
 type EventId =
@@ -68,7 +61,6 @@ type AnimalAgent = {
   appetite: number;
   nutrition: number;
   satietyUntil: number;
-  hasAcceptedFood: boolean;
   x: number;
   y: number;
   caseMask: number;
@@ -107,8 +99,15 @@ type SpeciesVital = {
   dangerTurns: number;
 };
 
+type OutcomeImpact = {
+  at: number;
+  en: string;
+  zh: string;
+  changes: Partial<Record<PillarKey, number>>;
+};
+
 type EcosystemState = {
-  version: 7;
+  version: 8;
   pigeons: AnimalAgent[];
   nextPigeonId: number;
   speciesVitals: Record<Species, SpeciesVital>;
@@ -117,6 +116,7 @@ type EcosystemState = {
   lastUpdated: number;
   nextGenerationAt: number;
   activeEventId: EventId | null;
+  decisionQueue: Species[];
   lastEventId: EventId | null;
   eventSpecies: Species | null;
   endedBy: EndReason | null;
@@ -127,7 +127,9 @@ type EcosystemState = {
   animalSpeciesUnlocked: boolean;
   firstSquirrelSeeded: boolean;
   feedingHistory: FeedRecord[];
+  successfulFeedings: number;
   events: FieldNote[];
+  lastImpact: OutcomeImpact | null;
   policies: Policies;
 };
 
@@ -187,6 +189,12 @@ const pillarOrder: PillarKey[] = [
   "comfort",
   "coexistence",
 ];
+const pillarIcons: Record<PillarKey, string> = {
+  quantity: "#",
+  satiety: "●",
+  comfort: "⌂",
+  coexistence: "↔",
+};
 const pigeonLetters = "pigeon";
 const plumageOrder: Plumage[] = ["grey", "white", "spotted", "brown"];
 const speciesOrder: Species[] = [
@@ -208,23 +216,14 @@ const speciesProfiles: Record<Species, {
   coexistenceWeight: number;
   hungerDecay: number;
 }> = {
-  pigeon: { stableMin: 3, idealMin: 3, idealMax: 6, satietyWeight: 0.5, comfortWeight: 0.2, coexistenceWeight: 0.3, hungerDecay: 7 },
-  squirrel: { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.35, comfortWeight: 0.4, coexistenceWeight: 0.25, hungerDecay: 5 },
-  swan: { stableMin: 2, idealMin: 2, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.45, coexistenceWeight: 0.25, hungerDecay: 4 },
-  "stray-cat": { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.45, comfortWeight: 0.2, coexistenceWeight: 0.35, hungerDecay: 6 },
-  "stray-dog": { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.4, comfortWeight: 0.35, coexistenceWeight: 0.25, hungerDecay: 6 },
+  pigeon: { stableMin: 3, idealMin: 3, idealMax: 6, satietyWeight: 0.5, comfortWeight: 0.2, coexistenceWeight: 0.3, hungerDecay: 5 },
+  squirrel: { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.35, comfortWeight: 0.4, coexistenceWeight: 0.25, hungerDecay: 4 },
+  swan: { stableMin: 2, idealMin: 2, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.45, coexistenceWeight: 0.25, hungerDecay: 3 },
+  "stray-cat": { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.45, comfortWeight: 0.2, coexistenceWeight: 0.35, hungerDecay: 5 },
+  "stray-dog": { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.4, comfortWeight: 0.35, coexistenceWeight: 0.25, hungerDecay: 5 },
   fox: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.3, coexistenceWeight: 0.4, hungerDecay: 4 },
-  hedgehog: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.5, coexistenceWeight: 0.2, hungerDecay: 4 },
+  hedgehog: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.5, coexistenceWeight: 0.2, hungerDecay: 3 },
 };
-const foodOrder: FoodType[] = [
-  "grain",
-  "nut",
-  "greens",
-  "fish",
-  "biscuit",
-  "meat",
-  "insect",
-];
 const wildlifeRows: Partial<Record<Species, number>> = {
   squirrel: 0,
   swan: 1,
@@ -237,13 +236,7 @@ const foodData: Record<
   FoodType,
   { symbol: string; names: Record<Language, string>; color: string }
 > = {
-  grain: { symbol: ".", names: { en: "Grain", zh: "谷粒" }, color: "#bc7f16" },
-  nut: { symbol: "o", names: { en: "Nut", zh: "坚果" }, color: "#7b4f2c" },
-  greens: { symbol: "*", names: { en: "Peas", zh: "豌豆" }, color: "#4f823f" },
-  fish: { symbol: "><", names: { en: "Fish", zh: "小鱼" }, color: "#39758a" },
-  biscuit: { symbol: "+", names: { en: "Biscuit", zh: "饼干" }, color: "#c28a3f" },
-  meat: { symbol: "#", names: { en: "Meat", zh: "肉块" }, color: "#98453b" },
-  insect: { symbol: "~", names: { en: "Insects", zh: "昆虫" }, color: "#4a3d32" },
+  food: { symbol: "•", names: { en: "Food", zh: "食物" }, color: "#b97819" },
 };
 
 const speciesNames: Record<Language, Record<Species, string>> = {
@@ -296,16 +289,18 @@ const uiCopy = {
   en: {
     brand: "Urban Wildlife Simulation",
     cycle: "City cycle",
+    pressure: "Pressure",
     online: "Online",
     population: "Population",
     stableGroups: "Stable groups",
-    wildPark: "Wild park",
-    cityPlaza: "Marble plaza",
+    sharedPlaza: "Shared plaza",
     hostFavorite: "Host favorite",
     favoriteEmpty: "Feed an animal to form a bond",
     feeds: "feeds",
     protected: "Protected from natural loss",
-    foodTray: "Choose food",
+    feedAction: "Feed",
+    decisionProgress: "Decision",
+    latestChange: "Latest change",
     fieldGuide: "Field journal",
     colors: "Pigeon colors",
     species: "Species survival",
@@ -336,22 +331,24 @@ const uiCopy = {
     tutorialNext: "Next",
     tutorialFinish: "Enter the park",
     tutorialStep: "Step",
-    collectivePressure: "Each feeding becomes a species decision",
-    throwAria: "Choose food, throw it, then resolve the animal event",
+    collectivePressure: "Shared feeding pressure",
+    throwAria: "Click the shared plaza to throw food",
   },
   zh: {
     brand: "城市野生动物模拟",
     cycle: "城市周期",
+    pressure: "压力",
     online: "当前在线",
     population: "动物数量",
     stableGroups: "稳定物种",
-    wildPark: "野生公园",
-    cityPlaza: "大理石广场",
+    sharedPlaza: "共享广场",
     hostFavorite: "最喜爱的动物",
     favoriteEmpty: "投喂动物以建立关系",
     feeds: "次投喂",
     protected: "不会自然消失",
-    foodTray: "选择食物",
+    feedAction: "投喂",
+    decisionProgress: "决策进度",
+    latestChange: "最近变化",
     fieldGuide: "观察日志",
     colors: "鸽子羽色",
     species: "物种生存状态",
@@ -382,58 +379,58 @@ const uiCopy = {
     tutorialNext: "下一步",
     tutorialFinish: "进入公园",
     tutorialStep: "步骤",
-    collectivePressure: "每次投喂都会成为一次物种决策",
-    throwAria: "选择食物并投掷，然后处理该动物的事件",
+    collectivePressure: "共享投喂压力",
+    throwAria: "点击共享广场投放食物",
   },
 } as const;
 
 const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
   en: [
     {
-      title: "Choose food and place",
-      body: "Select one of seven foods, then click the ground. Food is thrown from the lower edge; you choose the place, not the recipient.",
+      title: "Click a place to feed",
+      body: "There is one shared food. Click the plaza and it is thrown from the lower edge; you choose the place, not the recipient.",
     },
     {
       title: "Read the animal",
       body: "Animals turn, lean, hesitate or retreat before deciding. The nearest animal tries first; refusal passes the chance to the next.",
     },
     {
-      title: "Every feeding becomes a decision",
-      body: "Once an animal accepts or rejects food, resolve its species event before feeding again. Directional clues reveal the likely trade-off.",
+      title: "Feeding builds toward a decision",
+      body: "Every two successful feedings trigger one species event. The icons and signed values show the likely trade-off before you choose.",
     },
     {
       title: "Keep four conditions alive",
-      body: "Quantity, satiety, comfort and coexistence must remain above zero. Each species also has a different safe population line and a three-turn rescue window.",
+      body: "Quantity, satiety, comfort and coexistence must remain above zero. Each species has a safe population line and a four-cycle rescue window.",
     },
   ],
   zh: [
     {
-      title: "选择食物和位置",
-      body: "先选择七种食物中的一种，再点击地面。食物从画面底部抛入；你决定位置，但不能指定哪只动物吃。",
+      title: "点击位置进行投喂",
+      body: "现在只有一种通用食物。点击广场后，食物会从画面底部抛入；你决定位置，但不能指定哪只动物吃。",
     },
     {
       title: "观察动物的线索",
       body: "动物会先转头、前倾、犹豫或后退。距离最近的动物先尝试，拒绝后机会轮到下一只。",
     },
     {
-      title: "每次投喂都会成为决策",
-      body: "动物接受或拒绝食物后，需要先处理对应物种事件才能继续投喂。方向提示会告诉你选择的大致影响。",
+      title: "投喂会逐步触发决策",
+      body: "每两次成功投喂会触发一次对应物种事件。选择前可以通过图标和带正负号的数值看清大致影响。",
     },
     {
       title: "维持四项生存条件",
-      body: "数量、饱食度、舒适度和相处度都必须高于零。每个物种还有不同的安全数量，并拥有三轮抢救时间。",
+      body: "数量、饱食度、舒适度和相处度都必须高于零。每个物种还有不同的安全数量，并拥有四轮抢救时间。",
     },
   ],
 };
 
-const preference: Record<Species, Record<FoodType, number>> = {
-  pigeon: { grain: 0.96, nut: 0.46, greens: 0.58, fish: 0.08, biscuit: 0.22, meat: 0.08, insect: 0.38 },
-  squirrel: { grain: 0.5, nut: 0.97, greens: 0.36, fish: 0.04, biscuit: 0.28, meat: 0.03, insect: 0.16 },
-  swan: { grain: 0.48, nut: 0.08, greens: 0.97, fish: 0.12, biscuit: 0.1, meat: 0.03, insect: 0.22 },
-  "stray-cat": { grain: 0.03, nut: 0.03, greens: 0.04, fish: 0.97, biscuit: 0.35, meat: 0.74, insect: 0.26 },
-  "stray-dog": { grain: 0.08, nut: 0.06, greens: 0.1, fish: 0.52, biscuit: 0.97, meat: 0.78, insect: 0.08 },
-  fox: { grain: 0.03, nut: 0.08, greens: 0.04, fish: 0.66, biscuit: 0.42, meat: 0.97, insect: 0.24 },
-  hedgehog: { grain: 0.16, nut: 0.18, greens: 0.14, fish: 0.16, biscuit: 0.2, meat: 0.32, insect: 0.97 },
+const feedingAcceptance: Record<Species, number> = {
+  pigeon: 0.88,
+  squirrel: 0.78,
+  swan: 0.72,
+  "stray-cat": 0.7,
+  "stray-dog": 0.84,
+  fox: 0.6,
+  hedgehog: 0.64,
 };
 
 const events: Record<EventId, EventDefinition> = {
@@ -704,16 +701,8 @@ function wordFromCaseMask(caseMask: number) {
     .join("");
 }
 
-function positionFor(id: number, zone: "inside" | "outside", species: Species) {
-  if (zone === "inside") {
-    if (species === "swan") return { x: 69 + (id % 4) * 5, y: 37 + (id % 3) * 6 };
-    return {
-      x: 23 + ((id * 37) % 55),
-      y: 45 + ((id * 29) % 35),
-    };
-  }
-
-  const outsideAnchors: Record<Species, { x: number; y: number }[]> = {
+function positionFor(id: number, species: Species) {
+  const sharedAnchors: Record<Species, { x: number; y: number }[]> = {
     pigeon: [{ x: 28, y: 37 }, { x: 64, y: 39 }, { x: 79, y: 56 }],
     squirrel: [{ x: 17, y: 44 }, { x: 12, y: 65 }, { x: 28, y: 76 }],
     swan: [{ x: 70, y: 34 }, { x: 84, y: 39 }, { x: 76, y: 48 }],
@@ -722,7 +711,7 @@ function positionFor(id: number, zone: "inside" | "outside", species: Species) {
     fox: [{ x: 10, y: 58 }, { x: 86, y: 74 }, { x: 19, y: 82 }],
     hedgehog: [{ x: 31, y: 82 }, { x: 67, y: 84 }, { x: 88, y: 57 }],
   };
-  const anchor = outsideAnchors[species][id % 3];
+  const anchor = sharedAnchors[species][id % 3];
   const generationDrift = Math.floor(id / INITIAL_ANIMALS);
   return {
     x: clamp(anchor.x + ((generationDrift * 7 + id) % 5) - 2, 7, 93),
@@ -733,10 +722,9 @@ function positionFor(id: number, zone: "inside" | "outside", species: Species) {
 function createAnimal(
   id: number,
   species: Species = "pigeon",
-  zone: "inside" | "outside" = "outside",
   now = Date.now(),
 ): AnimalAgent {
-  const position = positionFor(id, zone, species);
+  const position = positionFor(id, species);
   return {
     id,
     species,
@@ -746,7 +734,6 @@ function createAnimal(
     appetite: 0.52 + ((id * 17) % 35) / 100,
     nutrition: 0,
     satietyUntil: 0,
-    hasAcceptedFood: zone === "inside",
     x: position.x,
     y: position.y,
     caseMask: (id * 37 + 9) % 64,
@@ -757,13 +744,13 @@ function createAnimal(
 
 function makeSpeciesVitals(): Record<Species, SpeciesVital> {
   return {
-    pigeon: { satiety: 66, comfort: 67, dangerTurns: 0 },
-    squirrel: { satiety: 64, comfort: 72, dangerTurns: 0 },
-    swan: { satiety: 63, comfort: 70, dangerTurns: 0 },
-    "stray-cat": { satiety: 62, comfort: 65, dangerTurns: 0 },
-    "stray-dog": { satiety: 64, comfort: 69, dangerTurns: 0 },
-    fox: { satiety: 59, comfort: 66, dangerTurns: 0 },
-    hedgehog: { satiety: 61, comfort: 72, dangerTurns: 0 },
+    pigeon: { satiety: 76, comfort: 70, dangerTurns: 0 },
+    squirrel: { satiety: 74, comfort: 74, dangerTurns: 0 },
+    swan: { satiety: 73, comfort: 72, dangerTurns: 0 },
+    "stray-cat": { satiety: 72, comfort: 69, dangerTurns: 0 },
+    "stray-dog": { satiety: 74, comfort: 72, dangerTurns: 0 },
+    fox: { satiety: 71, comfort: 69, dangerTurns: 0 },
+    hedgehog: { satiety: 72, comfort: 74, dangerTurns: 0 },
   };
 }
 
@@ -805,7 +792,7 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
   const pigeons: AnimalAgent[] = [];
   for (const species of speciesOrder) {
     for (let index = 0; index < 3; index += 1) {
-      pigeons.push(createAnimal(pigeons.length, species, "outside", now));
+      pigeons.push(createAnimal(pigeons.length, species, now));
     }
   }
   const nextPigeonId = INITIAL_ANIMALS;
@@ -814,13 +801,12 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
   if (carriedFavorite) {
     const replaceIndex = pigeons.findIndex((animal) => animal.species === carriedFavorite.species);
     const replacement = pigeons[replaceIndex];
-    const favoritePosition = positionFor(replacement.id, "inside", carriedFavorite.species);
+    const favoritePosition = positionFor(replacement.id, carriedFavorite.species);
     const favorite = {
       ...carriedFavorite,
       id: replacement.id,
       x: favoritePosition.x,
       y: favoritePosition.y,
-      hasAcceptedFood: true,
       appetite: 0.6,
       nutrition: 0,
       satietyUntil: 0,
@@ -831,7 +817,7 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
   }
 
   return {
-    version: 7,
+    version: 8,
     pigeons,
     nextPigeonId,
     speciesVitals: makeSpeciesVitals(),
@@ -840,6 +826,7 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
     lastUpdated: now,
     nextGenerationAt: now + GENERATION_MS,
     activeEventId: null,
+    decisionQueue: [],
     lastEventId: null,
     eventSpecies: null,
     endedBy: null,
@@ -850,6 +837,7 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
     animalSpeciesUnlocked: true,
     firstSquirrelSeeded: true,
     feedingHistory: [],
+    successfulFeedings: 0,
     events: [
       note(
         "Twenty-one animals begin together: three from each of the seven species.",
@@ -857,6 +845,7 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
         now,
       ),
     ],
+    lastImpact: null,
     policies: { feedingZone: false, sealedBins: false, shrubs: true, fountain: true },
   };
 }
@@ -873,6 +862,7 @@ function checkForEnd(state: EcosystemState, now = Date.now()) {
   state.endedBy = endedBy;
   state.endedAt = now;
   state.activeEventId = null;
+  state.decisionQueue = [];
   pushNote(
     state,
     note(
@@ -903,6 +893,42 @@ function applyDeltas(state: EcosystemState, deltas: PillarDeltas, targetSpecies?
   return checkForEnd(state);
 }
 
+function normalizedDeltas(deltas: PillarDeltas) {
+  const normalized: Partial<Record<PillarKey, number>> = {};
+  const satiety = deltas.satiety ?? deltas.vitality;
+  const comfort = deltas.comfort ?? (deltas.foraging ?? 0) + (deltas.habitat ?? 0);
+  if (satiety) normalized.satiety = satiety;
+  if (comfort) normalized.comfort = comfort;
+  if (deltas.coexistence) normalized.coexistence = deltas.coexistence;
+  return normalized;
+}
+
+function pressureLevel(generations: number) {
+  return Math.min(6, 1 + Math.floor(Math.max(0, generations - 1) / 4));
+}
+
+function eventChoiceDeltas(deltas: PillarDeltas, generations: number) {
+  const pressure = pressureLevel(generations);
+  const negativeScale = 1 + (pressure - 1) * 0.14;
+  const positiveScale = Math.max(0.74, 1 - (pressure - 1) * 0.05);
+  const scaled = Object.fromEntries(
+    Object.entries(deltas).map(([pillar, value]) => [
+      pillar,
+      Math.round((value ?? 0) * ((value ?? 0) < 0 ? negativeScale : positiveScale)),
+    ]),
+  ) as PillarDeltas;
+  const normalized = normalizedDeltas(scaled);
+
+  if (!Object.values(normalized).some((value) => (value ?? 0) < 0)) {
+    const cost = 3 + pressure;
+    if (!normalized.satiety) scaled.satiety = -cost;
+    else if (!normalized.comfort) scaled.comfort = -cost;
+    else if (!normalized.coexistence) scaled.coexistence = -cost;
+    else scaled.comfort = -cost;
+  }
+  return scaled;
+}
+
 function recentFeeds(state: EcosystemState, now: number, windowMs: number) {
   return state.feedingHistory.filter((record) => now - record.at <= windowMs);
 }
@@ -921,9 +947,9 @@ function chooseFeedingEvent(species: Species | null): EventId {
   return eventBySpecies[species];
 }
 
-function addAnimal(state: EcosystemState, species: Species, zone: "inside" | "outside" = "outside") {
+function addAnimal(state: EcosystemState, species: Species) {
   if (state.pigeons.length >= MAX_ANIMALS) return null;
-  const animal = createAnimal(state.nextPigeonId, species, zone);
+  const animal = createAnimal(state.nextPigeonId, species);
   state.nextPigeonId += 1;
   state.pigeons = [...state.pigeons, animal];
   if (!state.discoveredSpecies.includes(species)) {
@@ -934,7 +960,7 @@ function addAnimal(state: EcosystemState, species: Species, zone: "inside" | "ou
 
 function createChild(state: EcosystemState, parent: AnimalAgent, now: number) {
   if (state.pigeons.length >= MAX_ANIMALS) return null;
-  const child = createAnimal(state.nextPigeonId, parent.species, "inside", now);
+  const child = createAnimal(state.nextPigeonId, parent.species, now);
   child.plumage = parent.plumage;
   child.boldness = clamp(parent.boldness + ((state.nextPigeonId % 5) - 2) * 0.02, 0.12, 0.92);
   child.caseMask = parent.caseMask;
@@ -948,6 +974,9 @@ function createChild(state: EcosystemState, parent: AnimalAgent, now: number) {
 
 function runGeneration(state: EcosystemState, now: number) {
   state.generations += 1;
+  const pressure = pressureLevel(state.generations);
+  const comfortStrain = Math.max(0, pressure - 2) * 0.65;
+  state.coexistence = clamp(state.coexistence - (0.7 + pressure * 0.45));
   state.speciesVitals = Object.fromEntries(
     speciesOrder.map((species) => {
       const profile = speciesProfiles[species];
@@ -961,22 +990,33 @@ function runGeneration(state: EcosystemState, now: number) {
       return [species, {
         ...current,
         satiety: clamp(current.satiety - profile.hungerDecay),
-        comfort: clamp(current.comfort + socialComfort),
+        comfort: clamp(current.comfort + socialComfort - comfortStrain),
       }];
     }),
   ) as Record<Species, SpeciesVital>;
+
+  if ((state.generations - 1) % 4 === 0) {
+    pushNote(
+      state,
+      note(
+        `Urban pressure rose to level ${pressure}; future trade-offs will be harsher.`,
+        `城市压力升至 ${pressure} 级，之后的选择代价会更高。`,
+        now,
+      ),
+    );
+  }
 
   for (const species of speciesOrder) {
     const profile = speciesProfiles[species];
     const count = speciesCount(state, species);
     const survival = speciesSurvival(state, species);
-    const endangered = count < profile.stableMin || survival < 30;
+    const endangered = count < profile.stableMin || survival < 24;
     const dangerTurns = endangered
       ? state.speciesVitals[species].dangerTurns + 1
       : Math.max(0, state.speciesVitals[species].dangerTurns - 1);
     state.speciesVitals[species] = { ...state.speciesVitals[species], dangerTurns };
 
-    if (dangerTurns >= 3) {
+    if (dangerTurns >= 4) {
       const removable = state.pigeons
         .filter((animal) => animal.species === species && animal.id !== state.favoriteId)
         .sort((a, b) => a.feedCount - b.feedCount || b.appetite - a.appetite || a.id - b.id)[0];
@@ -986,8 +1026,8 @@ function runGeneration(state: EcosystemState, now: number) {
         pushNote(
           state,
           note(
-            `A ${speciesNames.en[species].toLowerCase()} was lost after three cycles below its survival line.`,
-            `一只${speciesNames.zh[species]}在连续三个周期低于生存线后消失了。`,
+            `A ${speciesNames.en[species].toLowerCase()} was lost after four cycles below its survival line.`,
+            `一只${speciesNames.zh[species]}在连续四个周期低于生存线后消失了。`,
             now,
           ),
         );
@@ -1000,19 +1040,25 @@ function runGeneration(state: EcosystemState, now: number) {
       const profile = speciesProfiles[species];
       const vital = state.speciesVitals[species];
       return speciesCount(state, species) < profile.idealMax
-        && vital.satiety >= 68
-        && vital.comfort >= 62
-        && speciesSurvival(state, species) >= 65;
+        && vital.satiety >= 64
+        && vital.comfort >= 58
+        && speciesSurvival(state, species) >= 56;
     });
     const species = candidates[(state.generations + state.nextPigeonId) % Math.max(1, candidates.length)];
-    if (species && (state.generations + speciesOrder.indexOf(species)) % 2 === 0) {
+    if (species) {
       const parent = state.pigeons
         .filter((animal) => animal.species === species)
         .sort((a, b) => b.feedCount - a.feedCount || a.id - b.id)[0];
       if (parent) {
         const child = createChild(state, parent, now);
         if (child) {
-          state.speciesVitals[species].satiety = clamp(state.speciesVitals[species].satiety - 8);
+          state.speciesVitals[species].satiety = clamp(state.speciesVitals[species].satiety - 6);
+          state.lastImpact = {
+            at: now,
+            en: `A new ${speciesNames.en[species].toLowerCase()} joined the shared plaza.`,
+            zh: `一只新的${speciesNames.zh[species]}加入了共享广场。`,
+            changes: { quantity: 1, satiety: -6 },
+          };
           pushNote(
             state,
             note(
@@ -1122,9 +1168,14 @@ function resolveFeedState(
   };
 
   if (outcome.animalId === null) {
-    next.coexistence = clamp(next.coexistence - 0.65);
-    next.activeEventId = chooseFeedingEvent(null);
-    next.eventSpecies = null;
+    next.coexistence = clamp(next.coexistence - 1);
+    if (!next.activeEventId) next.eventSpecies = null;
+    next.lastImpact = {
+      at: now,
+      en: "No nearby animal accepted the food.",
+      zh: "附近没有动物接受这次食物。",
+      changes: { coexistence: -1 },
+    };
     pushNote(
       next,
       note(
@@ -1139,7 +1190,6 @@ function resolveFeedState(
   const index = next.pigeons.findIndex((animal) => animal.id === outcome.animalId);
   if (index < 0) return next;
   const animal = next.pigeons[index];
-  const suitability = preference[animal.species][outcome.food];
   const repetition = recentFeeds(next, now, 30_000).filter(
     (record) => Math.hypot(record.x - outcome.x, record.y - outcome.y) < 9,
   ).length;
@@ -1152,9 +1202,8 @@ function resolveFeedState(
     feedCount: animal.feedCount + 1,
     boldness: clamp(animal.boldness + 0.012, 0.12, 0.96),
     appetite: 0.08,
-    nutrition: clamp(animal.nutrition + (suitability >= 0.7 ? 1 : 0.55), 0, 4),
+    nutrition: clamp(animal.nutrition + 1, 0, 4),
     satietyUntil: now + 9_000 + (animal.id % 4) * 1_200,
-    hasAcceptedFood: true,
     x: position.x,
     y: position.y,
   };
@@ -1165,8 +1214,8 @@ function resolveFeedState(
   );
   next.speciesVitals[animal.species] = {
     ...next.speciesVitals[animal.species],
-    satiety: clamp(next.speciesVitals[animal.species].satiety + 5 + suitability * 7),
-    comfort: clamp(next.speciesVitals[animal.species].comfort + (suitability >= 0.7 ? 2 : -1)),
+    satiety: clamp(next.speciesVitals[animal.species].satiety + 12),
+    comfort: clamp(next.speciesVitals[animal.species].comfort + 3),
     dangerTurns: Math.max(0, next.speciesVitals[animal.species].dangerTurns - 1),
   };
   if (repetition >= 5) next.coexistence = clamp(next.coexistence - 0.28);
@@ -1184,16 +1233,30 @@ function resolveFeedState(
   }
 
   next.favoriteId = strongestFavorite(next.pigeons, next.favoriteId);
-  next.activeEventId = chooseFeedingEvent(animal.species);
-  next.eventSpecies = animal.species;
+  const acceptedFeedCount = next.successfulFeedings + 1;
+  next.successfulFeedings = acceptedFeedCount;
+  const triggersDecision = acceptedFeedCount % 2 === 0;
+  if (triggersDecision) {
+    if (next.activeEventId) next.decisionQueue = [...next.decisionQueue, animal.species];
+    else {
+      next.activeEventId = chooseFeedingEvent(animal.species);
+      next.eventSpecies = animal.species;
+    }
+  } else if (!next.activeEventId) next.eventSpecies = null;
+  next.lastImpact = {
+    at: now,
+    en: `${speciesNames.en[animal.species]} accepted the food.`,
+    zh: `${speciesNames.zh[animal.species]}接受了食物。`,
+    changes: { satiety: 12, comfort: 3 },
+  };
   const declinedText = outcome.declinedBefore > 0
     ? ` after ${outcome.declinedBefore} nearer ${outcome.declinedBefore === 1 ? "animal" : "animals"} declined`
     : "";
   pushNote(
     next,
     note(
-      `${speciesNames.en[animal.species]} accepted ${foodData[outcome.food].names.en.toLowerCase()}${declinedText}.`,
-      `${outcome.declinedBefore > 0 ? `前面${outcome.declinedBefore}只更近的动物拒绝后，` : ""}${speciesNames.zh[animal.species]}接受了${foodData[outcome.food].names.zh}。`,
+      `${speciesNames.en[animal.species]} accepted food${declinedText}${triggersDecision ? "; a city decision is ready" : ""}.`,
+      `${outcome.declinedBefore > 0 ? `前面${outcome.declinedBefore}只更近的动物拒绝后，` : ""}${speciesNames.zh[animal.species]}接受了食物${triggersDecision ? "，并触发了城市决策" : ""}。`,
       now,
     ),
   );
@@ -1211,6 +1274,12 @@ function killAnimalState(current: EcosystemState, animalId: number) {
     events: [...current.events],
     speciesVitals: Object.fromEntries(speciesOrder.map((species) => [species, { ...current.speciesVitals[species] }])) as Record<Species, SpeciesVital>,
     coexistence: clamp(current.coexistence - 3),
+    lastImpact: {
+      at: Date.now(),
+      en: `${speciesNames.en[animal.species]} was removed from the plaza.`,
+      zh: `${speciesNames.zh[animal.species]}离开了广场。`,
+      changes: { quantity: -1, comfort: -10, coexistence: -3 },
+    },
   };
   next.speciesVitals[animal.species].comfort = clamp(next.speciesVitals[animal.species].comfort - 10);
   pushNote(
@@ -1228,19 +1297,28 @@ function applyEventChoiceState(current: EcosystemState, side: "left" | "right") 
   const now = Date.now();
   const definition = events[current.activeEventId];
   const choice = definition[side];
+  const appliedDeltas = eventChoiceDeltas(choice.deltas, current.generations);
+  const queuedSpecies = current.decisionQueue[0] ?? null;
   const next: EcosystemState = {
     ...current,
     pigeons: current.pigeons.map((animal) => ({ ...animal })),
     speciesVitals: Object.fromEntries(speciesOrder.map((species) => [species, { ...current.speciesVitals[species] }])) as Record<Species, SpeciesVital>,
     policies: { ...current.policies, ...choice.policy },
     events: [...current.events],
-    activeEventId: null,
+    activeEventId: queuedSpecies ? chooseFeedingEvent(queuedSpecies) : null,
+    decisionQueue: current.decisionQueue.slice(1),
     lastEventId: current.activeEventId,
-    eventSpecies: null,
+    eventSpecies: queuedSpecies,
     lastUpdated: now,
   };
-  applyDeltas(next, choice.deltas, definition.species ?? current.eventSpecies ?? undefined);
-  if (!next.endedBy && choice.spawn) addAnimal(next, choice.spawn, "outside");
+  applyDeltas(next, appliedDeltas, definition.species ?? current.eventSpecies ?? undefined);
+  const spawned = !next.endedBy && choice.spawn ? addAnimal(next, choice.spawn) : null;
+  next.lastImpact = {
+    at: now,
+    en: choice.result.en,
+    zh: choice.result.zh,
+    changes: { ...normalizedDeltas(appliedDeltas), ...(spawned ? { quantity: 1 } : {}) },
+  };
   pushNote(next, note(choice.result.en, choice.result.zh, now));
   return checkForEnd(next, now);
 }
@@ -1277,8 +1355,7 @@ function restoreState(value: unknown): EcosystemState {
     const saved = entry as Partial<AnimalAgent>;
     const id = Number.isFinite(Number(saved.id)) ? Math.trunc(Number(saved.id)) : index;
     const species = isSpecies(saved.species) ? saved.species : "pigeon";
-    const zone = saved.hasAcceptedFood ? "inside" : "outside";
-    const fallback = createAnimal(id, species, zone, now);
+    const fallback = createAnimal(id, species, now);
     return {
       ...fallback,
       ...saved,
@@ -1307,14 +1384,14 @@ function restoreState(value: unknown): EcosystemState {
     ? parsed.collectedPlumages.filter(isPlumage)
     : pigeons.filter((animal) => animal.species === "pigeon" && animal.feedCount > 0).map((animal) => animal.plumage);
 
-  if (parsed.version !== 7) {
+  if (parsed.version !== 8) {
     const migrated = makeInitialState(now, favorite);
     migrated.collectedPlumages = [...new Set(collectedPlumages)];
     pushNote(
       migrated,
       note(
-        "The simulation was rebuilt with three animals from each species; the host favorite kept its identity.",
-        "模拟已按每个物种三只重新建立，玩家最喜爱的动物保留了原有身份。",
+        "The shared-plaza rules began with three animals from each species; the host favorite kept its identity.",
+        "共享广场规则已按每个物种三只重新开始，玩家最喜爱的动物保留了原有身份。",
         now,
       ),
     );
@@ -1329,7 +1406,7 @@ function restoreState(value: unknown): EcosystemState {
     return [species, {
       satiety: clamp(finiteOr(saved?.satiety, fallback.satiety)),
       comfort: clamp(finiteOr(saved?.comfort, fallback.comfort)),
-      dangerTurns: clamp(Math.trunc(finiteOr(saved?.dangerTurns, 0)), 0, 3),
+      dangerTurns: clamp(Math.trunc(finiteOr(saved?.dangerTurns, 0)), 0, 4),
     }];
   })) as Record<Species, SpeciesVital>;
   const favoriteId = favorite?.id ?? null;
@@ -1337,7 +1414,7 @@ function restoreState(value: unknown): EcosystemState {
   const restored: EcosystemState = {
     ...base,
     ...parsed,
-    version: 7,
+    version: 8,
     pigeons,
     nextPigeonId: Math.max(...pigeons.map((animal) => animal.id), 0) + 1,
     speciesVitals,
@@ -1347,8 +1424,13 @@ function restoreState(value: unknown): EcosystemState {
     discoveredSpecies: [...speciesOrder],
     animalSpeciesUnlocked: true,
     firstSquirrelSeeded: true,
-    feedingHistory: Array.isArray(parsed.feedingHistory) ? parsed.feedingHistory.slice(-90) as FeedRecord[] : [],
+    feedingHistory: Array.isArray(parsed.feedingHistory)
+      ? parsed.feedingHistory.slice(-90).map((record) => ({ ...(record as FeedRecord), food: "food" as const }))
+      : [],
+    successfulFeedings: Math.max(0, Math.trunc(finiteOr(parsed.successfulFeedings, 0))),
+    decisionQueue: Array.isArray(parsed.decisionQueue) ? parsed.decisionQueue.filter(isSpecies).slice(0, 8) : [],
     events: Array.isArray(parsed.events) ? parsed.events.slice(-18) as FieldNote[] : base.events,
+    lastImpact: parsed.lastImpact && typeof parsed.lastImpact === "object" ? parsed.lastImpact : null,
     policies: parsed.policies ? { ...base.policies, ...parsed.policies } : base.policies,
     activeEventId: parsed.activeEventId && parsed.activeEventId in events ? parsed.activeEventId : null,
     lastEventId: parsed.lastEventId && parsed.lastEventId in events ? parsed.lastEventId : null,
@@ -1471,18 +1553,15 @@ function FoodParticleSprite({ particle }: { particle: FoodParticle }) {
 
 function acceptanceProbability(
   animal: AnimalAgent,
-  food: FoodType,
   state: EcosystemState,
   now: number,
 ) {
   if (now < animal.satietyUntil) return 0.035;
-  const suitable = preference[animal.species][food];
   const appetite = 0.48 + animal.appetite * 0.52;
   const temperament = 0.58 + animal.boldness * 0.42;
   const familiarity = Math.min(0.16, animal.feedCount * 0.025);
-  const city = animal.hasAcceptedFood ? 0.07 : -0.05;
   const bins = state.policies.sealedBins ? 0.035 : 0;
-  return clamp(suitable * appetite * temperament + familiarity + city + bins, 0.025, 0.97);
+  return clamp(feedingAcceptance[animal.species] * appetite * temperament + familiarity + bins, 0.08, 0.97);
 }
 
 function intentFor(probability: number): Intent {
@@ -1502,7 +1581,7 @@ function detectionRadius(animal: AnimalAgent) {
     fox: 32,
     hedgehog: 19,
   };
-  return base[animal.species] * (animal.hasAcceptedFood ? 1 : 0.82);
+  return base[animal.species];
 }
 
 function preferredFollowTarget(animal: AnimalAgent, target: { x: number; y: number }) {
@@ -1558,66 +1637,54 @@ function animalAria(animal: AnimalAgent, language: Language, isFavorite: boolean
   return `${color ? `${color} ` : ""}${name}, fed ${animal.feedCount} times, boldness ${Math.round(animal.boldness * 100)}%${isFavorite ? ", host favorite" : ""}`;
 }
 
-function FoodTray({
-  language,
-  selected,
-  onSelect,
-}: {
+function PillarIcon({ pillar }: { pillar: PillarKey }) {
+  return <span aria-hidden="true" className={`pillar-icon pillar-icon-${pillar}`}>{pillarIcons[pillar]}</span>;
+}
+
+function ImpactChips({ changes, language }: {
+  changes: Partial<Record<PillarKey, number>>;
   language: Language;
-  selected: FoodType;
-  onSelect: (food: FoodType) => void;
 }) {
-  const copy = uiCopy[language];
   return (
-    <div
-      aria-label={copy.foodTray}
-      className="v6-food-tray"
-      onClick={(event) => event.stopPropagation()}
-      onKeyDown={(event) => event.stopPropagation()}
-      onPointerDown={(event) => event.stopPropagation()}
-      role="toolbar"
-    >
-      {foodOrder.map((food) => (
-        <button
-          aria-label={foodData[food].names[language]}
-          aria-pressed={selected === food}
-          className={selected === food ? "is-selected" : ""}
-          key={food}
-          onClick={() => onSelect(food)}
-          style={{ "--food-color": foodData[food].color } as React.CSSProperties}
-          title={foodData[food].names[language]}
-          type="button"
-        >
-          <b aria-hidden="true">{foodData[food].symbol}</b>
-          <span>{foodData[food].names[language]}</span>
-        </button>
-      ))}
-    </div>
+    <span className="v8-impact-chips">
+      {pillarOrder.filter((pillar) => changes[pillar]).map((pillar) => {
+        const value = changes[pillar] ?? 0;
+        return (
+          <span className={value > 0 ? "is-positive" : "is-negative"} key={pillar}>
+            <PillarIcon pillar={pillar} />
+            <small>{pillarNames[language][pillar]}</small>
+            <b>{value > 0 ? "+" : ""}{value}</b>
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
+function LatestImpact({ impact, language, now }: { impact: OutcomeImpact | null; language: Language; now: number }) {
+  if (!impact || now - impact.at > 8_000) return null;
+  return (
+    <aside aria-live="polite" className="v8-impact-toast" role="status">
+      <p>{uiCopy[language].latestChange}</p>
+      <strong>{impact[language]}</strong>
+      <ImpactChips changes={impact.changes} language={language} />
+    </aside>
   );
 }
 
 function EventCard({
   eventId,
+  generations,
   language,
   onChoose,
 }: {
   eventId: EventId;
+  generations: number;
   language: Language;
   onChoose: (side: "left" | "right") => void;
 }) {
   const definition = events[eventId];
   const copy = uiCopy[language];
-  const preview = (deltas: PillarDeltas) => {
-    const normalized: Partial<Record<Exclude<PillarKey, "quantity">, number>> = {
-      satiety: deltas.satiety ?? deltas.vitality,
-      comfort: deltas.comfort ?? (deltas.foraging ?? 0) + (deltas.habitat ?? 0),
-      coexistence: deltas.coexistence,
-    };
-    return (["satiety", "comfort", "coexistence"] as const)
-      .filter((pillar) => normalized[pillar])
-      .map((pillar) => `${pillarNames[language][pillar]} ${(normalized[pillar] ?? 0) > 0 ? "+" : "-"}`)
-      .join(" · ");
-  };
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -1642,12 +1709,12 @@ function EventCard({
         <button aria-label={copy.left} onClick={() => onChoose("left")} type="button">
           <i aria-hidden="true">←</i>
           <strong>{definition.left.label[language]}</strong>
-          <small>{preview(definition.left.deltas)}</small>
+          <ImpactChips changes={normalizedDeltas(eventChoiceDeltas(definition.left.deltas, generations))} language={language} />
         </button>
         <button aria-label={copy.right} onClick={() => onChoose("right")} type="button">
           <strong>{definition.right.label[language]}</strong>
           <i aria-hidden="true">→</i>
-          <small>{preview(definition.right.deltas)}</small>
+          <ImpactChips changes={normalizedDeltas(eventChoiceDeltas(definition.right.deltas, generations))} language={language} />
         </button>
       </div>
     </aside>
@@ -1845,7 +1912,7 @@ function SimulationScene({
   onEventChoice: (side: "left" | "right") => void;
 }) {
   const copy = uiCopy[language];
-  const [selectedFood, setSelectedFood] = useState<FoodType>("grain");
+  const food: FoodType = "food";
   const [particles, setParticles] = useState<FoodParticle[]>([]);
   const [responses, setResponses] = useState<AnimalResponse[]>([]);
   const [deathEffects, setDeathEffects] = useState<DeathEffect[]>([]);
@@ -1910,7 +1977,7 @@ function SimulationScene({
   };
 
   const throwFood = (targetX: number, targetY: number) => {
-    if (state.endedBy || state.activeEventId || particles.length > 0) return;
+    if (state.endedBy || state.activeEventId) return;
     const clock = feedClock();
     const nowPerformance = clock.motion;
     const now = clock.wall;
@@ -1926,7 +1993,7 @@ function SimulationScene({
       .filter((entry) => entry.distance <= detectionRadius(entry.animal))
       .sort((left, right) => left.distance - right.distance || left.animal.id - right.animal.id);
 
-    const probabilities = ranked.map(({ animal }) => acceptanceProbability(animal, selectedFood, state, now));
+    const probabilities = ranked.map(({ animal }) => acceptanceProbability(animal, state, now));
     const winnerIndex = acceptingAnimalIndex(ranked.map(({ animal }) => animal), probabilities, reserved);
     const winner = winnerIndex >= 0 ? ranked[winnerIndex].animal : null;
     const attemptDelay = Math.max(0, winnerIndex) * 280;
@@ -1934,7 +2001,7 @@ function SimulationScene({
     const expiresAt = nowPerformance + (winner ? eatDelay : FOOD_LIFETIME_MS);
     const particle: FoodParticle = {
       id,
-      food: selectedFood,
+      food,
       startX,
       startY,
       targetX,
@@ -1945,17 +2012,17 @@ function SimulationScene({
       acceptedBy: winner?.id ?? null,
       expiresAt,
     };
+    const responseLimit = winnerIndex >= 0 ? Math.max(winnerIndex + 1, Math.min(3, ranked.length)) : Math.min(3, ranked.length);
     const responders: AnimalResponse[] = ranked
-      .filter(({ animal }, index) => animal.hasAcceptedFood || index <= Math.max(winnerIndex, 1))
-      .map(({ animal, position }, index) => {
+      .slice(0, responseLimit)
+      .map(({ animal }, index) => {
         const angle = ((animal.id * 137.508) % 360) * Math.PI / 180;
         const isWinner = animal.id === winner?.id;
-        const approaches = animal.hasAcceptedFood || isWinner;
         return {
           foodId: id,
           animalId: animal.id,
-          x: isWinner ? targetX : approaches ? clamp(targetX + Math.cos(angle) * (3.4 + animal.id % 3), 5, 95) : clamp(position.x + (targetX - position.x) * 0.08, 5, 95),
-          y: isWinner ? targetY : approaches ? clamp(targetY + Math.sin(angle) * (3.4 + animal.id % 3), 25, 92) : clamp(position.y + (targetY - position.y) * 0.08, 24, 93),
+          x: isWinner ? targetX : clamp(targetX + Math.cos(angle) * (3.4 + animal.id % 3), 5, 95),
+          y: isWinner ? targetY : clamp(targetY + Math.sin(angle) * (3.4 + animal.id % 3), 25, 92),
           phase: "noticing" as const,
           intent: intentFor(probabilities[index]),
           winner: isWinner,
@@ -1968,18 +2035,18 @@ function SimulationScene({
       ...current.filter((response) => !responders.some((item) => item.animalId === response.animalId)),
       ...responders,
     ]);
-    onThrow({ id, at: now, food: selectedFood, x: targetX, y: targetY, accepted: null, animalId: null, species: null, favorite: false });
+    onThrow({ id, at: now, food, x: targetX, y: targetY, accepted: null, animalId: null, species: null, favorite: false });
 
     const approachTimer = window.setTimeout(() => {
       setResponses((current) => current.map((response) =>
         response.foodId === id
-          ? { ...response, phase: response.winner || state.pigeons.find((animal) => animal.id === response.animalId)?.hasAcceptedFood ? "approach" : "rejecting" }
+          ? { ...response, phase: "approach" }
           : response,
       ));
     }, 160);
 
     const resolveTimer = window.setTimeout(() => {
-      onResolve({ id, animalId: winner?.id ?? null, food: selectedFood, x: targetX, y: targetY, declinedBefore: winnerIndex >= 0 ? winnerIndex : ranked.length });
+      onResolve({ id, animalId: winner?.id ?? null, food, x: targetX, y: targetY, declinedBefore: winnerIndex >= 0 ? winnerIndex : ranked.length });
       if (winner) {
         setResponses((current) => current.map((response) => response.foodId === id ? { ...response, phase: response.winner ? "eating" : "landing" } : response));
       } else {
@@ -2023,7 +2090,6 @@ function SimulationScene({
     timers.current.push(timer);
   };
 
-  const cityCount = state.pigeons.filter((animal) => animal.hasAcceptedFood).length;
   const stableSpeciesCount = speciesOrder.filter((species) => {
     const profile = speciesProfiles[species];
     return speciesCount(state, species) >= profile.stableMin && speciesSurvival(state, species) >= 30;
@@ -2032,7 +2098,7 @@ function SimulationScene({
   return (
     <section
       aria-label={copy.throwAria}
-      className="ecosystem ecosystem-v6 ecosystem-v7"
+      className="ecosystem ecosystem-v6 ecosystem-v7 ecosystem-v8"
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
@@ -2054,16 +2120,17 @@ function SimulationScene({
     >
       <header className="scene-header">
         <h1>{copy.brand}</h1>
-        <div className="scene-generation"><span>{copy.cycle}</span><strong>{String(state.generations).padStart(2, "0")}</strong></div>
+        <div className="scene-generation">
+          <span>{copy.cycle}</span><strong>{String(state.generations).padStart(2, "0")}</strong>
+          <small>{copy.pressure} {pressureLevel(state.generations)}/6</small>
+        </div>
       </header>
 
       <div className="online-marker" role="status">
         <span>{copy.online}</span><strong>{onlineCount}</strong><small>{copy.collectivePressure}</small>
       </div>
       <div className="city-circle" aria-hidden="true" />
-      <div className="habitat-label habitat-label-wild"><span>{copy.wildPark}</span><strong>{state.pigeons.length - cityCount}</strong></div>
-      <div className="habitat-label habitat-label-city"><span>{copy.cityPlaza}</span><strong>{cityCount}</strong></div>
-      <div className="plaza-population" role="status"><span>{copy.stableGroups}</span><strong>{stableSpeciesCount}/7</strong></div>
+      <div className="plaza-population" role="status"><span>{copy.sharedPlaza} · {copy.stableGroups}</span><strong>{stableSpeciesCount}/7</strong></div>
       <div className="plaza-metrics">
         {pillarOrder.map((pillar, index) => {
           const value = pillarValue(state, pillar);
@@ -2078,7 +2145,9 @@ function SimulationScene({
               role="status"
               style={{ "--metric-value": `${percentage}%` } as React.CSSProperties}
             >
-              <span>{pillarNames[language][pillar]}</span><strong>{display}</strong><i />
+              <PillarIcon pillar={pillar} />
+              <span><small>{pillarNames[language][pillar]}</small><strong>{display}</strong></span>
+              <i><b /></i>
             </div>
           );
         })}
@@ -2093,7 +2162,7 @@ function SimulationScene({
           return (
             <div
               aria-label={animalAria(animal, language, isFavorite)}
-              className={`pigeon-word animal-agent animal-agent-${animal.species} ${animal.hasAcceptedFood ? "pigeon-word-inside" : "pigeon-word-outside"} ${animal.boldness >= 0.55 ? "pigeon-word-bold" : "pigeon-word-shy"} ${isFavorite ? "pigeon-word-host-favorite" : ""} v6-animal v6-intent-${response?.intent ?? "none"} v6-phase-${phase}`}
+              className={`pigeon-word animal-agent animal-agent-${animal.species} pigeon-word-shared ${animal.boldness >= 0.55 ? "pigeon-word-bold" : "pigeon-word-shy"} ${isFavorite ? "pigeon-word-host-favorite" : ""} v6-animal v6-intent-${response?.intent ?? "none"} v6-phase-${phase}`}
               data-animal-id={animal.id}
               data-food-intent={response?.intent}
               data-species={animal.species}
@@ -2164,8 +2233,11 @@ function SimulationScene({
         {particles.map((particle) => <FoodParticleSprite key={particle.id} particle={particle} />)}
       </div>
 
-      <div aria-hidden="true" className="feed-launcher"><b>{foodData[selectedFood].symbol}</b></div>
-      <FoodTray language={language} onSelect={setSelectedFood} selected={selectedFood} />
+      <div aria-label={`${copy.feedAction}: ${copy.decisionProgress}`} className="feed-launcher v8-feed-launcher" role="status">
+        <b aria-hidden="true">{foodData.food.symbol}</b>
+        <span>{copy.feedAction}</span>
+        <small>{copy.decisionProgress} {state.activeEventId ? 2 : state.successfulFeedings % 2}/2{state.decisionQueue.length ? ` +${state.decisionQueue.length}` : ""}</small>
+      </div>
 
       <div className={`v6-favorite-plaque ${favorite ? "has-favorite" : "is-empty"}`} data-host-favorite-id={favorite?.id} role="status">
         <div className="v6-favorite-portrait">
@@ -2176,7 +2248,8 @@ function SimulationScene({
       </div>
 
       <FieldJournal language={language} state={state} />
-      {state.activeEventId ? <EventCard eventId={state.activeEventId} language={language} onChoose={onEventChoice} /> : null}
+      <LatestImpact impact={state.lastImpact} language={language} now={state.lastUpdated} />
+      {state.activeEventId ? <EventCard eventId={state.activeEventId} generations={state.generations} language={language} onChoose={onEventChoice} /> : null}
     </section>
   );
 }
