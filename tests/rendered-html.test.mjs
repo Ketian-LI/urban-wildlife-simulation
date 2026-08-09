@@ -154,10 +154,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
     /const accessoryCatalog = \[([\s\S]*?)\] as const;/,
   )?.[1];
   assert.ok(accessoryCatalogSource);
-  assert.equal([...accessoryCatalogSource.matchAll(/\bid: "/g)].length, 22);
-  assert.match(accessoryCatalogSource, /id: "crown"/);
-  assert.match(accessoryCatalogSource, /id: "red-leg-band"/);
-  assert.match(accessoryCatalogSource, /id: "rainbow-streamer"/);
+  assert.equal([...accessoryCatalogSource.matchAll(/\bid: "/g)].length, 6);
+  assert.doesNotMatch(accessoryCatalogSource, /id: "crown"/);
+  assert.doesNotMatch(accessoryCatalogSource, /id: "red-leg-band"/);
+  assert.doesNotMatch(accessoryCatalogSource, /id: "rainbow-streamer"/);
   assert.match(accessoryCatalogSource, /id: "rain-walker"/);
   assert.match(accessoryCatalogSource, /id: "city-messenger"/);
   assert.match(accessoryCatalogSource, /id: "park-ranger"/);
@@ -413,9 +413,9 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(css, /\.host-favorite-protection/);
   assert.match(css, /\.host-favorite-heart/);
   assert.match(css, /\.pigeon-word-host-favorite/);
-  assert.match(css, /\.pigeon-accessory-crown/);
-  assert.match(css, /\.pigeon-accessory-red-leg-band/);
-  assert.match(css, /\.pigeon-accessory-rainbow-streamer/);
+  assert.doesNotMatch(css, /\.pigeon-accessory-crown/);
+  assert.doesNotMatch(css, /\.pigeon-accessory-red-leg-band/);
+  assert.doesNotMatch(css, /\.pigeon-accessory-rainbow-streamer/);
   assert.match(css, /\.pigeon-accessory-rain-walker/);
   assert.match(css, /\.pigeon-accessory-city-messenger/);
   assert.match(css, /\.pigeon-accessory-park-ranger/);
