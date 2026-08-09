@@ -64,6 +64,13 @@ test("server-renders the illustrated flock", async () => {
   assert.match(html, /Saved on this device/);
   assert.match(html, /href="\/signin-with-chatgpt\?return_to=%2F"/);
   assert.match(html, /Open accessory collection/);
+  assert.match(html, /Open pigeon color field guide/);
+  assert.match(html, /Pigeon color field guide/);
+  assert.equal(
+    [...html.matchAll(/data-plumage-entry="[^"]+"/g)].length,
+    8,
+  );
+  assert.match(html, /data-squirrel-unlocked="false"/);
   assert.equal(
     [...html.matchAll(/data-accessory-id="[^"]+"/g)].length,
     1,
@@ -187,6 +194,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /guaranteeAccessoryCarrier\(pigeons\)/);
   assert.match(simulation, /initialAccessorySeeded: boolean/);
   assert.match(simulation, /initialAccessorySeeded: true/);
+  assert.match(simulation, /collectedPlumages: Plumage\[\]/);
+  assert.match(simulation, /squirrelUnlocked: boolean/);
+  assert.match(simulation, /collectedPlumages: \[\]/);
+  assert.match(simulation, /squirrelUnlocked: false/);
   assert.match(simulation, /function inheritedPigeonStyle/);
   assert.match(simulation, /const childStyle = inheritedPigeonStyle\(parent\)/);
   assert.match(simulation, /const style = inheritedPigeonStyle\(template\)/);
@@ -205,6 +216,11 @@ test("keeps the pigeon simulation visual system in source", async () => {
     simulation,
     /guaranteeAccessoryCarrier\(\s*restarted\.pigeons,\s*restarted\.unlockedAccessories/,
   );
+  assert.match(
+    simulation,
+    /restarted\.collectedPlumages = \[\.\.\.current\.collectedPlumages\]/,
+  );
+  assert.match(simulation, /restarted\.squirrelUnlocked = current\.squirrelUnlocked/);
   assert.match(simulation, /Genetic diversity is too low/);
   assert.match(simulation, /role="alertdialog"/);
   assert.match(simulation, /Restart ecosystem/);
@@ -223,6 +239,10 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(simulation, /feedPigeonState/);
   assert.match(simulation, /const carriedAccessory = pigeons\[parentIndex\]\.accessory/);
   assert.match(simulation, /pigeons\[parentIndex\]\.accessory = null/);
+  assert.match(simulation, /const isNewPlumage = !advanced\.collectedPlumages\.includes/);
+  assert.match(simulation, /collectedPlumages\.length === TOTAL_COLOR_VARIETIES/);
+  assert.match(simulation, /squirrelUnlocked: advanced\.squirrelUnlocked \|\| squirrelJustUnlocked/);
+  assert.match(simulation, /All eight pigeon colors were catalogued/);
   assert.match(simulation, /Accessory unlocked:/);
   assert.match(simulation, /function equipFavoriteAccessoryState/);
   assert.match(simulation, /favoriteAccessory: accessoryId/);
@@ -434,6 +454,12 @@ test("keeps the pigeon simulation visual system in source", async () => {
   assert.match(css, /\.accessory-option\.is-equipped/);
   assert.match(css, /\.accessory-option\.is-selected/);
   assert.match(css, /\.accessory-actions/);
+  assert.match(css, /\.pigeon-color-guide/);
+  assert.match(css, /\.pigeon-color-guide-panel/);
+  assert.match(css, /\.pigeon-color-grid/);
+  assert.match(css, /\.pigeon-color-entry\.is-collected/);
+  assert.match(css, /\.pigeon-color-swatch/);
+  assert.match(css, /\.squirrel-discovery\.is-unlocked/);
   assert.match(css, /\.tutorial-visual-4/);
   assert.match(css, /\.account-control/);
   assert.match(css, /\.account-sign-in/);

@@ -124,6 +124,14 @@ const uiCopy = {
     wardrobeEquipped: "Equipped",
     wardrobeUnlocked: "Unlocked",
     wardrobeLocked: "Locked",
+    colorGuide: "Pigeon color field guide",
+    colorGuideOpen: "Open pigeon color field guide",
+    colorGuideClose: "Close pigeon color field guide",
+    colorGuideCollected: "colors catalogued",
+    colorGuideHint: "Feed a color successfully to catalogue it.",
+    colorGuideUnknown: "Unknown color",
+    squirrelLocked: "Catalogue all eight colors to discover a new species.",
+    squirrelUnlocked: "New species unlocked: squirrel",
     rareAccessoryCarrier: "carries a rare accessory",
     signInWithChatGPT: "Sign in with ChatGPT",
     signOut: "Sign out",
@@ -174,6 +182,14 @@ const uiCopy = {
     wardrobeEquipped: "已佩戴",
     wardrobeUnlocked: "已解锁",
     wardrobeLocked: "未解锁",
+    colorGuide: "鸽子羽色图鉴",
+    colorGuideOpen: "打开鸽子羽色图鉴",
+    colorGuideClose: "关闭鸽子羽色图鉴",
+    colorGuideCollected: "种羽色已收集",
+    colorGuideHint: "成功喂食一种羽色，即可将它收入图鉴。",
+    colorGuideUnknown: "未知羽色",
+    squirrelLocked: "集齐八种羽色后，将发现一个新的物种。",
+    squirrelUnlocked: "新物种已解锁：松鼠",
     rareAccessoryCarrier: "携带一件稀有配饰",
     signInWithChatGPT: "使用 ChatGPT 登录",
     signOut: "退出登录",
@@ -220,6 +236,10 @@ const tutorialSteps = {
       title: "Discover rare accessories",
       body: "A rare accessory can occasionally appear on one pigeon. Feed that carrier to unlock the piece, then equip it on your host favorite from the collection.",
     },
+    {
+      title: "Catalogue feather colors",
+      body: "Successfully feed each feather color to add it to the field guide. Completing all eight entries unlocks the squirrel as a new species.",
+    },
   ],
   zh: [
     {
@@ -237,6 +257,10 @@ const tutorialSteps = {
     {
       title: "发现稀有配饰",
       body: "偶尔会有一只鸽子携带稀有配饰。成功喂食它即可解锁配饰，再从收藏中把配饰装到主机最爱的鸽子身上。",
+    },
+    {
+      title: "收集鸽子羽色",
+      body: "分别成功喂食八种羽色，即可逐项点亮图鉴。全部收集完成后，将解锁松鼠这一新物种。",
     },
   ],
 } as const;
@@ -274,6 +298,8 @@ type EcosystemState = {
   unlockedAccessories: AccessoryId[];
   favoriteAccessory: AccessoryId | null;
   initialAccessorySeeded: boolean;
+  collectedPlumages: Plumage[];
+  squirrelUnlocked: boolean;
 };
 
 type Metric = {
@@ -414,6 +440,10 @@ const exactEventTranslations = new Map<string, string>([
     "The flock adjusted quietly; small behavioral differences carried forward.",
     "鸽群安静地完成了一次调整，细微的行为差异被延续下来。",
   ],
+  [
+    "All eight pigeon colors were catalogued. Squirrel species unlocked.",
+    "八种鸽子羽色已经全部收入图鉴。松鼠物种已解锁。",
+  ],
 ]);
 
 function translatedPlumage(plumage: string, language: Language) {
@@ -443,6 +473,13 @@ function translateEvent(event: string, language: Language) {
   const exact = exactEventTranslations.get(event);
   if (exact) {
     return exact;
+  }
+
+  const fieldGuideMatch = event.match(
+    /^Field guide entry added: (.+) pigeon\.$/,
+  );
+  if (fieldGuideMatch) {
+    return `图鉴新增：${translatedPlumage(fieldGuideMatch[1], "zh")}鸽子。`;
   }
 
   const accessoryMatch = event.match(
@@ -782,6 +819,8 @@ function makeInitialState(now = Date.now()): EcosystemState {
     unlockedAccessories: [],
     favoriteAccessory: null,
     initialAccessorySeeded: true,
+    collectedPlumages: [],
+    squirrelUnlocked: false,
   };
 }
 
@@ -830,6 +869,8 @@ function restartEcosystemState(
     current.unlockedAccessories.includes(current.favoriteAccessory)
       ? current.favoriteAccessory
       : null;
+  restarted.collectedPlumages = [...current.collectedPlumages];
+  restarted.squirrelUnlocked = current.squirrelUnlocked;
   restarted.events = [
     `The ecosystem restarted after color diversity fell to ${colorVarietyCount} of ${TOTAL_COLOR_VARIETIES} varieties.`,
     ...initialEvents,
@@ -1158,6 +1199,20 @@ function restoreState(savedState: unknown) {
       unlockedAccessories.includes(parsed.favoriteAccessory)
         ? parsed.favoriteAccessory
         : null;
+    const collectedPlumages = [
+      ...new Set(
+        Array.isArray(parsed.collectedPlumages)
+          ? parsed.collectedPlumages.filter((plumage): plumage is Plumage =>
+              plumageOrder.includes(plumage as Plumage),
+            )
+          : pigeons
+              .filter((pigeon) => pigeon.feedCount > 0)
+              .map((pigeon) => pigeon.plumage),
+      ),
+    ];
+    const squirrelUnlocked =
+      parsed.squirrelUnlocked === true ||
+      collectedPlumages.length === TOTAL_COLOR_VARIETIES;
     if (parsed.initialAccessorySeeded !== true) {
       guaranteeAccessoryCarrier(
         pigeons,
@@ -1174,6 +1229,8 @@ function restoreState(savedState: unknown) {
       events: Array.isArray(parsed.events) ? parsed.events.slice(0, 6) : initialEvents,
       unlockedAccessories,
       favoriteAccessory,
+      collectedPlumages,
+      squirrelUnlocked,
       initialAccessorySeeded: true,
       restartColorVarietyCount:
         parsed.restartColorVarietyCount !== null &&
@@ -1283,6 +1340,14 @@ function feedPigeonState(
   };
   pigeons.push(child);
 
+  const isNewPlumage = !advanced.collectedPlumages.includes(parent.plumage);
+  const collectedPlumages = isNewPlumage
+    ? [...advanced.collectedPlumages, parent.plumage]
+    : [...advanced.collectedPlumages];
+  const squirrelJustUnlocked =
+    !advanced.squirrelUnlocked &&
+    collectedPlumages.length === TOTAL_COLOR_VARIETIES;
+
   let removed: PigeonAgent | undefined;
   if (pigeons.length > MAX_PIGEONS) {
     const favoriteId = hostFavoritePigeon(pigeons)?.id;
@@ -1317,6 +1382,8 @@ function feedPigeonState(
       !advanced.unlockedAccessories.includes(carriedAccessory)
         ? [...advanced.unlockedAccessories, carriedAccessory]
         : [...advanced.unlockedAccessories],
+    collectedPlumages,
+    squirrelUnlocked: advanced.squirrelUnlocked || squirrelJustUnlocked,
   };
   const feedingLead =
     declinedBefore === 0
@@ -1346,6 +1413,17 @@ function feedPigeonState(
       `Accessory unlocked: ${
         accessoryDefinition(carriedAccessory).names.en
       }. It can now be worn by the host favorite.`,
+    );
+  }
+
+  if (isNewPlumage) {
+    pushEvent(next, `Field guide entry added: ${parent.plumage} pigeon.`);
+  }
+
+  if (squirrelJustUnlocked) {
+    pushEvent(
+      next,
+      "All eight pigeon colors were catalogued. Squirrel species unlocked.",
     );
   }
 
@@ -2777,6 +2855,165 @@ function AccessoryWardrobe({
   );
 }
 
+function PigeonColorGuide({
+  collectedPlumages,
+  language,
+  squirrelUnlocked,
+}: {
+  collectedPlumages: Plumage[];
+  language: Language;
+  squirrelUnlocked: boolean;
+}) {
+  const copy = uiCopy[language];
+  const [isOpen, setIsOpen] = useState(false);
+  const guideRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        guideRef.current &&
+        !guideRef.current.contains(event.target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("pointerdown", closeOnOutsidePointer);
+    return () => {
+      window.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("pointerdown", closeOnOutsidePointer);
+    };
+  }, [isOpen]);
+
+  return (
+    <aside
+      className={`pigeon-color-guide ${isOpen ? "is-open" : ""}`}
+      data-squirrel-unlocked={squirrelUnlocked}
+      ref={guideRef}
+    >
+      <button
+        aria-controls="pigeon-color-guide-panel"
+        aria-expanded={isOpen}
+        aria-label={isOpen ? copy.colorGuideClose : copy.colorGuideOpen}
+        className="pigeon-color-guide-trigger"
+        onClick={() => setIsOpen((current) => !current)}
+        title={isOpen ? copy.colorGuideClose : copy.colorGuideOpen}
+        type="button"
+      >
+        <span aria-hidden="true" className="color-guide-trigger-mark">
+          <i />
+          <i />
+          <i />
+        </span>
+        <span>
+          <b>{copy.colorGuide}</b>
+          <small>
+            {collectedPlumages.length}/{TOTAL_COLOR_VARIETIES}
+          </small>
+        </span>
+        <span aria-hidden="true" className="color-guide-chevron">
+          ⌄
+        </span>
+      </button>
+      <section
+        aria-hidden={!isOpen}
+        aria-label={copy.colorGuide}
+        className="pigeon-color-guide-panel"
+        id="pigeon-color-guide-panel"
+      >
+        <header>
+          <div>
+            <span aria-hidden="true" className="color-guide-book-mark">
+              P
+            </span>
+            <span>
+              <h2>{copy.colorGuide}</h2>
+              <small>{copy.colorGuideHint}</small>
+            </span>
+          </div>
+          <strong>
+            {collectedPlumages.length}/{TOTAL_COLOR_VARIETIES}
+          </strong>
+          <button
+            aria-label={copy.colorGuideClose}
+            className="pigeon-color-guide-close"
+            onClick={() => setIsOpen(false)}
+            title={copy.colorGuideClose}
+            type="button"
+          >
+            ×
+          </button>
+        </header>
+        <div className="pigeon-color-grid" role="list">
+          {plumageOrder.map((plumage, index) => {
+            const isCollected = collectedPlumages.includes(plumage);
+            const palette = featherPalettes[plumage];
+
+            return (
+              <div
+                aria-label={
+                  isCollected
+                    ? translatedPlumage(plumage, language)
+                    : copy.colorGuideUnknown
+                }
+                className={`pigeon-color-entry ${
+                  isCollected ? "is-collected" : "is-unknown"
+                }`}
+                data-plumage-entry={plumage}
+                key={plumage}
+                role="listitem"
+              >
+                <span
+                  aria-hidden="true"
+                  className="pigeon-color-swatch"
+                  style={
+                    {
+                      "--swatch-primary": palette[0],
+                      "--swatch-secondary": palette[1],
+                      "--swatch-accent": palette[2],
+                    } as React.CSSProperties
+                  }
+                >
+                  {isCollected ? <i /> : <b>?</b>}
+                </span>
+                <span>
+                  <small>{String(index + 1).padStart(2, "0")}</small>
+                  <strong>
+                    {isCollected
+                      ? translatedPlumage(plumage, language)
+                      : "???"}
+                  </strong>
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <div
+          className={`squirrel-discovery ${
+            squirrelUnlocked ? "is-unlocked" : "is-locked"
+          }`}
+          role="status"
+        >
+          <span aria-hidden="true">{squirrelUnlocked ? "NEW" : "08"}</span>
+          <strong>
+            {squirrelUnlocked ? copy.squirrelUnlocked : copy.squirrelLocked}
+          </strong>
+        </div>
+      </section>
+    </aside>
+  );
+}
+
 function AccountControl({
   account,
   language,
@@ -3297,6 +3534,11 @@ export function UrbanPigeonSimulation({
               }
               onPreview={setFavoriteAccessoryPreview}
               unlockedAccessories={state.unlockedAccessories}
+            />
+            <PigeonColorGuide
+              collectedPlumages={state.collectedPlumages}
+              language={language}
+              squirrelUnlocked={state.squirrelUnlocked}
             />
           </div>
         </div>
