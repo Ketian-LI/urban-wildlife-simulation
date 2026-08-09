@@ -132,6 +132,7 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(css, /\.v6-animal-sprite/);
   assert.match(css, /\.v7-species-status/);
   assert.match(css, /--extra-atlas/);
+  assert.match(css, /--dog-atlas/);
   assert.match(css, /opacity: 1/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(layout, /url:\s*"\/og\.png"/);
@@ -150,6 +151,6 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   await access(new URL("../public/wildlife-motion-atlas.png", import.meta.url));
   await access(new URL("../public/fox-hedgehog-motion-atlas.png", import.meta.url));
   await access(new URL("../public/wildlife-motion-atlas-transparent.webp", import.meta.url));
-  await access(new URL("../public/wildlife-motion-atlas-aligned.png", import.meta.url));
+  await access(new URL("../public/dog-motion-atlas-aligned.png", import.meta.url));
   await access(new URL("../public/fox-hedgehog-motion-atlas-transparent.webp", import.meta.url));
 });

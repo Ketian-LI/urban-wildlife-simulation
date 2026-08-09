@@ -5271,6 +5271,12 @@ body {
   width: clamp(3.55rem, 4.9vw, 5.15rem);
 }
 
+.ecosystem-v7 .animal-agent-stray-dog .v6-standard-wildlife {
+  background-image: var(--dog-atlas);
+  background-position-y: 0%;
+  background-size: 400% 100%;
+}
+
 .ecosystem-v7 .v6-animal {
   contain: layout paint style;
 }
