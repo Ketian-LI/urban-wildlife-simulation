@@ -3,7 +3,7 @@ import {
   chatGPTSignOutPath,
   getChatGPTUser,
 } from "./chatgpt-auth";
-import { UrbanPigeonSimulation } from "./simulation";
+import { UrbanPigeonSimulation } from "./simulation-v6";
 
 export const dynamic = "force-dynamic";
 

@@ -14,27 +14,27 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://urban-pigeon-simulation.lkt1009.chatgpt.site"),
-  title: "Urban Pigeon Simulation",
+  title: "Urban Wildlife Simulation",
   description:
-    "A calm participatory simulation exploring how repeated feeding can shape urban pigeon behavior over time.",
+    "An endless participatory simulation about feeding choices, urban wildlife, and the pressures shaping a shared city habitat.",
   openGraph: {
-    title: "Urban Pigeon Simulation",
+    title: "Urban Wildlife Simulation",
     description:
-      "A participatory simulation of feeding pressure and behavioral change, represented as a moving illustrated flock.",
+      "Feed seven urban species, read their uncertain responses, and keep four connected city systems from collapsing.",
     images: [
       {
         url: "/og.png",
         width: 1536,
         height: 1024,
-        alt: "Urban Pigeon Simulation illustrated flock",
+        alt: "Urban Wildlife Simulation illustrated park",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Urban Pigeon Simulation",
+    title: "Urban Wildlife Simulation",
     description:
-      "A participatory simulation of feeding pressure and behavioral change.",
+      "An endless simulation of feeding choices and urban wildlife systems.",
     images: ["/og.png"],
   },
   icons: {
