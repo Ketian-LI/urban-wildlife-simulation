@@ -5277,6 +5277,18 @@ body {
   background-size: 400% 100%;
 }
 
+.ecosystem-v7 .animal-agent-swan .v6-standard-wildlife {
+  background-image: var(--swan-atlas);
+  background-position-y: 0%;
+  background-size: 400% 100%;
+}
+
+.ecosystem-v7 .animal-agent-stray-cat .v6-standard-wildlife {
+  background-image: var(--cat-atlas);
+  background-position-y: 0%;
+  background-size: 400% 100%;
+}
+
 .ecosystem-v7 .v6-animal {
   contain: layout paint style;
 }

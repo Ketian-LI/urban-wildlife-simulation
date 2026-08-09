@@ -2045,6 +2045,8 @@ function SimulationScene({
       role="application"
       style={{
         "--wildlife-atlas": "url('/wildlife-motion-atlas-transparent.webp')",
+        "--swan-atlas": "url('/swan-motion-atlas-aligned.png')",
+        "--cat-atlas": "url('/cat-motion-atlas-aligned.png')",
         "--dog-atlas": "url('/dog-motion-atlas-aligned.png')",
         "--extra-atlas": "url('/fox-hedgehog-motion-atlas-transparent.webp')",
       } as React.CSSProperties}
