@@ -81,6 +81,7 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
 
   assert.match(simulation, /const INITIAL_ANIMALS = 21/);
   assert.match(simulation, /const MAX_ANIMALS = 30/);
+  assert.match(simulation, /plumageOrder\.indexOf\(animal\.plumage\) \* 33\.333333/);
   assert.match(simulation, /const STORAGE_KEY = "urban-pigeon-collective-v7"/);
   assert.match(simulation, /type Species =[\s\S]*?"pigeon"[\s\S]*?"squirrel"[\s\S]*?"swan"[\s\S]*?"stray-cat"[\s\S]*?"stray-dog"[\s\S]*?"fox"[\s\S]*?"hedgehog"/);
   assert.match(simulation, /type FoodType =[\s\S]*?"grain"[\s\S]*?"nut"[\s\S]*?"greens"[\s\S]*?"fish"[\s\S]*?"biscuit"[\s\S]*?"meat"[\s\S]*?"insect"/);
@@ -135,6 +136,8 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(css, /--dog-atlas/);
   assert.match(css, /--swan-atlas/);
   assert.match(css, /--cat-atlas/);
+  assert.match(css, /pigeon-motion-atlas-clean\.png/);
+  assert.match(css, /background-size: 700% 400%/);
   assert.match(css, /opacity: 1/);
   assert.match(css, /prefers-reduced-motion:\s*reduce/);
   assert.match(layout, /url:\s*"\/og\.png"/);
@@ -149,12 +152,12 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
 
   await access(new URL("../public/og.png", import.meta.url));
   await access(new URL("../public/equestrian-monument.png", import.meta.url));
-  await access(new URL("../public/pigeon-motion-atlas.webp", import.meta.url));
+  await access(new URL("../public/pigeon-motion-atlas-clean.png", import.meta.url));
   await access(new URL("../public/wildlife-motion-atlas.png", import.meta.url));
   await access(new URL("../public/fox-hedgehog-motion-atlas.png", import.meta.url));
   await access(new URL("../public/wildlife-motion-atlas-transparent.webp", import.meta.url));
   await access(new URL("../public/dog-motion-atlas-aligned.png", import.meta.url));
-  await access(new URL("../public/swan-motion-atlas-aligned.png", import.meta.url));
+  await access(new URL("../public/swan-motion-atlas-clean.png", import.meta.url));
   await access(new URL("../public/cat-motion-atlas-aligned.png", import.meta.url));
   await access(new URL("../public/fox-hedgehog-motion-atlas-transparent.webp", import.meta.url));
 });

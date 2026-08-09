@@ -1540,7 +1540,7 @@ function AnimalSprite({ animal }: { animal: AnimalAgent }) {
     .filter(Boolean)
     .join(" ");
   const style = {
-    "--motion-y": `${plumageOrder.indexOf(animal.plumage) * 14.285714}%`,
+    "--motion-y": `${plumageOrder.indexOf(animal.plumage) * 33.333333}%`,
     "--wildlife-y": `${(standardRow ?? 0) * 33.333333}%`,
     "--extra-y": `${(extraRow ?? 0) * 100}%`,
   } as React.CSSProperties;
@@ -2045,7 +2045,7 @@ function SimulationScene({
       role="application"
       style={{
         "--wildlife-atlas": "url('/wildlife-motion-atlas-transparent.webp')",
-        "--swan-atlas": "url('/swan-motion-atlas-aligned.png')",
+        "--swan-atlas": "url('/swan-motion-atlas-clean.png')",
         "--cat-atlas": "url('/cat-motion-atlas-aligned.png')",
         "--dog-atlas": "url('/dog-motion-atlas-aligned.png')",
         "--extra-atlas": "url('/fox-hedgehog-motion-atlas-transparent.webp')",

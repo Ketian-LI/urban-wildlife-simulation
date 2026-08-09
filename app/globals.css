@@ -2868,10 +2868,10 @@ body {
 .pigeon-bird-sprite,
 .pigeon-death-bird {
   backface-visibility: hidden;
-  background-image: url("/pigeon-motion-atlas.webp");
+  background-image: url("/pigeon-motion-atlas-clean.png");
   background-position: 0% var(--motion-y);
   background-repeat: no-repeat;
-  background-size: 700% 800%;
+  background-size: 700% 400%;
   display: block;
   inset: 0;
   pointer-events: none;
@@ -3380,10 +3380,10 @@ body {
 
 .tutorial-pigeon {
   aspect-ratio: 3 / 4;
-  background-image: url("/pigeon-motion-atlas.webp");
+  background-image: url("/pigeon-motion-atlas-clean.png");
   background-position: 0% 0%;
   background-repeat: no-repeat;
-  background-size: 700% 800%;
+  background-size: 700% 400%;
   display: block;
   height: 6.4rem;
   position: relative;
