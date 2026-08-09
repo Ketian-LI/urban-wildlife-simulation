@@ -2044,7 +2044,7 @@ function SimulationScene({
       onPointerMove={onPointerMove}
       role="application"
       style={{
-        "--wildlife-atlas": "url('/wildlife-motion-atlas-transparent.webp')",
+        "--wildlife-atlas": "url('/wildlife-motion-atlas-aligned.png')",
         "--extra-atlas": "url('/fox-hedgehog-motion-atlas-transparent.webp')",
       } as React.CSSProperties}
       tabIndex={0}

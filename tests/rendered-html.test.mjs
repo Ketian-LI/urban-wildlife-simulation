@@ -150,5 +150,6 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   await access(new URL("../public/wildlife-motion-atlas.png", import.meta.url));
   await access(new URL("../public/fox-hedgehog-motion-atlas.png", import.meta.url));
   await access(new URL("../public/wildlife-motion-atlas-transparent.webp", import.meta.url));
+  await access(new URL("../public/wildlife-motion-atlas-aligned.png", import.meta.url));
   await access(new URL("../public/fox-hedgehog-motion-atlas-transparent.webp", import.meta.url));
 });
