@@ -123,7 +123,10 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /unlockAtGeneration/);
   assert.match(simulation, /overflowedPillar/);
   assert.match(simulation, /Urban pressure rose to level/);
-  assert.match(simulation, /className="v8-impact-chips"/);
+  assert.match(simulation, /v8-impact-chips/);
+  assert.match(simulation, /function impactMagnitude/);
+  assert.match(simulation, /display="magnitude"/);
+  assert.match(simulation, /impactNoticeable/);
   assert.match(simulation, /className="feed-launcher v8-feed-launcher"/);
   assert.doesNotMatch(simulation, /hasAcceptedFood|pigeon-word-inside|pigeon-word-outside/);
   assert.match(simulation, /favoritePosition/);
@@ -145,6 +148,7 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(css, /\.v7-species-status/);
   assert.match(css, /\.ecosystem-v8 \.plaza-metrics/);
   assert.match(css, /\.v8-impact-chips/);
+  assert.match(css, /\.v10-impact-magnitude/);
   assert.match(css, /\.v8-impact-toast/);
   assert.match(css, /\.plaza-metric\.is-locked/);
   assert.match(css, /\.plaza-metric\.is-high-risk/);

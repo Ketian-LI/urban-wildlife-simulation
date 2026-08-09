@@ -5494,6 +5494,11 @@ body {
   color: #9d382b;
 }
 
+.v8-impact-chips > .is-magnitude {
+  background: #e5e4dc;
+  color: #3f4542;
+}
+
 .v8-impact-chips .pillar-icon {
   align-items: center;
   background: currentColor;
@@ -5515,6 +5520,31 @@ body {
 .v8-impact-chips b {
   color: inherit;
   font-size: clamp(0.46rem, 0.66vw, 0.68rem);
+}
+
+.v10-impact-magnitude {
+  align-items: flex-end;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.v10-impact-magnitude > span {
+  align-items: flex-end;
+  display: flex;
+  gap: 2px;
+  height: 0.42rem;
+}
+
+.v10-impact-magnitude i {
+  background: #b9bcb6;
+  display: block;
+  height: 100%;
+  width: 3px;
+}
+
+.v10-impact-magnitude i.is-filled {
+  background: currentColor;
 }
 
 .ecosystem-v8 .v6-event-card {

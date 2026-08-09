@@ -311,6 +311,10 @@ const uiCopy = {
     lockEffect: "Lock effect",
     extremeEvent: "Extreme event",
     overflowRisk: "Overflow risk",
+    impactSlight: "Slight",
+    impactNoticeable: "Noticeable",
+    impactStrong: "Strong",
+    impactSevere: "Severe",
     specialEffectCue: "This decision can lock one condition for two cycles",
     extremeEventCue: "All effects are amplified; exceeding 100 ends the cycle",
     fieldGuide: "Field journal",
@@ -366,6 +370,10 @@ const uiCopy = {
     lockEffect: "锁定效果",
     extremeEvent: "极端事件",
     overflowRisk: "溢出风险",
+    impactSlight: "轻微",
+    impactNoticeable: "明显",
+    impactStrong: "强烈",
+    impactSevere: "剧烈",
     specialEffectCue: "本次决策可能让一项数值锁定两个周期",
     extremeEventCue: "所有效果均被放大；任何数值超过 100 都会结束本轮",
     fieldGuide: "观察日志",
@@ -416,7 +424,7 @@ const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
     },
     {
       title: "Feeding builds toward a decision",
-      body: "Every two successful feedings trigger one species event. The icons and signed values show the likely trade-off before you choose.",
+      body: "Every two successful feedings trigger one species event. Before choosing, the icons reveal which conditions may change and only hint at the size of the impact.",
     },
     {
       title: "Keep four conditions alive",
@@ -434,7 +442,7 @@ const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
     },
     {
       title: "投喂会逐步触发决策",
-      body: "每两次成功投喂会触发一次对应物种事件。选择前可以通过图标和带正负号的数值看清大致影响。",
+      body: "每两次成功投喂会触发一次对应物种事件。选择前只会提示可能受影响的数值和影响大小，不会透露增减方向。",
     },
     {
       title: "维持四项生存条件",
@@ -1802,20 +1810,42 @@ function PillarIcon({ pillar }: { pillar: PillarKey }) {
   return <span aria-hidden="true" className={`pillar-icon pillar-icon-${pillar}`}>{pillarIcons[pillar]}</span>;
 }
 
-function ImpactChips({ changes, language, lockedPillar = null }: {
+function impactMagnitude(value: number, language: Language) {
+  const amount = Math.abs(value);
+  if (amount <= 4) return { level: 1, label: uiCopy[language].impactSlight };
+  if (amount <= 8) return { level: 2, label: uiCopy[language].impactNoticeable };
+  if (amount <= 13) return { level: 3, label: uiCopy[language].impactStrong };
+  return { level: 4, label: uiCopy[language].impactSevere };
+}
+
+function ImpactChips({ changes, language, lockedPillar = null, display = "exact" }: {
   changes: Partial<Record<PillarKey, number>>;
   language: Language;
   lockedPillar?: LockablePillar | null;
+  display?: "exact" | "magnitude";
 }) {
   return (
-    <span className="v8-impact-chips">
+    <span className={`v8-impact-chips ${display === "magnitude" ? "is-preview" : "is-result"}`}>
       {pillarOrder.filter((pillar) => changes[pillar]).map((pillar) => {
         const value = changes[pillar] ?? 0;
+        const magnitude = impactMagnitude(value, language);
+        const locked = lockedPillar === pillar;
         return (
-          <span className={lockedPillar === pillar ? "is-locked" : value > 0 ? "is-positive" : "is-negative"} key={pillar}>
+          <span
+            aria-label={`${pillarNames[language][pillar]}, ${locked ? uiCopy[language].locked : display === "magnitude" ? magnitude.label : value}`}
+            className={locked ? "is-locked" : display === "magnitude" ? "is-magnitude" : value > 0 ? "is-positive" : "is-negative"}
+            key={pillar}
+          >
             <PillarIcon pillar={pillar} />
             <small>{pillarNames[language][pillar]}</small>
-            <b>{lockedPillar === pillar ? uiCopy[language].locked : <>{value > 0 ? "+" : ""}{value}</>}</b>
+            {locked ? <b>{uiCopy[language].locked}</b> : display === "magnitude" ? (
+              <b className="v10-impact-magnitude">
+                <span aria-hidden="true">
+                  {Array.from({ length: 4 }, (_, index) => <i className={index < magnitude.level ? "is-filled" : ""} key={index} />)}
+                </span>
+                {magnitude.label}
+              </b>
+            ) : <b>{value > 0 ? "+" : ""}{value}</b>}
           </span>
         );
       })}
@@ -1886,12 +1916,12 @@ function EventCard({
         <button aria-label={copy.left} onClick={() => onChoose("left")} type="button">
           <i aria-hidden="true">←</i>
           <strong>{definition.left.label[language]}</strong>
-          <ImpactChips changes={normalizedDeltas(eventChoiceDeltas(definition.left.deltas, generations, decisionsMade))} language={language} lockedPillar={lockedPillar} />
+          <ImpactChips changes={normalizedDeltas(eventChoiceDeltas(definition.left.deltas, generations, decisionsMade))} display="magnitude" language={language} lockedPillar={lockedPillar} />
         </button>
         <button aria-label={copy.right} onClick={() => onChoose("right")} type="button">
           <strong>{definition.right.label[language]}</strong>
           <i aria-hidden="true">→</i>
-          <ImpactChips changes={normalizedDeltas(eventChoiceDeltas(definition.right.deltas, generations, decisionsMade))} language={language} lockedPillar={lockedPillar} />
+          <ImpactChips changes={normalizedDeltas(eventChoiceDeltas(definition.right.deltas, generations, decisionsMade))} display="magnitude" language={language} lockedPillar={lockedPillar} />
         </button>
       </div>
     </aside>
