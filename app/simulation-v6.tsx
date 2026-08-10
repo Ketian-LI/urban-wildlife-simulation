@@ -843,7 +843,10 @@ function pillarSnapshot(state: EcosystemState) {
 function measuredPillarChanges(before: Record<PillarKey, number>, state: EcosystemState) {
   return Object.fromEntries(
     pillarOrder
-      .map((pillar) => [pillar, Math.round(pillarValue(state, pillar) - before[pillar])] as const)
+      .map((pillar) => {
+        const change = pillarValue(state, pillar) - before[pillar];
+        return [pillar, pillar === "quantity" ? Math.round(change) : Math.round(change * 10) / 10] as const;
+      })
       .filter(([, value]) => value !== 0),
   ) as Partial<Record<PillarKey, number>>;
 }

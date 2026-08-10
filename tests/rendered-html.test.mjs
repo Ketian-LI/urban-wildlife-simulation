@@ -140,6 +140,7 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /v8-impact-chips/);
   assert.match(simulation, /function impactMagnitude/);
   assert.match(simulation, /function measuredPillarChanges/);
+  assert.match(simulation, /Math\.round\(change \* 10\) \/ 10/);
   assert.match(simulation, /function sharedPreviewChanges/);
   assert.match(simulation, /display="magnitude"/);
   assert.match(simulation, /impactNoticeable/);
