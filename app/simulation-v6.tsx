@@ -17,6 +17,11 @@ const HEALTHY_POPULATION_MIN = 14;
 const SOFT_CAPACITY = 24;
 const HIGH_RISK_POPULATION = 28;
 const CAPACITY_GRACE_GENERATIONS = 2;
+const RELIANCE_GAIN_PER_FEED = 1.8;
+const RELIANCE_RECOVERY_PER_CYCLE = 0.45;
+const RELIANCE_HUNGER_FACTOR = 0.025;
+const CONTACT_STRAIN_START = 30;
+const CONTACT_EVENT_THRESHOLD = 42;
 const GENERATION_MS = 40_000;
 const FOOD_LIFETIME_MS = 4_000;
 const DEATH_ANIMATION_MS = 1_400;
@@ -102,6 +107,7 @@ type Policies = {
 type SpeciesVital = {
   satiety: number;
   comfort: number;
+  reliance: number;
   dangerTurns: number;
 };
 
@@ -228,14 +234,15 @@ const speciesProfiles: Record<Species, {
   comfortWeight: number;
   coexistenceWeight: number;
   hungerDecay: number;
+  foodBenefit: number;
 }> = {
-  pigeon: { stableMin: 3, idealMin: 3, idealMax: 6, satietyWeight: 0.5, comfortWeight: 0.2, coexistenceWeight: 0.3, hungerDecay: 5 },
-  squirrel: { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.35, comfortWeight: 0.4, coexistenceWeight: 0.25, hungerDecay: 4 },
-  swan: { stableMin: 2, idealMin: 2, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.45, coexistenceWeight: 0.25, hungerDecay: 3 },
-  "stray-cat": { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.45, comfortWeight: 0.2, coexistenceWeight: 0.35, hungerDecay: 5 },
-  "stray-dog": { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.4, comfortWeight: 0.35, coexistenceWeight: 0.25, hungerDecay: 5 },
-  fox: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.3, coexistenceWeight: 0.4, hungerDecay: 4 },
-  hedgehog: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.5, coexistenceWeight: 0.2, hungerDecay: 3 },
+  pigeon: { stableMin: 3, idealMin: 3, idealMax: 6, satietyWeight: 0.5, comfortWeight: 0.2, coexistenceWeight: 0.3, hungerDecay: 5, foodBenefit: 9 },
+  squirrel: { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.35, comfortWeight: 0.4, coexistenceWeight: 0.25, hungerDecay: 4, foodBenefit: 8 },
+  swan: { stableMin: 2, idealMin: 2, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.45, coexistenceWeight: 0.25, hungerDecay: 3, foodBenefit: 6 },
+  "stray-cat": { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.45, comfortWeight: 0.2, coexistenceWeight: 0.35, hungerDecay: 5, foodBenefit: 5 },
+  "stray-dog": { stableMin: 2, idealMin: 2, idealMax: 4, satietyWeight: 0.4, comfortWeight: 0.35, coexistenceWeight: 0.25, hungerDecay: 5, foodBenefit: 6 },
+  fox: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.3, coexistenceWeight: 0.4, hungerDecay: 4, foodBenefit: 4 },
+  hedgehog: { stableMin: 1, idealMin: 1, idealMax: 3, satietyWeight: 0.3, comfortWeight: 0.5, coexistenceWeight: 0.2, hungerDecay: 3, foodBenefit: 3 },
 };
 const wildlifeRows: Partial<Record<Species, number>> = {
   squirrel: 0,
@@ -333,6 +340,16 @@ const uiCopy = {
     species: "Species survival",
     stableLine: "safe line",
     survival: "survival",
+    foodReliance: "human-food reliance",
+    relianceLow: "low",
+    relianceForming: "forming",
+    relianceHigh: "high",
+    contactPressure: "Gathering pressure",
+    contactLow: "dispersed",
+    contactElevated: "concentrated",
+    contactHigh: "crowded",
+    modelBasis: "About this model",
+    modelNote: "A speculative, time-compressed model of possible feedbacks. One shared food simplifies many diets; outcomes are not ecological forecasts or animal-care advice.",
     atRisk: "at risk",
     stable: "stable",
     notes: "Recent causes",
@@ -398,6 +415,16 @@ const uiCopy = {
     species: "物种生存状态",
     stableLine: "安全线",
     survival: "生存值",
+    foodReliance: "人类食物依赖",
+    relianceLow: "较低",
+    relianceForming: "形成中",
+    relianceHigh: "较高",
+    contactPressure: "聚集压力",
+    contactLow: "分散",
+    contactElevated: "集中",
+    contactHigh: "拥挤",
+    modelBasis: "关于这个模型",
+    modelNote: "这是一个压缩生态时间、探索可能反馈的推测性模型。单一食物简化了不同食性；结果不是生态预测，也不是动物投喂建议。",
     atRisk: "危险",
     stable: "稳定",
     notes: "近期原因",
@@ -446,6 +473,10 @@ const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
       body: "Every two successful feedings trigger one species event. Before choosing, the icons reveal which conditions may change and only hint at the size of the impact.",
     },
     {
+      title: "Care changes future encounters",
+      body: "Repeated feeding slowly changes boldness and reliance. Food concentrated in one place raises gathering pressure; some consequences arrive in later city cycles.",
+    },
+    {
       title: "Balance four conditions",
       body: "Quantity is safest from 14 to 24: 10 or fewer animals end the cycle, while 30 animals for two cycles exceed carrying capacity. Other conditions fail at zero, and marked extreme events can push them beyond 100.",
     },
@@ -462,6 +493,10 @@ const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
     {
       title: "投喂会逐步触发决策",
       body: "每两次成功投喂会触发一次对应物种事件。选择前只会提示可能受影响的数值和影响大小，不会透露增减方向。",
+    },
+    {
+      title: "照顾会改变之后的相遇",
+      body: "重复投喂会缓慢改变动物的大胆程度和依赖关系。食物集中在同一处会增加聚集压力，有些后果要到之后的城市周期才会出现。",
     },
     {
       title: "平衡四项生存条件",
@@ -631,24 +666,24 @@ const events: Record<EventId, EventDefinition> = {
     },
   },
   "favorite-example": {
-    eyebrow: { en: "Animals copy animals", zh: "动物也会观察动物" },
-    title: { en: "Others begin following your favorite", zh: "其他动物开始跟随你最喜爱的动物" },
-    body: { en: "Repeated attention to one individual has become a cue for the group.", zh: "对一个个体的反复关注，已经成为群体能够识别的线索。" },
+    eyebrow: { en: "Who is training whom?", zh: "究竟是谁在训练谁？" },
+    title: { en: "The group begins waiting for your familiar gesture", zh: "动物群体开始等待你熟悉的动作" },
+    body: { en: "Repeated care has become a predictable resource and now organizes movement across the square.", zh: "反复的照顾已经变成可预测的资源，并开始组织广场中的移动。" },
     left: {
-      label: { en: "Keep feeding the leader", zh: "继续投喂领头个体" },
-      result: { en: "Group vitality rose and independent foraging declined.", zh: "群体生命力上升，自主觅食能力下降。" },
-      deltas: { vitality: 8, foraging: -8 },
+      label: { en: "Keep the familiar ritual", zh: "维持熟悉的投喂仪式" },
+      result: { en: "The ritual brought immediate security while the group watched for it more closely.", zh: "熟悉的仪式带来即时安全感，动物也更加留意它何时出现。" },
+      deltas: { satiety: 9, comfort: 5, coexistence: -7 },
     },
     right: {
-      label: { en: "Move food away", zh: "把食物投向别处" },
-      result: { en: "Attention spread across the plaza.", zh: "动物的注意力重新分散到广场各处。" },
-      deltas: { foraging: 7, vitality: -2 },
+      label: { en: "Interrupt the pattern", zh: "打断这一固定模式" },
+      result: { en: "Attention spread across the square, though the familiar group became unsettled.", zh: "注意力重新分散到广场各处，但熟悉这一模式的群体变得不安。" },
+      deltas: { satiety: -3, comfort: 7, coexistence: 5 },
     },
   },
   "quiet-foraging": {
     eyebrow: { en: "No feeding is also an action", zh: "不投喂也是一种行为" },
     title: { en: "Animals return to the park edges", zh: "动物重新回到公园边缘觅食" },
-    body: { en: "With no recent throws, habitat quality is shaping behavior more strongly.", zh: "最近没有新的投食，栖息环境开始更明显地影响动物行为。" },
+    body: { en: "With no recently accepted food, habitat quality is shaping behavior more strongly.", zh: "最近没有食物被接受，栖息环境开始更明显地影响动物行为。" },
     left: {
       label: { en: "Keep observing", zh: "继续观察" },
       result: { en: "Independent foraging recovered.", zh: "自主觅食能力得到了恢复。" },
@@ -710,11 +745,11 @@ const events: Record<EventId, EventDefinition> = {
     },
   },
   "crisis-vitality": {
-    eyebrow: { en: "Vitality crisis", zh: "生命力危机" },
-    title: { en: "The animal population is visibly weakening", zh: "动物群体明显变得虚弱" },
-    body: { en: "Immediate help may preserve individuals while creating a stronger feeding pattern.", zh: "立即帮助可以维持个体，但也会形成更强的投喂模式。" },
-    left: { label: { en: "Emergency feeding", zh: "紧急投喂" }, result: { en: "Vitality recovered at the cost of foraging.", zh: "生命力得到恢复，但觅食力下降。" }, deltas: { vitality: 18, foraging: -10 } },
-    right: { label: { en: "Open a habitat refuge", zh: "开放栖息避难区" }, result: { en: "Recovery was slower but less dependent on food.", zh: "恢复较慢，但更少依赖投喂。" }, deltas: { vitality: 10, habitat: 7, coexistence: -4 } },
+    eyebrow: { en: "Satiety crisis", zh: "饱食危机" },
+    title: { en: "Several animal groups are visibly weakening", zh: "多个动物群体明显变得虚弱" },
+    body: { en: "Immediate food may preserve individuals while intensifying crowding around people.", zh: "紧急食物可能维持个体，同时加剧人类周围的聚集。" },
+    left: { label: { en: "Open an emergency food station", zh: "开放紧急食物站" }, result: { en: "Satiety recovered while crowding reduced comfort.", zh: "饱食度得到恢复，但聚集降低了舒适度。" }, deltas: { satiety: 18, comfort: -10 } },
+    right: { label: { en: "Open a habitat refuge", zh: "开放栖息避难区" }, result: { en: "Recovery was slower, with more shelter and less public space.", zh: "恢复较慢，庇护增加了，但公共空间有所减少。" }, deltas: { satiety: 10, comfort: 7, coexistence: -4 } },
   },
   "crisis-foraging": {
     eyebrow: { en: "Foraging crisis", zh: "觅食力危机" },
@@ -724,7 +759,7 @@ const events: Record<EventId, EventDefinition> = {
     right: { label: { en: "Scatter natural food", zh: "分散自然食物" }, result: { en: "Animals searched more widely through the habitat.", zh: "动物开始在栖息地中进行更广泛的搜索。" }, deltas: { foraging: 12, habitat: -4, vitality: 4 } },
   },
   "crisis-habitat": {
-    eyebrow: { en: "Habitat crisis", zh: "栖息地危机" },
+    eyebrow: { en: "Comfort crisis", zh: "舒适度危机" },
     title: { en: "Shelter, water and quiet routes are disappearing", zh: "庇护、水源和安静路线正在消失" },
     body: { en: "The city can return space to habitat, but not without changing public use.", zh: "城市可以把空间还给栖息环境，但公众使用方式也会随之改变。" },
     left: { label: { en: "Restore green corridors", zh: "恢复绿色通道" }, result: { en: "Habitat recovered and public space narrowed.", zh: "栖息地得到恢复，公共空间有所缩小。" }, deltas: { habitat: 20, coexistence: -9 }, policy: { shrubs: true } },
@@ -805,13 +840,13 @@ function createAnimal(
 
 function makeSpeciesVitals(): Record<Species, SpeciesVital> {
   return {
-    pigeon: { satiety: 68, comfort: 66, dangerTurns: 0 },
-    squirrel: { satiety: 67, comfort: 69, dangerTurns: 0 },
-    swan: { satiety: 66, comfort: 68, dangerTurns: 0 },
-    "stray-cat": { satiety: 65, comfort: 64, dangerTurns: 0 },
-    "stray-dog": { satiety: 67, comfort: 66, dangerTurns: 0 },
-    fox: { satiety: 64, comfort: 65, dangerTurns: 0 },
-    hedgehog: { satiety: 65, comfort: 69, dangerTurns: 0 },
+    pigeon: { satiety: 68, comfort: 66, reliance: 22, dangerTurns: 0 },
+    squirrel: { satiety: 67, comfort: 69, reliance: 16, dangerTurns: 0 },
+    swan: { satiety: 66, comfort: 68, reliance: 10, dangerTurns: 0 },
+    "stray-cat": { satiety: 65, comfort: 64, reliance: 18, dangerTurns: 0 },
+    "stray-dog": { satiety: 67, comfort: 66, reliance: 20, dangerTurns: 0 },
+    fox: { satiety: 64, comfort: 65, reliance: 5, dangerTurns: 0 },
+    hedgehog: { satiety: 65, comfort: 69, reliance: 4, dangerTurns: 0 },
   };
 }
 
@@ -1100,6 +1135,35 @@ function recentFeeds(state: EcosystemState, now: number, windowMs: number) {
   return state.feedingHistory.filter((record) => now - record.at <= windowMs);
 }
 
+function feedingContactPressure(state: EcosystemState, now: number) {
+  const accepted = recentFeeds(state, now, 90_000)
+    .filter((record) => record.accepted === true);
+  const crowding = Math.max(0, state.pigeons.length - SOFT_CAPACITY) * 7;
+  if (accepted.length < 2) return clamp(crowding);
+  const centre = accepted.reduce(
+    (sum, record) => ({ x: sum.x + record.x / accepted.length, y: sum.y + record.y / accepted.length }),
+    { x: 0, y: 0 },
+  );
+  const spread = accepted.reduce(
+    (sum, record) => sum + Math.hypot(record.x - centre.x, record.y - centre.y),
+    0,
+  ) / accepted.length;
+  const concentration = clamp(1 - spread / 28, 0, 1);
+  return clamp(crowding + (accepted.length - 1) * 9 * concentration);
+}
+
+function chooseSystemEvent(state: EcosystemState, now: number): EventId | null {
+  if (pillarValue(state, "satiety") <= 28) return "crisis-vitality";
+  if (pillarValue(state, "comfort") <= 28) return "crisis-habitat";
+  if (state.coexistence <= 28) return "crisis-coexistence";
+  if (state.generations % 3 !== 0) return null;
+  const accepted = recentFeeds(state, now, 90_000).filter((record) => record.accepted === true);
+  if (accepted.length === 0) return "quiet-foraging";
+  if (feedingContactPressure(state, now) >= CONTACT_EVENT_THRESHOLD) return "visitor-group";
+  if (state.generations % 6 === 0) return state.policies.sealedBins ? "garden-maintenance" : "sealed-bins";
+  return null;
+}
+
 function chooseFeedingEvent(species: Species | null): EventId {
   if (!species) return "leftovers";
   const eventBySpecies: Record<Species, EventId> = {
@@ -1155,15 +1219,25 @@ function runGeneration(state: EcosystemState, now: number) {
   const lockedThisCycle = state.lockedPillar;
   const pressure = pressureLevel(state.generations);
   const overcrowding = Math.max(0, state.pigeons.length - SOFT_CAPACITY);
+  const contactPressure = feedingContactPressure(state, now);
+  const contactStrain = Math.max(0, contactPressure - CONTACT_STRAIN_START) * 0.08;
   const comfortStrain = Math.max(0, pressure - 2) * 0.65;
   if (lockedThisCycle !== "coexistence") {
-    state.coexistence = clamp(state.coexistence - (0.7 + pressure * 0.45 + overcrowding * 0.7));
+    state.coexistence = clamp(state.coexistence - (0.7 + pressure * 0.45 + overcrowding * 0.7 + contactStrain));
   }
   state.speciesVitals = Object.fromEntries(
     speciesOrder.map((species) => {
       const profile = speciesProfiles[species];
       const count = speciesCount(state, species);
       const current = state.speciesVitals[species];
+      const recentSpeciesFeeds = recentFeeds(state, now, 90_000)
+        .filter((record) => record.accepted === true && record.species === species).length;
+      const relianceShift = recentSpeciesFeeds >= 2
+        ? Math.min(1.6, recentSpeciesFeeds * 0.35)
+        : recentSpeciesFeeds === 1
+          ? 0.15
+          : -RELIANCE_RECOVERY_PER_CYCLE;
+      const missedSubsidyCost = recentSpeciesFeeds === 0 ? current.reliance * RELIANCE_HUNGER_FACTOR : 0;
       const socialComfort = count < profile.stableMin
         ? -6 * (profile.stableMin - count)
         : count > profile.idealMax
@@ -1173,10 +1247,11 @@ function runGeneration(state: EcosystemState, now: number) {
         ...current,
         satiety: lockedThisCycle === "satiety"
           ? current.satiety
-          : clamp(current.satiety - profile.hungerDecay - overcrowding * 0.45),
+          : clamp(current.satiety - profile.hungerDecay - overcrowding * 0.45 - missedSubsidyCost),
         comfort: lockedThisCycle === "comfort"
           ? current.comfort
-          : clamp(current.comfort + socialComfort - comfortStrain - overcrowding * 0.7),
+          : clamp(current.comfort + socialComfort - comfortStrain - overcrowding * 0.7 - contactStrain * 0.8),
+        reliance: clamp(current.reliance + relianceShift),
       }];
     }),
   ) as Record<Species, SpeciesVital>;
@@ -1315,6 +1390,13 @@ function runGeneration(state: EcosystemState, now: number) {
   }
 
   checkForEnd(state, now);
+  if (!state.endedBy && !state.activeEventId && state.decisionQueue.length === 0) {
+    const systemEvent = chooseSystemEvent(state, now);
+    if (systemEvent) {
+      state.activeEventId = systemEvent;
+      state.eventSpecies = null;
+    }
+  }
 }
 
 function advanceState(current: EcosystemState, now = Date.now()) {
@@ -1447,7 +1529,7 @@ function resolveFeedState(
   next.pigeons[index] = {
     ...animal,
     feedCount: animal.feedCount + 1,
-    boldness: clamp(animal.boldness + 0.012, 0.12, 0.96),
+    boldness: clamp(animal.boldness + 0.018, 0.12, 0.96),
     appetite: 0.08,
     nutrition: clamp(animal.nutrition + 1, 0, 4),
     satietyUntil: now + 9_000 + (animal.id % 4) * 1_200,
@@ -1463,10 +1545,11 @@ function resolveFeedState(
     ...next.speciesVitals[animal.species],
     satiety: pillarLocked(next, "satiety")
       ? next.speciesVitals[animal.species].satiety
-      : clamp(next.speciesVitals[animal.species].satiety + 9),
+      : clamp(next.speciesVitals[animal.species].satiety + speciesProfiles[animal.species].foodBenefit),
     comfort: pillarLocked(next, "comfort")
       ? next.speciesVitals[animal.species].comfort
       : clamp(next.speciesVitals[animal.species].comfort + 2),
+    reliance: clamp(next.speciesVitals[animal.species].reliance + RELIANCE_GAIN_PER_FEED),
     dangerTurns: Math.max(0, next.speciesVitals[animal.species].dangerTurns - 1),
   };
   if (repetition >= 4 && !pillarLocked(next, "coexistence")) {
@@ -1486,13 +1569,17 @@ function resolveFeedState(
   }
 
   next.favoriteId = strongestFavorite(next.pigeons, next.favoriteId);
+  const fedAnimal = next.pigeons[index];
+  const favoritePattern = next.favoriteId === fedAnimal.id
+    && fedAnimal.feedCount >= 4
+    && (next.decisionsMade + 1) % 4 === 0;
   const acceptedFeedCount = next.successfulFeedings + 1;
   next.successfulFeedings = acceptedFeedCount;
   const triggersDecision = acceptedFeedCount % 2 === 0;
   if (triggersDecision) {
     if (next.activeEventId) next.decisionQueue = [...next.decisionQueue, animal.species];
     else {
-      next.activeEventId = chooseFeedingEvent(animal.species);
+      next.activeEventId = favoritePattern ? "favorite-example" : chooseFeedingEvent(animal.species);
       next.eventSpecies = animal.species;
     }
   } else if (!next.activeEventId) next.eventSpecies = null;
@@ -1697,6 +1784,7 @@ function restoreState(value: unknown): EcosystemState {
     return [species, {
       satiety: clamp(finiteOr(saved?.satiety, fallback.satiety)),
       comfort: clamp(finiteOr(saved?.comfort, fallback.comfort)),
+      reliance: clamp(finiteOr(saved?.reliance, fallback.reliance)),
       dangerTurns: clamp(Math.trunc(finiteOr(saved?.dangerTurns, 0)), 0, 4),
     }];
   })) as Record<Species, SpeciesVital>;
@@ -1862,8 +1950,9 @@ function acceptanceProbability(
   const appetite = 0.48 + animal.appetite * 0.52;
   const temperament = 0.58 + animal.boldness * 0.42;
   const familiarity = Math.min(0.16, animal.feedCount * 0.025);
+  const learnedReliance = state.speciesVitals[animal.species].reliance * 0.0016;
   const bins = state.policies.sealedBins ? 0.035 : 0;
-  return clamp(feedingAcceptance[animal.species] * appetite * temperament + familiarity + bins, 0.08, 0.97);
+  return clamp(feedingAcceptance[animal.species] * appetite * temperament + familiarity + learnedReliance + bins, 0.08, 0.97);
 }
 
 function intentFor(probability: number): Intent {
@@ -2079,6 +2168,13 @@ function EventCard({
 function FieldJournal({ state, language }: { state: EcosystemState; language: Language }) {
   const [open, setOpen] = useState(false);
   const copy = uiCopy[language];
+  const contactPressure = feedingContactPressure(state, state.lastUpdated);
+  const contactLevel = contactPressure >= 60 ? "high" : contactPressure >= CONTACT_STRAIN_START ? "elevated" : "low";
+  const contactLabel = contactLevel === "high"
+    ? copy.contactHigh
+    : contactLevel === "elevated"
+      ? copy.contactElevated
+      : copy.contactLow;
   return (
     <aside
       className={`v6-journal ${open ? "is-open" : ""}`}
@@ -2110,15 +2206,24 @@ function FieldJournal({ state, language }: { state: EcosystemState; language: La
             ))}
           </div>
           <h3>{copy.species}</h3>
+          <div className={`v12-contact-signal is-${contactLevel}`}>
+            <span>{copy.contactPressure}</span><strong>{contactLabel}</strong><i><b style={{ width: `${contactPressure}%` }} /></i>
+          </div>
           <div className="v7-species-status">
             {speciesOrder.map((species) => {
               const count = speciesCount(state, species);
               const profile = speciesProfiles[species];
               const survival = Math.round(speciesSurvival(state, species));
+              const reliance = state.speciesVitals[species].reliance;
+              const relianceLabel = reliance >= 60
+                ? copy.relianceHigh
+                : reliance >= 30
+                  ? copy.relianceForming
+                  : copy.relianceLow;
               const danger = state.speciesVitals[species].dangerTurns > 0 || count < profile.stableMin || survival < 30;
               return (
                 <div className={danger ? "is-at-risk" : "is-stable"} key={species}>
-                  <span><strong>{speciesNames[language][species]}</strong><small>{danger ? copy.atRisk : copy.stable}</small></span>
+                  <span><strong>{speciesNames[language][species]}</strong><small>{danger ? copy.atRisk : copy.stable}</small><small className="v12-reliance">{copy.foodReliance}: {relianceLabel}</small></span>
                   <b>{count}<i>/ {profile.stableMin} {copy.stableLine}</i></b>
                   <em><i style={{ width: `${survival}%` }} /><small>{copy.survival} {survival}</small></em>
                 </div>
@@ -2131,6 +2236,8 @@ function FieldJournal({ state, language }: { state: EcosystemState; language: La
               <li key={`${entry.at}-${index}`}>{entry[language]}</li>
             ))}
           </ol>
+          <h3>{copy.modelBasis}</h3>
+          <p className="v12-model-note">{copy.modelNote}</p>
         </section>
       ) : null}
     </aside>

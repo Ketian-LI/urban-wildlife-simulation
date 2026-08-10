@@ -63,7 +63,7 @@ test("server-renders the signed-in cloud-save account", async () => {
 });
 
 test("keeps the revised feeding, event, and loss systems in source", async () => {
-  const [simulation, css, layout, page, presenceRoute, stateRoute, schema, database, hosting] = await Promise.all([
+  const [simulation, css, layout, page, presenceRoute, stateRoute, schema, database, hosting, rationale] = await Promise.all([
     readFile(new URL("../app/simulation-v6.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
@@ -73,6 +73,7 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
     readFile(new URL("../db/schema.ts", import.meta.url), "utf8"),
     readFile(new URL("../db/index.ts", import.meta.url), "utf8"),
     readFile(new URL("../.openai/hosting.json", import.meta.url), "utf8"),
+    readFile(new URL("../docs/research-design-rationale.md", import.meta.url), "utf8"),
   ]);
 
   assert.match(simulation, /const INITIAL_ANIMALS = 21/);
@@ -88,6 +89,15 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /type FoodType = "food"/);
   assert.match(simulation, /const pillarOrder: PillarKey\[\] = \[[\s\S]*?"quantity"[\s\S]*?"satiety"[\s\S]*?"comfort"[\s\S]*?"coexistence"[\s\S]*?\]/);
   assert.match(simulation, /const speciesProfiles:[\s\S]*?stableMin:[\s\S]*?idealMax:[\s\S]*?satietyWeight:[\s\S]*?comfortWeight:[\s\S]*?coexistenceWeight:/);
+  assert.match(simulation, /foodBenefit: 9/);
+  assert.match(simulation, /reliance: number/);
+  assert.match(simulation, /missedSubsidyCost/);
+  assert.match(simulation, /learnedReliance/);
+  assert.match(simulation, /function feedingContactPressure/);
+  assert.match(simulation, /function chooseSystemEvent/);
+  assert.match(simulation, /"quiet-foraging"/);
+  assert.match(simulation, /Who is training whom\?/);
+  assert.match(simulation, /A speculative, time-compressed model/);
   assert.match(simulation, /for \(const species of speciesOrder\)[\s\S]*?index < 3/);
   assert.match(simulation, /function weightedSpeciesMetric/);
   assert.match(simulation, /function speciesSurvival/);
@@ -171,6 +181,8 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(css, /\.plaza-metric\.is-locked/);
   assert.match(css, /\.plaza-metric\.is-high-risk/);
   assert.match(css, /\.v9-event-flags/);
+  assert.match(css, /\.v12-contact-signal/);
+  assert.match(css, /\.v12-model-note/);
   assert.match(css, /V11 phone and portrait-tablet composition/);
   assert.match(css, /max-width: 900px\) and \(orientation: portrait/);
   assert.match(css, /height: 100dvh/);
@@ -192,6 +204,8 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(schema, /simulationSaves/);
   assert.match(database, /ensureSimulationSaveSchema/);
   assert.equal(JSON.parse(hosting).d1, "DB");
+  assert.match(rationale, /Human food improves immediate satiety/);
+  assert.match(rationale, /speculative design parameters/);
 
   await access(new URL("../public/og.png", import.meta.url));
   await access(new URL("../public/equestrian-monument.png", import.meta.url));

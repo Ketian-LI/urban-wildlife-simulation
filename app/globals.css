@@ -5148,6 +5148,51 @@ body {
   gap: 0.35rem;
 }
 
+.v12-contact-signal {
+  align-items: center;
+  border-bottom: 1px solid #aab5a6;
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: minmax(6rem, 1fr) auto minmax(5rem, 1.2fr);
+  margin-bottom: 0.5rem;
+  padding: 0 0.1rem 0.45rem;
+}
+
+.v12-contact-signal span,
+.v12-contact-signal strong {
+  font-size: clamp(0.4rem, 0.62vw, 0.64rem);
+  letter-spacing: 0;
+}
+
+.v12-contact-signal strong {
+  color: #3f6849;
+  text-transform: uppercase;
+}
+
+.v12-contact-signal > i {
+  background: #c4ccc0;
+  display: block;
+  height: 0.48rem;
+  overflow: hidden;
+}
+
+.v12-contact-signal > i > b {
+  background: #4e7d51;
+  display: block;
+  height: 100%;
+  max-width: 100%;
+}
+
+.v12-contact-signal.is-elevated strong,
+.v12-contact-signal.is-high strong {
+  color: #a34d2f;
+}
+
+.v12-contact-signal.is-elevated > i > b,
+.v12-contact-signal.is-high > i > b {
+  background: #b95b35;
+}
+
 .v7-species-status > div {
   align-items: center;
   background: #e1e5d8;
@@ -5192,6 +5237,13 @@ body {
   font-weight: 750;
 }
 
+.v7-species-status span small.v12-reliance,
+.v7-species-status .is-at-risk span small.v12-reliance {
+  color: #58665d;
+  font-size: 0.78em;
+  font-weight: 550;
+}
+
 .v7-species-status b {
   color: #263b30;
   font-style: normal;
@@ -5231,6 +5283,15 @@ body {
   position: absolute;
   top: calc(100% + 0.1rem);
   white-space: nowrap;
+}
+
+.v12-model-note {
+  border-left: 3px solid #6a7e6b;
+  color: #465249;
+  font-size: clamp(0.42rem, 0.62vw, 0.66rem);
+  line-height: 1.45;
+  margin: 0;
+  padding: 0.15rem 0 0.15rem 0.55rem;
 }
 
 .ecosystem-v7:has(.v6-event-card) {
