@@ -77,6 +77,11 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
 
   assert.match(simulation, /const INITIAL_ANIMALS = 21/);
   assert.match(simulation, /const MAX_ANIMALS = 30/);
+  assert.match(simulation, /const MIN_VIABLE_ANIMALS = 10/);
+  assert.match(simulation, /const HEALTHY_POPULATION_MIN = 14/);
+  assert.match(simulation, /const SOFT_CAPACITY = 24/);
+  assert.match(simulation, /const HIGH_RISK_POPULATION = 28/);
+  assert.match(simulation, /const CAPACITY_GRACE_GENERATIONS = 2/);
   assert.match(simulation, /plumageOrder\.indexOf\(animal\.plumage\) \* 33\.333333/);
   assert.match(simulation, /const STORAGE_KEY = "urban-pigeon-collective-v8"/);
   assert.match(simulation, /type Species =[\s\S]*?"pigeon"[\s\S]*?"squirrel"[\s\S]*?"swan"[\s\S]*?"stray-cat"[\s\S]*?"stray-dog"[\s\S]*?"fox"[\s\S]*?"hedgehog"/);
@@ -102,6 +107,15 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /phase: "landing"/);
   assert.match(simulation, /function runGeneration/);
   assert.match(simulation, /state\.pigeons\.length < MAX_ANIMALS/);
+  assert.match(simulation, /state\.generations % 2 === 0/);
+  assert.match(simulation, /const overcrowding = Math\.max\(0, state\.pigeons\.length - SOFT_CAPACITY\)/);
+  assert.match(simulation, /const feedingMomentum = recentAcceptedFeeds >= 4/);
+  assert.match(simulation, /profile\.idealMax \+ \(feedingMomentum \? 1 : 0\)/);
+  assert.match(simulation, /population\?: -1 \| 1/);
+  assert.match(simulation, /function applyEventPopulationChange/);
+  assert.match(simulation, /state\.capacityTurns \+= 1/);
+  assert.match(simulation, /function endFromCapacity/);
+  assert.match(simulation, /"capacity-overflow"/);
   assert.match(simulation, /animal\.id !== state\.favoriteId/);
   assert.match(simulation, /A species disappeared after its rescue window/);
   assert.match(simulation, /role="alertdialog"/);
@@ -125,6 +139,8 @@ test("keeps the revised feeding, event, and loss systems in source", async () =>
   assert.match(simulation, /Urban pressure rose to level/);
   assert.match(simulation, /v8-impact-chips/);
   assert.match(simulation, /function impactMagnitude/);
+  assert.match(simulation, /function measuredPillarChanges/);
+  assert.match(simulation, /function sharedPreviewChanges/);
   assert.match(simulation, /display="magnitude"/);
   assert.match(simulation, /impactNoticeable/);
   assert.match(simulation, /aria-label=\{copy\.signIn\}/);

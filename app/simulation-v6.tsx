@@ -12,6 +12,11 @@ const PRESENCE_RETRY_MS = 5_000;
 const CLOUD_SAVE_INTERVAL_MS = 5_000;
 const INITIAL_ANIMALS = 21;
 const MAX_ANIMALS = 30;
+const MIN_VIABLE_ANIMALS = 10;
+const HEALTHY_POPULATION_MIN = 14;
+const SOFT_CAPACITY = 24;
+const HIGH_RISK_POPULATION = 28;
+const CAPACITY_GRACE_GENERATIONS = 2;
 const GENERATION_MS = 40_000;
 const FOOD_LIFETIME_MS = 4_000;
 const DEATH_ANIMATION_MS = 1_400;
@@ -20,7 +25,7 @@ type Language = "en" | "zh";
 type CloudSyncStatus = "local" | "loading" | "saving" | "saved" | "error";
 type PillarKey = "quantity" | "satiety" | "comfort" | "coexistence";
 type LockablePillar = Exclude<PillarKey, "quantity">;
-type EndReason = PillarKey | "species-loss" | "extreme-overflow";
+type EndReason = PillarKey | "species-loss" | "extreme-overflow" | "capacity-overflow";
 type Species =
   | "pigeon"
   | "squirrel"
@@ -134,6 +139,7 @@ type EcosystemState = {
   lockedPillar: LockablePillar | null;
   unlockAtGeneration: number | null;
   overflowedPillar: LockablePillar | null;
+  capacityTurns: number;
   events: FieldNote[];
   lastImpact: OutcomeImpact | null;
   policies: Policies;
@@ -179,6 +185,7 @@ type EventChoice = {
   deltas: PillarDeltas;
   policy?: Partial<Policies>;
   spawn?: Species;
+  population?: -1 | 1;
 };
 type EventDefinition = {
   species?: Species;
@@ -287,8 +294,8 @@ const pillarNames: Record<Language, Record<PillarKey, string>> = {
 };
 
 const endReasonNames: Record<Language, Record<EndReason, string>> = {
-  en: { ...pillarNames.en, "species-loss": "Species loss", "extreme-overflow": "Extreme overflow" },
-  zh: { ...pillarNames.zh, "species-loss": "物种消失", "extreme-overflow": "极端溢出" },
+  en: { ...pillarNames.en, "species-loss": "Species loss", "extreme-overflow": "Extreme overflow", "capacity-overflow": "Carrying capacity exceeded" },
+  zh: { ...pillarNames.zh, "species-loss": "物种消失", "extreme-overflow": "极端溢出", "capacity-overflow": "承载力超限" },
 };
 
 const uiCopy = {
@@ -311,6 +318,10 @@ const uiCopy = {
     lockEffect: "Lock effect",
     extremeEvent: "Extreme event",
     overflowRisk: "Overflow risk",
+    safePopulation: "safe 14–24",
+    populationLow: "Community too small",
+    populationCrowded: "Crowding pressure",
+    capacityRisk: "Capacity danger",
     impactSlight: "Slight",
     impactNoticeable: "Noticeable",
     impactStrong: "Strong",
@@ -340,6 +351,8 @@ const uiCopy = {
     gameOver: "This city cycle has ended",
     gameOverBody: "A shared condition reached zero, or one species disappeared after its rescue window.",
     overflowBody: "An extreme event pushed one shared condition beyond 100.",
+    populationBody: "The population fell below the minimum viable community size.",
+    capacityBody: "The plaza remained at full capacity for two city cycles and could no longer recover.",
     newCycle: "Begin a new city cycle",
     survived: "Cycles observed",
     tutorialTitle: "Observe, feed, then live with the result",
@@ -370,6 +383,10 @@ const uiCopy = {
     lockEffect: "锁定效果",
     extremeEvent: "极端事件",
     overflowRisk: "溢出风险",
+    safePopulation: "安全区 14–24",
+    populationLow: "群落数量过少",
+    populationCrowded: "拥挤压力",
+    capacityRisk: "承载力危险",
     impactSlight: "轻微",
     impactNoticeable: "明显",
     impactStrong: "强烈",
@@ -399,6 +416,8 @@ const uiCopy = {
     gameOver: "本轮城市周期已经结束",
     gameOverBody: "某项共同条件降至零，或有物种在抢救期后消失。",
     overflowBody: "极端事件将一项共同数值推过了 100。",
+    populationBody: "动物总数降到了可持续群落的最低数量以下。",
+    capacityBody: "广场连续两个城市周期处于满载状态，生态系统无法继续恢复。",
     newCycle: "开始新的城市周期",
     survived: "已观察周期",
     tutorialTitle: "观察、投喂，并面对之后的变化",
@@ -427,8 +446,8 @@ const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
       body: "Every two successful feedings trigger one species event. Before choosing, the icons reveal which conditions may change and only hint at the size of the impact.",
     },
     {
-      title: "Keep four conditions alive",
-      body: "All four conditions must remain above zero, but more is not always safer: marked extreme events end the cycle if a condition exceeds 100. Some decisions can also freeze one condition for two cycles.",
+      title: "Balance four conditions",
+      body: "Quantity is safest from 14 to 24: 10 or fewer animals end the cycle, while 30 animals for two cycles exceed carrying capacity. Other conditions fail at zero, and marked extreme events can push them beyond 100.",
     },
   ],
   zh: [
@@ -445,8 +464,8 @@ const tutorialSteps: Record<Language, { title: string; body: string }[]> = {
       body: "每两次成功投喂会触发一次对应物种事件。选择前只会提示可能受影响的数值和影响大小，不会透露增减方向。",
     },
     {
-      title: "维持四项生存条件",
-      body: "四项数值都必须高于零，但并非越高越安全：带标记的极端事件会在数值超过 100 时结束本轮，部分决策还会将一项数值冻结两个周期。",
+      title: "平衡四项生存条件",
+      body: "数量在 14–24 之间最稳定：10 只或更少会结束本轮，连续两个周期达到 30 只则超过承载力。其他数值降到零会失败，极端事件也可能让它们突破 100。",
     },
   ],
 };
@@ -472,12 +491,14 @@ const events: Record<EventId, EventDefinition> = {
       result: { en: "The square became tidier, but feeding grew more predictable.", zh: "广场更加整洁，但投喂位置变得更加固定。" },
       deltas: { coexistence: 9, foraging: -6 },
       policy: { feedingZone: true },
+      population: 1,
     },
     right: {
       label: { en: "Disperse the crowd", zh: "疏散人群" },
       result: { en: "The hotspot weakened and animals spread out again.", zh: "热点减弱，动物重新分散。" },
       deltas: { coexistence: 3, foraging: 7, vitality: -2 },
       policy: { feedingZone: false },
+      population: -1,
     },
   },
   leftovers: {
@@ -504,11 +525,13 @@ const events: Record<EventId, EventDefinition> = {
       label: { en: "Protect the cache", zh: "保护储藏点" },
       result: { en: "Tree-edge habitat became more active.", zh: "树林边缘的栖息活动增加了。" },
       deltas: { habitat: 8, coexistence: -2 },
+      population: 1,
     },
     right: {
       label: { en: "Clear the path", zh: "清理步道" },
       result: { en: "The path reopened and squirrels moved outward.", zh: "步道重新开放，松鼠向外围移动。" },
       deltas: { coexistence: 6, habitat: -5, foraging: 3 },
+      population: -1,
     },
   },
   "swan-fountain": {
@@ -521,12 +544,14 @@ const events: Record<EventId, EventDefinition> = {
       result: { en: "The fountain remained usable by several species.", zh: "多个物种仍然可以使用喷泉区域。" },
       deltas: { habitat: 7, coexistence: 2 },
       policy: { fountain: true },
+      population: 1,
     },
     right: {
       label: { en: "Close the fountain edge", zh: "封闭喷泉边缘" },
       result: { en: "Conflict fell, but water habitat contracted.", zh: "冲突减少了，但水域栖息空间缩小。" },
       deltas: { coexistence: 8, habitat: -8 },
       policy: { fountain: false },
+      population: -1,
       },
   },
   "cat-territory": {
@@ -538,11 +563,13 @@ const events: Record<EventId, EventDefinition> = {
       label: { en: "Keep one feeding station", zh: "保留固定投喂点" },
       result: { en: "The cat settled, while shared space became more tense.", zh: "流浪猫安定下来，但共享空间变得更加紧张。" },
       deltas: { satiety: 10, comfort: 5, coexistence: -8 },
+      population: 1,
     },
     right: {
       label: { en: "Move the next meal", zh: "移动下一次投喂" },
       result: { en: "The boundary softened and the cat kept searching.", zh: "领地边界减弱，流浪猫继续寻找食物。" },
       deltas: { satiety: 4, comfort: -2, coexistence: 7 },
+      population: -1,
     },
   },
   "dog-pack": {
@@ -554,11 +581,13 @@ const events: Record<EventId, EventDefinition> = {
       label: { en: "Let the pack gather", zh: "允许犬群聚集" },
       result: { en: "The dogs relaxed together and public tolerance fell.", zh: "流浪狗一起放松下来，但公众容忍度下降。" },
       deltas: { satiety: 8, comfort: 10, coexistence: -7 },
+      population: 1,
     },
     right: {
       label: { en: "Scatter treats along the path", zh: "沿步道分散食物" },
       result: { en: "The dogs moved as a loose group and conflict stayed low.", zh: "流浪狗以较松散的群体移动，冲突保持较低。" },
       deltas: { satiety: 5, comfort: 3, coexistence: 6 },
+      population: -1,
     },
   },
   "fox-corridor": {
@@ -571,12 +600,14 @@ const events: Record<EventId, EventDefinition> = {
       result: { en: "The fox entered the wider habitat network.", zh: "狐狸进入了更广阔的栖息网络。" },
       deltas: { habitat: 8, vitality: -3, coexistence: -2 },
       policy: { shrubs: true },
+      population: 1,
     },
     right: {
       label: { en: "Increase night lighting", zh: "增加夜间照明" },
       result: { en: "The fox withdrew and nocturnal habitat weakened.", zh: "狐狸退回外围，夜间栖息条件减弱。" },
       deltas: { coexistence: 6, habitat: -7 },
       policy: { shrubs: false },
+      population: -1,
     },
   },
   "hedgehog-shrubs": {
@@ -589,12 +620,14 @@ const events: Record<EventId, EventDefinition> = {
       result: { en: "Shelter increased while the path narrowed.", zh: "庇护空间增加了，步道则变窄了一些。" },
       deltas: { habitat: 10, coexistence: -3 },
       policy: { shrubs: true },
+      population: 1,
     },
     right: {
       label: { en: "Restore the formal border", zh: "恢复整齐边界" },
       result: { en: "The square looked orderly and the night route disappeared.", zh: "广场更加整齐，夜间路线消失了。" },
       deltas: { coexistence: 7, habitat: -6 },
       policy: { shrubs: false },
+      population: -1,
     },
   },
   "favorite-example": {
@@ -772,13 +805,13 @@ function createAnimal(
 
 function makeSpeciesVitals(): Record<Species, SpeciesVital> {
   return {
-    pigeon: { satiety: 76, comfort: 70, dangerTurns: 0 },
-    squirrel: { satiety: 74, comfort: 74, dangerTurns: 0 },
-    swan: { satiety: 73, comfort: 72, dangerTurns: 0 },
-    "stray-cat": { satiety: 72, comfort: 69, dangerTurns: 0 },
-    "stray-dog": { satiety: 74, comfort: 72, dangerTurns: 0 },
-    fox: { satiety: 71, comfort: 69, dangerTurns: 0 },
-    hedgehog: { satiety: 72, comfort: 74, dangerTurns: 0 },
+    pigeon: { satiety: 68, comfort: 66, dangerTurns: 0 },
+    squirrel: { satiety: 67, comfort: 69, dangerTurns: 0 },
+    swan: { satiety: 66, comfort: 68, dangerTurns: 0 },
+    "stray-cat": { satiety: 65, comfort: 64, dangerTurns: 0 },
+    "stray-dog": { satiety: 67, comfort: 66, dangerTurns: 0 },
+    fox: { satiety: 64, comfort: 65, dangerTurns: 0 },
+    hedgehog: { satiety: 65, comfort: 69, dangerTurns: 0 },
   };
 }
 
@@ -799,6 +832,20 @@ function pillarValue(state: EcosystemState, pillar: PillarKey) {
   if (pillar === "quantity") return state.pigeons.length;
   if (pillar === "satiety" || pillar === "comfort") return weightedSpeciesMetric(state, pillar);
   return state.coexistence;
+}
+
+function pillarSnapshot(state: EcosystemState) {
+  return Object.fromEntries(
+    pillarOrder.map((pillar) => [pillar, pillarValue(state, pillar)]),
+  ) as Record<PillarKey, number>;
+}
+
+function measuredPillarChanges(before: Record<PillarKey, number>, state: EcosystemState) {
+  return Object.fromEntries(
+    pillarOrder
+      .map((pillar) => [pillar, Math.round(pillarValue(state, pillar) - before[pillar])] as const)
+      .filter(([, value]) => value !== 0),
+  ) as Partial<Record<PillarKey, number>>;
 }
 
 function speciesSurvival(state: EcosystemState, species: Species) {
@@ -849,7 +896,7 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
     pigeons,
     nextPigeonId,
     speciesVitals: makeSpeciesVitals(),
-    coexistence: 74,
+    coexistence: 68,
     generations: 1,
     lastUpdated: now,
     nextGenerationAt: now + GENERATION_MS,
@@ -870,6 +917,7 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
     lockedPillar: null,
     unlockAtGeneration: null,
     overflowedPillar: null,
+    capacityTurns: 0,
     events: [
       note(
         "Twenty-one animals begin together: three from each of the seven species.",
@@ -885,9 +933,13 @@ function makeInitialState(now = Date.now(), carriedFavorite?: AnimalAgent): Ecos
 function checkForEnd(state: EcosystemState, now = Date.now()) {
   if (state.endedBy) return state;
   const missingSpecies = speciesOrder.find((species) => speciesCount(state, species) === 0);
+  const depletedPillar = (["satiety", "comfort", "coexistence"] as LockablePillar[])
+    .find((pillar) => pillarValue(state, pillar) <= 0) ?? null;
   const endedBy: EndReason | null = missingSpecies
     ? "species-loss"
-    : pillarOrder.find((pillar) => pillarValue(state, pillar) <= 0) ?? null;
+    : state.pigeons.length <= MIN_VIABLE_ANIMALS
+      ? "quantity"
+      : depletedPillar;
   if (!endedBy) return state;
 
   if (endedBy === "coexistence") state.coexistence = 0;
@@ -900,10 +952,30 @@ function checkForEnd(state: EcosystemState, now = Date.now()) {
     note(
       endedBy === "species-loss"
         ? "A species disappeared after its rescue window. This city cycle ended."
-        : `${pillarNames.en[endedBy as PillarKey]} reached zero. This city cycle ended.`,
+        : endedBy === "quantity"
+          ? "The animal community fell below its minimum viable size. This city cycle ended."
+          : `${pillarNames.en[endedBy as PillarKey]} reached zero. This city cycle ended.`,
       endedBy === "species-loss"
         ? "一个物种在抢救期后消失，本轮城市周期结束。"
-        : `${pillarNames.zh[endedBy as PillarKey]}降到了零，本轮城市周期结束。`,
+        : endedBy === "quantity"
+          ? "动物群落降到了最低可持续数量以下，本轮城市周期结束。"
+          : `${pillarNames.zh[endedBy as PillarKey]}降到了零，本轮城市周期结束。`,
+      now,
+    ),
+  );
+  return state;
+}
+
+function endFromCapacity(state: EcosystemState, now: number) {
+  state.endedBy = "capacity-overflow";
+  state.endedAt = now;
+  state.activeEventId = null;
+  state.decisionQueue = [];
+  pushNote(
+    state,
+    note(
+      "The plaza remained at full carrying capacity for two city cycles. This city cycle ended.",
+      "广场连续两个城市周期达到承载力上限，本轮城市周期结束。",
       now,
     ),
   );
@@ -1050,6 +1122,17 @@ function addAnimal(state: EcosystemState, species: Species) {
   return animal;
 }
 
+function applyEventPopulationChange(state: EcosystemState, species: Species, change: -1 | 1) {
+  if (change > 0) return addAnimal(state, species);
+  const departing = state.pigeons
+    .filter((animal) => animal.species === species && animal.id !== state.favoriteId)
+    .sort((left, right) => left.feedCount - right.feedCount || right.appetite - left.appetite || left.id - right.id)[0];
+  if (!departing) return null;
+  state.pigeons = state.pigeons.filter((animal) => animal.id !== departing.id);
+  if (state.pigeons.length < MAX_ANIMALS) state.capacityTurns = 0;
+  return departing;
+}
+
 function createChild(state: EcosystemState, parent: AnimalAgent, now: number) {
   if (state.pigeons.length >= MAX_ANIMALS) return null;
   const child = createAnimal(state.nextPigeonId, parent.species, now);
@@ -1068,9 +1151,10 @@ function runGeneration(state: EcosystemState, now: number) {
   state.generations += 1;
   const lockedThisCycle = state.lockedPillar;
   const pressure = pressureLevel(state.generations);
+  const overcrowding = Math.max(0, state.pigeons.length - SOFT_CAPACITY);
   const comfortStrain = Math.max(0, pressure - 2) * 0.65;
   if (lockedThisCycle !== "coexistence") {
-    state.coexistence = clamp(state.coexistence - (0.7 + pressure * 0.45));
+    state.coexistence = clamp(state.coexistence - (0.7 + pressure * 0.45 + overcrowding * 0.7));
   }
   state.speciesVitals = Object.fromEntries(
     speciesOrder.map((species) => {
@@ -1084,8 +1168,12 @@ function runGeneration(state: EcosystemState, now: number) {
           : 1;
       return [species, {
         ...current,
-        satiety: lockedThisCycle === "satiety" ? current.satiety : clamp(current.satiety - profile.hungerDecay),
-        comfort: lockedThisCycle === "comfort" ? current.comfort : clamp(current.comfort + socialComfort - comfortStrain),
+        satiety: lockedThisCycle === "satiety"
+          ? current.satiety
+          : clamp(current.satiety - profile.hungerDecay - overcrowding * 0.45),
+        comfort: lockedThisCycle === "comfort"
+          ? current.comfort
+          : clamp(current.comfort + socialComfort - comfortStrain - overcrowding * 0.7),
       }];
     }),
   ) as Record<Species, SpeciesVital>;
@@ -1130,31 +1218,50 @@ function runGeneration(state: EcosystemState, now: number) {
     }
   }
 
-  if (state.pigeons.length < MAX_ANIMALS) {
+  const recentAcceptedFeeds = recentFeeds(state, now, 90_000)
+    .filter((record) => record.accepted === true).length;
+  const feedingMomentum = recentAcceptedFeeds >= 4;
+  const sharedConditionsReady = pillarValue(state, "satiety") >= 52
+    && pillarValue(state, "comfort") >= 50
+    && state.coexistence >= 45;
+  if (state.generations % 2 === 0 && state.pigeons.length < MAX_ANIMALS && sharedConditionsReady) {
     const candidates = speciesOrder.filter((species) => {
       const profile = speciesProfiles[species];
       const vital = state.speciesVitals[species];
-      return speciesCount(state, species) < profile.idealMax
-        && vital.satiety >= 64
-        && vital.comfort >= 58
-        && speciesSurvival(state, species) >= 56;
+      const growthLimit = profile.idealMax + (feedingMomentum ? 1 : 0);
+      return speciesCount(state, species) < growthLimit
+        && vital.satiety >= 58
+        && vital.comfort >= 52
+        && speciesSurvival(state, species) >= 50;
+    }).sort((left, right) => {
+      const leftProfile = speciesProfiles[left];
+      const rightProfile = speciesProfiles[right];
+      const leftCount = speciesCount(state, left);
+      const rightCount = speciesCount(state, right);
+      const leftPriority = leftCount < leftProfile.stableMin ? -10 : leftCount / (leftProfile.idealMax + (feedingMomentum ? 1 : 0));
+      const rightPriority = rightCount < rightProfile.stableMin ? -10 : rightCount / (rightProfile.idealMax + (feedingMomentum ? 1 : 0));
+      return leftPriority - rightPriority || speciesOrder.indexOf(left) - speciesOrder.indexOf(right);
     });
-    const species = candidates[(state.generations + state.nextPigeonId) % Math.max(1, candidates.length)];
+    const species = candidates[0];
     if (species) {
       const parent = state.pigeons
         .filter((animal) => animal.species === species)
         .sort((a, b) => b.feedCount - a.feedCount || a.id - b.id)[0];
       if (parent) {
+        const beforeGrowth = pillarSnapshot(state);
         const child = createChild(state, parent, now);
         if (child) {
           if (lockedThisCycle !== "satiety") {
             state.speciesVitals[species].satiety = clamp(state.speciesVitals[species].satiety - 6);
           }
+          if (state.pigeons.length > SOFT_CAPACITY && lockedThisCycle !== "coexistence") {
+            state.coexistence = clamp(state.coexistence - 1);
+          }
           state.lastImpact = {
             at: now,
             en: `A new ${speciesNames.en[species].toLowerCase()} joined the shared plaza.`,
             zh: `一只新的${speciesNames.zh[species]}加入了共享广场。`,
-            changes: { quantity: 1, satiety: -6 },
+            changes: measuredPillarChanges(beforeGrowth, state),
           };
           pushNote(
             state,
@@ -1167,6 +1274,27 @@ function runGeneration(state: EcosystemState, now: number) {
         }
       }
     }
+  }
+
+  if (state.pigeons.length >= MAX_ANIMALS) {
+    state.capacityTurns += 1;
+    if (state.capacityTurns === 1) {
+      pushNote(
+        state,
+        note(
+          "The plaza reached full carrying capacity. Reduce crowding before the next city cycle.",
+          "广场已达到承载力上限，请在下一个城市周期前降低拥挤程度。",
+          now,
+        ),
+      );
+    }
+  } else {
+    state.capacityTurns = Math.max(0, state.capacityTurns - 1);
+  }
+
+  if (state.capacityTurns >= CAPACITY_GRACE_GENERATIONS) {
+    endFromCapacity(state, now);
+    return;
   }
 
   if (state.lockedPillar && state.unlockAtGeneration && state.generations >= state.unlockAtGeneration) {
@@ -1234,12 +1362,12 @@ function recordThrowState(
   };
   if (burst > 0) {
     if (!pillarLocked(next, "coexistence")) {
-      next.coexistence = clamp(next.coexistence - Math.min(0.45, burst * 0.06 * pressure));
+      next.coexistence = clamp(next.coexistence - Math.min(1.8, burst * 0.18 * pressure));
     }
     for (const species of speciesOrder) {
       if (!pillarLocked(next, "comfort")) {
         next.speciesVitals[species].comfort = clamp(
-          next.speciesVitals[species].comfort - Math.min(0.5, burst * 0.08 * pressure),
+          next.speciesVitals[species].comfort - Math.min(1.4, burst * 0.14 * pressure),
         );
       }
     }
@@ -1304,6 +1432,7 @@ function resolveFeedState(
 
   const index = next.pigeons.findIndex((animal) => animal.id === outcome.animalId);
   if (index < 0) return next;
+  const beforeFeed = pillarSnapshot(next);
   const animal = next.pigeons[index];
   const repetition = recentFeeds(next, now, 30_000).filter(
     (record) => Math.hypot(record.x - outcome.x, record.y - outcome.y) < 9,
@@ -1331,13 +1460,15 @@ function resolveFeedState(
     ...next.speciesVitals[animal.species],
     satiety: pillarLocked(next, "satiety")
       ? next.speciesVitals[animal.species].satiety
-      : clamp(next.speciesVitals[animal.species].satiety + 12),
+      : clamp(next.speciesVitals[animal.species].satiety + 9),
     comfort: pillarLocked(next, "comfort")
       ? next.speciesVitals[animal.species].comfort
-      : clamp(next.speciesVitals[animal.species].comfort + 3),
+      : clamp(next.speciesVitals[animal.species].comfort + 2),
     dangerTurns: Math.max(0, next.speciesVitals[animal.species].dangerTurns - 1),
   };
-  if (repetition >= 5 && !pillarLocked(next, "coexistence")) next.coexistence = clamp(next.coexistence - 0.28);
+  if (repetition >= 4 && !pillarLocked(next, "coexistence")) {
+    next.coexistence = clamp(next.coexistence - (0.8 + Math.min(1.4, (repetition - 4) * 0.22)));
+  }
 
   if (animal.species === "pigeon" && !next.collectedPlumages.includes(animal.plumage)) {
     next.collectedPlumages = [...next.collectedPlumages, animal.plumage];
@@ -1366,10 +1497,7 @@ function resolveFeedState(
     at: now,
     en: `${speciesNames.en[animal.species]} accepted the food.`,
     zh: `${speciesNames.zh[animal.species]}接受了食物。`,
-    changes: {
-      ...(pillarLocked(next, "satiety") ? {} : { satiety: 12 }),
-      ...(pillarLocked(next, "comfort") ? {} : { comfort: 3 }),
-    },
+    changes: measuredPillarChanges(beforeFeed, next),
   };
   const declinedText = outcome.declinedBefore > 0
     ? ` after ${outcome.declinedBefore} nearer ${outcome.declinedBefore === 1 ? "animal" : "animals"} declined`
@@ -1389,6 +1517,7 @@ function killAnimalState(current: EcosystemState, animalId: number) {
   if (current.endedBy) return current;
   const animal = current.pigeons.find((candidate) => candidate.id === animalId);
   if (!animal) return current;
+  const beforeRemoval = pillarSnapshot(current);
   const next: EcosystemState = {
     ...current,
     pigeons: current.pigeons.filter((candidate) => candidate.id !== animalId),
@@ -1396,20 +1525,17 @@ function killAnimalState(current: EcosystemState, animalId: number) {
     events: [...current.events],
     speciesVitals: Object.fromEntries(speciesOrder.map((species) => [species, { ...current.speciesVitals[species] }])) as Record<Species, SpeciesVital>,
     coexistence: pillarLocked(current, "coexistence") ? current.coexistence : clamp(current.coexistence - 3),
-    lastImpact: {
-      at: Date.now(),
-      en: `${speciesNames.en[animal.species]} was removed from the plaza.`,
-      zh: `${speciesNames.zh[animal.species]}离开了广场。`,
-      changes: {
-        quantity: -1,
-        ...(pillarLocked(current, "comfort") ? {} : { comfort: -10 }),
-        ...(pillarLocked(current, "coexistence") ? {} : { coexistence: -3 }),
-      },
-    },
+    lastImpact: current.lastImpact,
   };
   if (!pillarLocked(next, "comfort")) {
     next.speciesVitals[animal.species].comfort = clamp(next.speciesVitals[animal.species].comfort - 10);
   }
+  next.lastImpact = {
+    at: Date.now(),
+    en: `${speciesNames.en[animal.species]} was removed from the plaza.`,
+    zh: `${speciesNames.zh[animal.species]}离开了广场。`,
+    changes: measuredPillarChanges(beforeRemoval, next),
+  };
   pushNote(
     next,
     note(
@@ -1441,6 +1567,7 @@ function applyEventChoiceState(current: EcosystemState, side: "left" | "right") 
     decisionsMade: nextDecisionCount,
     lastUpdated: now,
   };
+  const beforeDecision = pillarSnapshot(next);
   applyDeltas(
     next,
     appliedDeltas,
@@ -1448,9 +1575,11 @@ function applyEventChoiceState(current: EcosystemState, side: "left" | "right") 
     now,
     extremeDecision(current.generations, current.decisionsMade),
   );
-  const spawned = !next.endedBy && choice.spawn ? addAnimal(next, choice.spawn) : null;
-  const actualChanges = normalizedDeltas(appliedDeltas);
-  if (current.lockedPillar) delete actualChanges[current.lockedPillar];
+  const populationSpecies = definition.species ?? current.eventSpecies;
+  if (!next.endedBy && choice.population && populationSpecies) {
+    applyEventPopulationChange(next, populationSpecies, choice.population);
+  }
+  if (!next.endedBy && choice.spawn) addAnimal(next, choice.spawn);
   let newlyLocked: LockablePillar | null = null;
   if (!next.endedBy && !next.lockedPillar && lockEffectDecision(current.generations, current.decisionsMade)) {
     newlyLocked = strongestLockCandidate(appliedDeltas);
@@ -1471,7 +1600,7 @@ function applyEventChoiceState(current: EcosystemState, side: "left" | "right") 
     at: now,
     en: choice.result.en,
     zh: choice.result.zh,
-    changes: { ...actualChanges, ...(spawned ? { quantity: 1 } : {}) },
+    changes: measuredPillarChanges(beforeDecision, next),
     ...(newlyLocked ? { lockedPillar: newlyLocked } : {}),
   };
   pushNote(next, note(choice.result.en, choice.result.zh, now));
@@ -1574,7 +1703,7 @@ function restoreState(value: unknown): EcosystemState {
   const lockedPillar = isLockablePillar(parsed.lockedPillar) && unlockAtGeneration && unlockAtGeneration > generations
     ? parsed.lockedPillar
     : null;
-  const validEndReasons: EndReason[] = [...pillarOrder, "species-loss", "extreme-overflow"];
+  const validEndReasons: EndReason[] = [...pillarOrder, "species-loss", "extreme-overflow", "capacity-overflow"];
   const restored: EcosystemState = {
     ...base,
     ...parsed,
@@ -1582,7 +1711,7 @@ function restoreState(value: unknown): EcosystemState {
     pigeons,
     nextPigeonId: Math.max(...pigeons.map((animal) => animal.id), 0) + 1,
     speciesVitals,
-    coexistence: clamp(finiteOr(parsed.coexistence, 74)),
+    coexistence: clamp(finiteOr(parsed.coexistence, 68)),
     generations,
     favoriteId,
     collectedPlumages: [...new Set(collectedPlumages)],
@@ -1597,6 +1726,7 @@ function restoreState(value: unknown): EcosystemState {
     lockedPillar,
     unlockAtGeneration: lockedPillar ? unlockAtGeneration : null,
     overflowedPillar: isLockablePillar(parsed.overflowedPillar) ? parsed.overflowedPillar : null,
+    capacityTurns: clamp(Math.trunc(finiteOr(parsed.capacityTurns, 0)), 0, CAPACITY_GRACE_GENERATIONS),
     decisionQueue: Array.isArray(parsed.decisionQueue) ? parsed.decisionQueue.filter(isSpecies).slice(0, 8) : [],
     events: Array.isArray(parsed.events) ? parsed.events.slice(-18) as FieldNote[] : base.events,
     lastImpact: parsed.lastImpact && typeof parsed.lastImpact === "object" ? parsed.lastImpact : null,
@@ -1812,10 +1942,23 @@ function PillarIcon({ pillar }: { pillar: PillarKey }) {
 
 function impactMagnitude(value: number, language: Language) {
   const amount = Math.abs(value);
-  if (amount <= 4) return { level: 1, label: uiCopy[language].impactSlight };
-  if (amount <= 8) return { level: 2, label: uiCopy[language].impactNoticeable };
-  if (amount <= 13) return { level: 3, label: uiCopy[language].impactStrong };
+  if (amount <= 2) return { level: 1, label: uiCopy[language].impactSlight };
+  if (amount <= 5) return { level: 2, label: uiCopy[language].impactNoticeable };
+  if (amount <= 9) return { level: 3, label: uiCopy[language].impactStrong };
   return { level: 4, label: uiCopy[language].impactSevere };
+}
+
+function sharedPreviewChanges(deltas: PillarDeltas, targetShare: number) {
+  const normalized = normalizedDeltas(deltas);
+  return Object.fromEntries(
+    Object.entries(normalized).map(([pillar, value]) => {
+      const sharedValue = pillar === "satiety" || pillar === "comfort"
+        ? (value ?? 0) * targetShare
+        : value ?? 0;
+      const rounded = Math.round(sharedValue);
+      return [pillar, rounded === 0 && sharedValue !== 0 ? Math.sign(sharedValue) : rounded];
+    }),
+  ) as Partial<Record<PillarKey, number>>;
 }
 
 function ImpactChips({ changes, language, lockedPillar = null, display = "exact" }: {
@@ -1872,6 +2015,7 @@ function EventCard({
   generations,
   decisionsMade,
   lockedPillar,
+  targetShare,
   language,
   onChoose,
 }: {
@@ -1879,6 +2023,7 @@ function EventCard({
   generations: number;
   decisionsMade: number;
   lockedPillar: LockablePillar | null;
+  targetShare: number;
   language: Language;
   onChoose: (side: "left" | "right") => void;
 }) {
@@ -1916,12 +2061,12 @@ function EventCard({
         <button aria-label={copy.left} onClick={() => onChoose("left")} type="button">
           <i aria-hidden="true">←</i>
           <strong>{definition.left.label[language]}</strong>
-          <ImpactChips changes={normalizedDeltas(eventChoiceDeltas(definition.left.deltas, generations, decisionsMade))} display="magnitude" language={language} lockedPillar={lockedPillar} />
+          <ImpactChips changes={{ ...sharedPreviewChanges(eventChoiceDeltas(definition.left.deltas, generations, decisionsMade), targetShare), ...(definition.left.population ? { quantity: definition.left.population } : {}) }} display="magnitude" language={language} lockedPillar={lockedPillar} />
         </button>
         <button aria-label={copy.right} onClick={() => onChoose("right")} type="button">
           <strong>{definition.right.label[language]}</strong>
           <i aria-hidden="true">→</i>
-          <ImpactChips changes={normalizedDeltas(eventChoiceDeltas(definition.right.deltas, generations, decisionsMade))} display="magnitude" language={language} lockedPillar={lockedPillar} />
+          <ImpactChips changes={{ ...sharedPreviewChanges(eventChoiceDeltas(definition.right.deltas, generations, decisionsMade), targetShare), ...(definition.right.population ? { quantity: definition.right.population } : {}) }} display="magnitude" language={language} lockedPillar={lockedPillar} />
         </button>
       </div>
     </aside>
@@ -2301,6 +2446,12 @@ function SimulationScene({
     const profile = speciesProfiles[species];
     return speciesCount(state, species) >= profile.stableMin && speciesSurvival(state, species) >= 30;
   }).length;
+  const activeEventSpecies = state.activeEventId
+    ? events[state.activeEventId].species ?? state.eventSpecies
+    : null;
+  const eventTargetShare = activeEventSpecies && state.pigeons.length > 0
+    ? speciesCount(state, activeEventSpecies) / state.pigeons.length
+    : 1;
 
   return (
     <section
@@ -2343,25 +2494,37 @@ function SimulationScene({
           const value = pillarValue(state, pillar);
           const display = pillar === "quantity" ? `${state.pigeons.length}/${MAX_ANIMALS}` : Math.round(value);
           const percentage = pillar === "quantity" ? state.pigeons.length / MAX_ANIMALS * 100 : value;
-          const critical = pillar === "quantity" ? stableSpeciesCount < speciesOrder.length : value <= 25;
-          const highRisk = pillar !== "quantity" && value >= 85;
+          const populationAlert = pillar !== "quantity"
+            ? null
+            : state.pigeons.length < HEALTHY_POPULATION_MIN
+              ? copy.populationLow
+              : state.pigeons.length >= HIGH_RISK_POPULATION
+                ? copy.capacityRisk
+                : state.pigeons.length > SOFT_CAPACITY
+                  ? copy.populationCrowded
+                  : null;
+          const critical = pillar === "quantity"
+            ? state.pigeons.length <= MIN_VIABLE_ANIMALS + 1 || state.pigeons.length >= MAX_ANIMALS
+            : value <= 25;
+          const highRisk = pillar === "quantity" ? Boolean(populationAlert) : value >= 85;
+          const riskLabel = pillar === "quantity" ? populationAlert : highRisk ? copy.overflowRisk : null;
           const locked = state.lockedPillar === pillar;
           const lockRemaining = locked && state.unlockAtGeneration
             ? Math.max(1, state.unlockAtGeneration - state.generations)
             : 0;
           return (
             <div
-              aria-label={`${pillarNames[language][pillar]} ${display}${locked ? `, ${copy.locked} ${lockRemaining}` : highRisk ? `, ${copy.overflowRisk}` : ""}`}
+              aria-label={`${pillarNames[language][pillar]} ${display}${locked ? `, ${copy.locked} ${lockRemaining}` : riskLabel ? `, ${riskLabel}` : ""}`}
               className={`plaza-metric plaza-metric-${index + 1} ${critical ? "is-critical" : ""} ${highRisk ? "is-high-risk" : ""} ${locked ? "is-locked" : ""}`}
               key={pillar}
               role="status"
               style={{ "--metric-value": `${percentage}%` } as React.CSSProperties}
             >
               <PillarIcon pillar={pillar} />
-              <span><small>{pillarNames[language][pillar]}</small><strong>{display}</strong></span>
+              <span><small>{pillarNames[language][pillar]}{pillar === "quantity" ? ` · ${copy.safePopulation}` : ""}</small><strong>{display}</strong></span>
               <i><b /></i>
               {locked ? <em className="v9-metric-lock"><span aria-hidden="true">▣</span>{copy.locked} {lockRemaining}</em> : null}
-              {highRisk && !locked ? <em className="v9-metric-risk"><span aria-hidden="true">!</span>{copy.overflowRisk}</em> : null}
+              {riskLabel && !locked ? <em className="v9-metric-risk"><span aria-hidden="true">!</span>{riskLabel}</em> : null}
             </div>
           );
         })}
@@ -2471,6 +2634,7 @@ function SimulationScene({
           language={language}
           lockedPillar={state.lockedPillar}
           onChoose={onEventChoice}
+          targetShare={eventTargetShare}
         />
       ) : null}
     </section>
@@ -2612,7 +2776,18 @@ export function UrbanPigeonSimulation({
     else setTutorialStep((step) => step + 1);
   };
   const modalOpen = tutorialOpen || Boolean(state.endedBy);
-  const endedPillar = state.endedBy === "extreme-overflow" ? state.overflowedPillar : state.endedBy;
+  const endedPillar = state.endedBy === "extreme-overflow"
+    ? state.overflowedPillar
+    : state.endedBy === "capacity-overflow"
+      ? "quantity"
+      : state.endedBy;
+  const gameOverBody = state.endedBy === "extreme-overflow"
+    ? copy.overflowBody
+    : state.endedBy === "capacity-overflow"
+      ? copy.capacityBody
+      : state.endedBy === "quantity"
+        ? copy.populationBody
+        : copy.gameOverBody;
 
   return (
     <>
@@ -2660,10 +2835,10 @@ export function UrbanPigeonSimulation({
           <section aria-modal="true" className="v6-game-over" role="alertdialog">
             <p>{endReasonNames[language][state.endedBy]}</p>
             <h2>{copy.gameOver}</h2>
-            <span>{state.endedBy === "extreme-overflow" ? copy.overflowBody : copy.gameOverBody}</span>
+            <span>{gameOverBody}</span>
             <div className="v6-end-pillars">
               {pillarOrder.map((pillar) => (
-                <div className={pillar === endedPillar ? state.endedBy === "extreme-overflow" ? "is-overflow" : "is-zero" : ""} key={pillar}>
+                <div className={pillar === endedPillar ? state.endedBy === "extreme-overflow" || state.endedBy === "capacity-overflow" ? "is-overflow" : "is-zero" : ""} key={pillar}>
                   <small>{pillarNames[language][pillar]}</small>
                   <strong>{pillar === endedPillar && state.endedBy === "extreme-overflow" ? "100+" : pillar === "quantity" ? `${state.pigeons.length}/${MAX_ANIMALS}` : Math.round(pillarValue(state, pillar))}</strong>
                 </div>
