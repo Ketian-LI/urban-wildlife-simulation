@@ -39,3 +39,21 @@ or substantially revised code.
 The final citation format should be checked against current UAL guidance before
 submission. The Unity repository should keep its own dated log and link to this
 page only for the preliminary web-prototype phase.
+
+## Recommended final declaration
+
+The reviewed case studies use short declarations to name the model, purpose,
+and author's responsibility. This project needs a more detailed but still clear
+statement that records:
+
+- which AI tools and versions were used;
+- whether each use concerned code, debugging, research discovery, editing,
+  translation, images, animation, or documentation;
+- which generated outputs entered the submitted project;
+- how outputs were tested, corrected, rejected, or rewritten by the student;
+- which claims and references were verified independently; and
+- that the student remains responsible for the submitted argument and artefact.
+
+A disclosure is not a substitute for evidence of individual technical practice.
+The final Unity repository should make the student's authored and substantially
+revised C# work directly identifiable.

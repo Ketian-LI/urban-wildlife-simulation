@@ -56,6 +56,7 @@ about feeding wildlife.
 - [Web-demo development timeline](docs/WEB_DEMO_DEVELOPMENT.md)
 - [Final-project submission and evidence plan](docs/SUBMISSION_EVIDENCE.md)
 - [Thesis and portfolio plan](docs/THESIS_AND_PORTFOLIO_PLAN.md)
+- [Comparative review of submitted case studies](docs/CASE_STUDY_COMPARISON.md)
 - [AI tool log and authorship boundary](docs/AI_TOOL_LOG.md)
 - [Public deployment](https://urban-pigeon-simulation.lkt1009.chatgpt.site/)
 - [Commit history](https://github.com/Ketian-LI/urban-wildlife-simulation/commits/main/)

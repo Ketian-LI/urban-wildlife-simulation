@@ -1,21 +1,20 @@
 # Thesis and Portfolio Plan
 
-## What the Miracle example usefully demonstrates
+## What the case studies usefully demonstrate
 
-The *Miracle* dissertation is a 16-page past example, not a template or current
-brief. It documents six testers and includes nine listed figures. Its strongest
-transferable qualities are:
+The reviewed dissertations and submission packages are past examples, not
+templates or current briefs. Together they demonstrate several transferable
+qualities:
 
-- a short abstract that states the artefact, method, evaluation focus, and
-  result;
-- a clear progression from context, to method, to iterative design, to testing,
-  discussion, and conclusion;
-- project figures placed beside the design claims they support;
-- a named participant count and a combination of interviews and questionnaire
-  data;
-- concrete revisions linked to observed problems, such as movement speed,
-  collision size, guidance, interaction difficulty, and motion sickness;
-- a list of illustrations and a full bibliography.
+- *Miracle* connects six-person playtesting to concrete design revisions.
+- *Wie?* connects an installation to original C++ development, technical
+  validation, open-source contribution, and ethics.
+- *Diffusertrack* states a precise research question, separates technical and
+  artistic contributions, and preserves a candid 14-week development journal.
+- *Beyond Prompts* defines four verifiable outputs and uses controlled technical
+  experiments to support its claims.
+- All four use project figures beside the argument they support and conclude
+  with limitations or future work.
 
 The final Urban Wildlife Simulation thesis should retain that evidence-led
 rhythm while improving the explicitness of the research question, contribution,
@@ -40,11 +39,11 @@ ethical analysis, technical account, and limitations.
 | --- | ---: | --- |
 | Abstract | 150 | State the research question, Unity artefact, method, principal finding, and contribution |
 | 1. Introduction | 350 | Define the problem of invisible human influence on urban wildlife and identify the project's scope |
-| 2. Context and Related Work | 650 | Build the argument from urban ecology, feeding and dependency, multispecies care, reflective design, simulation, and productive ambiguity |
-| 3. Methodology | 400 | Explain Research through Design, prototype comparison, user-testing method, recruitment, consent, data treatment, and analytical approach |
+| 2. Context and Related Work | 550 | Build the argument from urban ecology, feeding and dependency, multispecies care, reflective design, simulation, and productive ambiguity |
+| 3. Methodology and Ethics | 450 | Explain Research through Design, prototype comparison, user-testing method, recruitment, consent, data treatment, and analytical approach |
 | 4. Design and Technical Development | 900 | Present the web prototype as an early probe, the move to Unity, interaction design, system architecture, authored code, major iterations, and discarded mechanics |
 | 5. User Testing and Findings | 600 | Report participant behaviour and interpretations, not only satisfaction scores; connect findings to revisions |
-| 6. Discussion, Ethics, and Limitations | 300 | Answer the research question cautiously; address care/control, ecological abstraction, representational limits, AI authorship, and generalisability |
+| 6. Discussion and Limitations | 350 | Answer the research question cautiously; address care/control, ecological abstraction, representational limits, AI authorship, and generalisability |
 | 7. Conclusion and Future Work | 150 | Summarise the contribution and name tightly scoped next steps |
 | **Total** | **3,500** | Within the brief's required length |
 
@@ -85,8 +84,9 @@ testing evidence.
 
 ## User-testing section
 
-The example dissertation usefully links tester feedback to revisions, but the
-new project should make its method more rigorous and transparent:
+The reviewed examples show several evaluation methods, but the current brief
+explicitly requires user testing through a specified research method. The new
+project should make that method rigorous and transparent:
 
 - define who is being recruited and why;
 - record prior game/installation experience that may affect behaviour;
@@ -99,6 +99,11 @@ new project should make its method more rigorous and transparent:
 - distinguish observation, participant interpretation, and researcher
   inference;
 - document which finding caused each revision and what remained unresolved.
+
+A practical design is an observed play session followed by a semi-structured
+interview, with game-event logs and a short questionnaire used as supporting
+data. Six to eight participants is a recommended feasible target, not a number
+specified by the brief.
 
 ## Portfolio evidence
 
