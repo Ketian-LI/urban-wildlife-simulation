@@ -58,6 +58,7 @@ about feeding wildlife.
 - [Thesis and portfolio plan](docs/THESIS_AND_PORTFOLIO_PLAN.md)
 - [Comparative review of submitted case studies](docs/CASE_STUDY_COMPARISON.md)
 - [AI tool log and authorship boundary](docs/AI_TOOL_LOG.md)
+- [Tangible planning-prototype concept iteration](docs/TANGIBLE_PROTOTYPE_CONCEPT.md)
 - [Public deployment](https://urban-pigeon-simulation.lkt1009.chatgpt.site/)
 - [Commit history](https://github.com/Ketian-LI/urban-wildlife-simulation/commits/main/)
 
@@ -65,6 +66,11 @@ The commit history records the web prototype's movement from a finite Feed
 button to spatial typographic agents, illustrated pigeons, and finally a
 multi-species decision system. Removed experiments are retained as process
 evidence rather than described as current features.
+
+The tangible-planning page documents the current transition from direct feeding
+to indirect park-management decisions. Its renders and diagrams are design
+process evidence, not proof of a finished physical system or Unity build. The
+eventual Unity implementation should still use a separate repository.
 
 ## Final-project submission relationship
 

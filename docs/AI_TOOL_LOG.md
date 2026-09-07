@@ -20,6 +20,7 @@ or substantially revised code.
 | 22 July-10 August 2026 | Codex | Iterative implementation of the preliminary browser prototype | Directed requirements, reviewed runtime behaviour, selected visuals, requested fixes, and accepted or removed mechanics | Repository commits and current web source |
 | July-August 2026 | Image-generation tools used through the prototyping workflow | Environment concepts and animal motion assets | Supplied references, selected directions, rejected mismatched styles, and requested corrections | Assets under `public/`; exact prompts and model details still need recovery |
 | 7 September 2026 | Codex | Repository audit, version-boundary documentation, and submission-evidence organisation | Confirmed that the web demo and Unity version must remain separate | README and documents under `docs/` |
+| 7 September 2026 | Codex and ImageGen | Explored the material language, component scale, and baseline arrangement for a tangible planning prototype | Chose the 600 x 900 mm magnetic board, revised wooden token size, specified felt woodland with magnetic corners, and approved the planning-game direction | [`TANGIBLE_PROTOTYPE_CONCEPT.md`](TANGIBLE_PROTOTYPE_CONCEPT.md), five images under `docs/images/tangible-prototype/`, and the printable calibration PDF under `docs/printables/tangible-prototype/` |
 
 ## Information still required
 
