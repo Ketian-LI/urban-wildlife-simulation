@@ -1,4 +1,4 @@
-# Urban Wildlife Simulation
+# Urban Wildlife Simulation: Preliminary Web Demo
 
 **Repository role: preliminary web demo and design-process evidence.**
 
@@ -18,11 +18,13 @@ browser-runtime screenshot, not evidence of the Unity implementation.*
 | Version | Purpose | Technology | Repository status |
 | --- | --- | --- | --- |
 | Preliminary web demo | Rapid interaction, visual, and systems prototyping | React, TypeScript, CSS, Vinext/Vite | Included here |
-| Unity prototype | Final physical-interaction artefact and assessed implementation | Unity and C# | Separate project; link not yet supplied |
+| Unity prototype | Final assessed implementation | Unity and C# | Separate project; link not yet supplied |
 
-The final assessment journal should be published with the Unity repository and
-link back to this repository in its development-process section. This web
-repository should not be renamed or presented as the Unity submission.
+The final-project repository should be built around the Unity project. Its
+README should act as the portfolio index and link to the thesis, research log,
+user-testing evidence, build and build instructions. It can link back to this
+repository in its iterative-development section. This web repository should not
+be renamed or presented as the Unity submission.
 
 ## Research focus
 
@@ -52,7 +54,8 @@ about feeding wildlife.
 
 - [Research and mechanism rationale](docs/research-design-rationale.md)
 - [Web-demo development timeline](docs/WEB_DEMO_DEVELOPMENT.md)
-- [Assessment evidence map](docs/SUBMISSION_EVIDENCE.md)
+- [Final-project submission and evidence plan](docs/SUBMISSION_EVIDENCE.md)
+- [Thesis and portfolio plan](docs/THESIS_AND_PORTFOLIO_PLAN.md)
 - [AI tool log and authorship boundary](docs/AI_TOOL_LOG.md)
 - [Public deployment](https://urban-pigeon-simulation.lkt1009.chatgpt.site/)
 - [Commit history](https://github.com/Ketian-LI/urban-wildlife-simulation/commits/main/)
@@ -61,6 +64,19 @@ The commit history records the web prototype's movement from a finite Feed
 button to spatial typographic agents, illustrated pigeons, and finally a
 multi-species decision system. Removed experiments are retained as process
 evidence rather than described as current features.
+
+## Final-project submission relationship
+
+The Creative Computing Final Project is assessed holistically. The required
+submission combines the developed artefact, a portfolio, an iterative research
+weblog or sketchbook, a project report, and an associated thesis of 3,500 words
+(+/-10%). Moodle requires a `.txt` file containing the GitHub link and a `.zip`
+of the full repository.
+
+This repository contributes one part of that evidence: the preliminary web
+prototype and its design history. The final Unity repository, thesis PDF, user
+testing, and portfolio documentation are still separate work and must be added
+before submission.
 
 ## Technical summary
 

@@ -1,69 +1,137 @@
-# Assessment Submission Evidence Map
+# Creative Computing Final Project: Submission and Evidence Plan
 
-## Submission model
+## Source of requirements
 
-The project should be submitted as one research process with two clearly named
-artefacts:
+This plan follows the 2025-26 Creative Computing Final Project assessment brief
+for unit IU000293. The brief, rather than earlier course briefs or past student
+examples, is the authoritative source for submission requirements.
 
-1. **Preliminary web demo** - this repository; evidence of rapid prototyping,
-   visual development, interaction experiments, and rule iteration.
-2. **Unity prototype** - a separate repository; final artefact, individual C#
-   work, physical interaction, final build, final user testing, and primary
-   assessment evidence.
+## Formal submission
 
-The Unity repository should contain the main GitHub journal. Its process section
-can link to this web repository, but the two evidence chains must not be merged.
+- **Deadline:** 2:00pm (14:00) GMT, Monday 23 November 2026
+- **Adjusted assessment deadline:** 2:00pm (14:00) GMT, Monday 30 November 2026
+- **Moodle file 1:** `.txt` containing a link to the GitHub repository
+- **Moodle file 2:** `.zip` containing the full repository
+- **Maximum submission size:** 1GB
+- **Written submission:** project report and associated thesis, 3,500 words
+  (+/-10%), submitted as a PDF
+- **Assessment:** 100% holistic; all components must be present to pass
 
-## Required evidence status
+The exact contents of the project report and thesis should also be confirmed
+with the tutor, as stated in the brief.
 
-| Required item | What this web repository can provide | What the Unity submission must provide | Current status |
+Where possible, code developed to a sufficient level is also expected to be
+shared with the Institute's code repository and documented for future students
+and alumni. Any exemption should be agreed with tutors.
+
+## Required project evidence
+
+| Required component | Purpose | Correct project source | Current status |
 | --- | --- | --- | --- |
-| Project description (about 200 words) | Origin, research framing, and web-prototype role | Final project description naming the Unity interaction | Needs final Unity wording |
-| Technical description (about 100 words) | React/TypeScript architecture and deployed browser system | Unity version, C# scripts, scenes, controller, sensors, and build target | Unity evidence not supplied |
-| Individual contribution (about 100 words) | Research direction, iterative decisions, critique, and AI-assisted web development | Exact C# work, Unity scene work, physical setup, testing, and integration completed by the student | Needs Unity audit |
-| Five captioned project images | Web process images may be additional development evidence | Five primary images captured from the final Unity build and real interaction | One current web screenshot captured |
-| Demo video, maximum three minutes | Short web comparison clip may appear as process context | Real person using the Unity installation; research focus and one unexpected outcome | Not supplied |
-| Public project files | Complete web source and public deployment | Unity `Assets`, `Packages`, `ProjectSettings`, C# source, and accessible build | Web complete; Unity missing |
-| AI tool log and citation | Initial disclosure and known web-development boundaries | Complete dated log covering Unity, writing, code, and visual assets | Started; provenance gaps remain |
-| User-testing plan | Web interaction can support pilot testing | A plan of about 100 words for the final interaction | Not supplied |
-| At least five external testers | Web pilot observations can be secondary | Per-participant observations from five people not on the course | Not supplied |
-| Revision plan (about 200 words) | Web design changes can show earlier iteration | Changes justified by final user-testing evidence | Not supplied |
-| Three lab links | May link to separate course repositories | Three named exercises with a short explanation of their relevance | Not supplied |
-| Sprint 1 and Sprint 2 links | Web commits can supplement the record | Clearly dated sprint documentation for the submitted project | Not supplied |
-| Pecha Kucha | Web development may appear in process slides | 20 slides, 20 seconds each, centred on the final research artefact | Not supplied |
-| Harvard references | Current mechanism rationale supplies a starting list | Final checked bibliography covering research, software, assets, and AI | Partial |
+| Developed project outcome | Demonstrate advanced creative and technical practice | Final Unity project and working build | Unity project not yet supplied for audit |
+| Portfolio of work | Communicate the finished experience and its technical/creative contribution | Unity stills, interaction documentation, demo capture, diagrams, and selected web-process evidence | Web screenshot available; final portfolio missing |
+| Research weblog and/or sketchbook | Document iterative development in the areas defined by the proposal | Dated Unity logs plus this web demo's commit history and timeline | Web timeline available; Unity log missing |
+| Project report | Explain aims, process, realisation, evaluation, and contribution | Final-project repository and/or thesis PDF, following tutor guidance | Not yet assembled |
+| Associated thesis | Critically frame and evaluate the project | 3,500-word PDF (+/-10%) | Planning material exists outside this repository; final PDF missing |
+| User testing through a specified method | Evidence LO4 and justify revision | Method, participant information, observations/data, analysis, and resulting changes | Not supplied |
+| GitHub repository | Share reproducible code and documentation | Unity-centred final repository linking to this preliminary web repository | Web repository available; final repository missing |
+| Full repository archive | Preserve the submitted source at the deadline | Moodle `.zip`, under 1GB | Not prepared |
+| Harvard references | Credit academic, technical, visual, and software sources | Thesis bibliography and repository provenance records | Research rationale is a starting point only |
 
-All required items should be treated as mandatory. A polished web demo does not
-replace missing Unity files, testing records, video evidence, or presentation
-materials.
+## Learning-outcome evidence
 
-## Recommended Unity repository front page
+| Learning outcome | Evidence the final submission should foreground |
+| --- | --- |
+| LO1 - advanced sustained creative and technical practice | Working Unity system, authored C# components, stable interaction, technical diagrams, build documentation, and evidence of sustained iteration |
+| LO2 - planning and realisation of a complex self-directed project | Proposal-to-outcome timeline, milestones, scope decisions, web-to-Unity transition, final build, and honest account of incomplete features |
+| LO3 - critical ethical analysis in social, cultural, and environmental context | Discussion of feeding as care/control, anthropogenic food, multispecies responsibility, model limitations, data/privacy/consent, and AI-assisted authorship |
+| LO4 - evaluation through a specified research method | Defined research method, recruitment and consent, participant records, analysis, design changes, limitations, and reflection on whether players noticed or questioned hidden consequences |
 
-The future Unity repository should present the submission in this order:
+## Recommended repository model
 
-1. Project title, final still, and one-sentence research proposition
-2. Demo video and downloadable build
-3. Project description
-4. Interaction and alternative-controller setup
-5. Technical description and architecture diagram
-6. Individual contribution
-7. Five captioned final images
-8. Research through Design process, including a link to this web demo
-9. User-testing plan, five participant records, findings, and revision plan
-10. AI tool log and asset provenance
-11. Lab exercises and sprint documentation
-12. Harvard references
+Keep two repositories with explicit roles:
 
-## Evidence naming rule
+1. **This repository: preliminary web demo**
+   - browser source and deployment;
+   - rapid visual and interaction experiments;
+   - dated web-development history;
+   - research-mechanism rationale;
+   - evidence of discarded and retained ideas.
 
-Use `web-` and `unity-` prefixes for captures and documents. Examples:
+2. **New repository: final Unity project**
+   - the assessment-facing README and portfolio index;
+   - Unity `Assets`, `Packages`, and `ProjectSettings`;
+   - authored C# scripts and scene documentation;
+   - executable build or a GitHub Release link;
+   - dated research journal;
+   - user-testing method, findings, and revisions;
+   - thesis PDF and bibliography;
+   - a link back to this web prototype as an earlier iteration.
 
-- `web-final-overview-1440x900.png`
-- `web-spatial-feeding-sequence.png`
-- `unity-controller-interaction.jpg`
-- `unity-final-build-overview.png`
-- `unity-user-test-participant-03.jpg`
+Do not copy the Unity project into the root of this Codex Sites repository. It
+would blur the evidence chain, make the web deployment harder to maintain, and
+produce a misleading commit history.
 
-Every caption should identify the version, what is visible, and what claim the
-image supports. Generated concept art must be labelled as concept art and must
-not be used as proof that a feature runs in either implementation.
+## Recommended final Unity repository structure
+
+```text
+urban-wildlife-unity/
+|-- README.md
+|-- Assets/
+|   |-- Scenes/
+|   |-- Scripts/
+|   |-- Prefabs/
+|   |-- Art/
+|   `-- Audio/
+|-- Packages/
+|-- ProjectSettings/
+|-- Documentation/
+|   |-- Portfolio/
+|   |-- Research-Journal/
+|   |-- User-Testing/
+|   |-- Technical/
+|   |-- Ethics-and-Limitations.md
+|   |-- AI-and-Asset-Provenance.md
+|   `-- Thesis/
+|       `-- Urban-Wildlife-Thesis.pdf
+|-- Builds-or-Releases.md
+|-- LICENSE
+`-- .gitignore
+```
+
+Unity-generated folders such as `Library`, `Temp`, `Logs`, and `Obj` should not
+be committed. Large builds should normally be distributed through a GitHub
+Release, while the Moodle `.zip` should preserve the complete submitted source
+repository within the 1GB limit.
+
+## Final repository README order
+
+1. Title, final image, one-sentence proposition, and project status
+2. Video or animated demonstration and build/release link
+3. Research question and creative aims
+4. How the interaction works
+5. Technical system and the student's authored contribution
+6. Final outcome gallery with analytical captions
+7. Iterative process, including the transition from this web demo to Unity
+8. User-testing method, findings, and revisions
+9. Ethical, ecological, and modelling limitations
+10. Research journal, thesis PDF, references, AI disclosure, and asset credits
+11. Installation, controls, dependencies, and build instructions
+
+This order is a presentation recommendation, not an additional requirement in
+the brief. It makes the required portfolio, process, evaluation, and technical
+evidence easy for assessors to locate.
+
+## Moodle hand-in checks
+
+- GitHub link opens without requesting access, unless an exemption is agreed
+- Repository default branch is the exact assessed version
+- A release or tag identifies the submission state
+- `.zip` was created from that same version and opens correctly
+- Thesis PDF is 3,150-3,850 words unless the tutor confirms a different rule
+- README links work from a logged-out browser
+- No personal participant data, API keys, database secrets, or account emails
+  are included
+- All external and AI-generated assets have provenance records
+- Unity project opens without committing machine-specific cache folders
+- Institute code-sharing expectations have been met or an exemption is recorded
