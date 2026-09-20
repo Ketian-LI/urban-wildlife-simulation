@@ -526,6 +526,25 @@ appear on hover.
   seed state also remains visible in-world through the feeding dish, so no
   permanent board-wide HUD marker is required.
 
+### Shrub-habitat insect status
+
+- Use `Images/shrub-habitat-insect-status-sample-v01.webp` as the approved
+  selected-room comparison for the shrub habitat's natural-food function.
+- The first contextual chip remains the shrub-habitat room type. The second
+  chip shows whether one insect-food portion is currently present in that
+  habitat.
+- Show an olive leaf carrying one warm-ochre beetle, with a restrained teal
+  availability accent, while the portion is present. Show the same empty,
+  slightly desaturated leaf when the nightly 50% spawn did not occur or after
+  an animal consumes the portion.
+- Use the separate transparent pictograms
+  `Images/UI/status-shrub-insect-present-v01.webp` and
+  `Images/UI/status-shrub-insect-absent-v01.webp` over the shared circular chip
+  backing. The empty leaf is a neutral state rather than a failure warning.
+- Show these contextual chips only while the shrub habitat is selected. Do not
+  add a hedgehog portrait, percentage, timer, red cross or permanent board-wide
+  marker.
+
 ## Animal selection
 
 ![Approved animal-follow selection](Images/animal-follow-selection-sample-v01.webp)
@@ -1643,7 +1662,7 @@ appear on hover.
 
 ## Still to confirm
 
-- Contextual current-function pictograms for the shrub habitat, fox den and oak
-  habitat room types.
+- Contextual current-function pictograms for the fox den and oak habitat room
+  types.
 - Contents and final art polish for the individual variants inside each room
   category.
