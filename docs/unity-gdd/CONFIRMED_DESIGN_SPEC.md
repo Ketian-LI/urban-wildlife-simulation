@@ -506,6 +506,26 @@ appear on hover.
   simulation, such as habitat failure. Never display an empty or placeholder
   status slot.
 
+### Pigeon-habitat daily seed status
+
+- Use `Images/pigeon-habitat-seed-status-sample-v01.webp` as the approved
+  selected-room comparison for the pigeon habitat's daily food function.
+- The first contextual chip remains the pigeon-habitat room type. The second
+  chip shows the state of that habitat's one pigeon-only seed portion for the
+  current game day.
+- Show a shallow cream feeding dish containing a small cluster of warm ochre
+  seeds, with a restrained teal availability accent, while the portion remains
+  available. After a pigeon consumes it, replace the pictogram with the same
+  empty dish using a muted graphite interior until the next dawn.
+- Use the separate transparent pictograms
+  `Images/UI/status-pigeon-seed-available-v01.webp` and
+  `Images/UI/status-pigeon-seed-depleted-v01.webp` over the shared circular chip
+  backing. The depleted state is neutral rather than a warning: do not add a
+  red cross, danger colour or progress bar.
+- Show these contextual chips only while the pigeon habitat is selected. The
+  seed state also remains visible in-world through the feeding dish, so no
+  permanent board-wide HUD marker is required.
+
 ## Animal selection
 
 ![Approved animal-follow selection](Images/animal-follow-selection-sample-v01.webp)
@@ -1623,6 +1643,7 @@ appear on hover.
 
 ## Still to confirm
 
-- Contextual current-function pictograms for each animal-habitat room type.
+- Contextual current-function pictograms for the shrub habitat, fox den and oak
+  habitat room types.
 - Contents and final art polish for the individual variants inside each room
   category.
