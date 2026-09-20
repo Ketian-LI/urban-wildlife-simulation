@@ -491,6 +491,21 @@ appear on hover.
 - Temporary exceptional states such as overflow may add a warning treatment
   later, but empty contextual slots are never shown.
 
+### Central Park contextual status
+
+- Use `Images/central-park-single-context-chip-sample-v01.webp` as the approved
+  selected-room hierarchy for the fixed Central Park.
+- Show only one circular room-type chip containing the park's trees and pond
+  while the park is selected. Do not add permanent icons for ecology,
+  greenness, habitat quality or normal operation because they repeat the room's
+  identity without communicating a changing gameplay state.
+- Keep the chip hidden during normal unselected play. The standard delayed
+  hover label supplies the room name, and the four cyan-teal corner brackets
+  indicate selection.
+- A second chip may appear only for a real temporary exception reported by the
+  simulation, such as habitat failure. Never display an empty or placeholder
+  status slot.
+
 ## Animal selection
 
 ![Approved animal-follow selection](Images/animal-follow-selection-sample-v01.webp)
@@ -1608,7 +1623,6 @@ appear on hover.
 
 ## Still to confirm
 
-- Contextual current-function pictograms for Central Park and each animal-
-  habitat room type.
+- Contextual current-function pictograms for each animal-habitat room type.
 - Contents and final art polish for the individual variants inside each room
   category.
