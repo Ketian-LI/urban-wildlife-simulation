@@ -52,6 +52,7 @@ about feeding wildlife.
 
 ## Development evidence
 
+- [Confirmed Unity / GDD design decisions and visual references](docs/unity-gdd/README.md)
 - [Research and mechanism rationale](docs/research-design-rationale.md)
 - [Web-demo development timeline](docs/WEB_DEMO_DEVELOPMENT.md)
 - [Final-project submission and evidence plan](docs/SUBMISSION_EVIDENCE.md)
