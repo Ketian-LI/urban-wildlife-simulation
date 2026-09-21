@@ -1547,11 +1547,21 @@ appear on hover.
 - Treat the pigeon habitat as an urban rooftop ventilation/service core with an
   open pigeon loft attached to the permanent structure. This structural core
   explains why the habitat module is fixed.
-- Include sheltered nesting cubbies, perching rails at varied heights, one
-  shallow water dish and a generous unobstructed landing and takeoff area. The
-  loft remains open access rather than becoming a cage.
-- Use the same functional kit for the 1x1 and 1x2 variants, expanding open
-  landing ground and perch placement in the larger room.
+- Use `Images/pigeon-habitat-variants-sample-v01.webp` as the approved 1x1 and
+  horizontal 1x2 layout comparison.
+- Both sizes contain exactly one ventilation/service core, one open wooden loft
+  with four visible nesting cubbies, two wooden perch rails, one shallow blue
+  water dish and one separate small seed tray. The four cubbies are visual
+  shelter structure and do not define a four-pigeon hard capacity.
+- Keep the loft permanently open access rather than turning it into a cage.
+  Preserve a generous unobstructed landing and takeoff zone in both sizes.
+- The 1x2 variant reuses the same functional kit and the same gameplay
+  capacity, spreading the two perches farther apart and using the additional
+  cell primarily as open landing floor. It does not duplicate the loft,
+  ventilation core, dishes, daily seed output or any hidden benefit.
+- Architectural connections use open cream doorframes with no door leaves,
+  handles or panels. Their live positions follow actual neighbouring-room
+  connections rather than being permanently baked into the room artwork.
 - Approved visual reference: `Images/pigeon-habitat-lowpoly-concept-v02.webp`.
 - Approved frameless room pictogram:
   `Images/UI/room-icon-pigeon-habitat-v01.webp`.
@@ -1705,5 +1715,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the individual variants inside each room
-  category.
+- Contents and final art polish for the shrub habitat, fox den, oak habitat,
+  residence, office, food shop, supermarket, garage and waste-room variants.
