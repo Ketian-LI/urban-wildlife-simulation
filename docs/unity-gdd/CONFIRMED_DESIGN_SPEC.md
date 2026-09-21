@@ -2,13 +2,13 @@
 GitHub documentation copy generated from the Unity design workspace.
 Confirmed text is authoritative; WebP files are compressed documentation
 previews. Production PNG assets remain in the Unity project.
-Last synchronized: 2026-09-20.
+Last synchronized: 2026-09-21.
 -->
 
 # SYMBIOSIS: 49 — UI and Visual Decisions
 
 **Document status:** living design record
-**Last updated:** 20 September 2026
+**Last updated:** 21 September 2026
 **Implementation target:** Unity desktop demo, 1920 × 1080
 
 This document records visual and interface decisions confirmed with the project
@@ -544,6 +544,25 @@ appear on hover.
 - Show these contextual chips only while the shrub habitat is selected. Do not
   add a hedgehog portrait, percentage, timer, red cross or permanent board-wide
   marker.
+
+### Fox-den underground rest occupancy
+
+- Use `Images/fox-den-rest-occupancy-sample-v01.webp` as the approved
+  selected-room comparison for the fox den's concealed resting state.
+- The first contextual chip remains the fox-den room type. The second chip
+  contains two small front-facing fox-head positions representing the den's two
+  underground resting hollows.
+- Use a muted graphite hollow fox-head silhouette for an unoccupied position
+  and a filled rust-orange head with cream cheeks for a fox currently resting
+  underground. Show zero, one or two filled heads without adding numerals or a
+  progress ring.
+- Use the separate transparent pictograms
+  `Images/UI/status-fox-rest-0-v01.webp`,
+  `Images/UI/status-fox-rest-1-v01.webp` and
+  `Images/UI/status-fox-rest-2-v01.webp` over the shared circular chip backing.
+- The status counts only foxes currently concealed inside the den. Foxes moving
+  visibly through the room or elsewhere on the board do not fill a position.
+  Show the occupancy chip only while the fox den is selected.
 
 ## Animal selection
 
@@ -1662,7 +1681,6 @@ appear on hover.
 
 ## Still to confirm
 
-- Contextual current-function pictograms for the fox den and oak habitat room
-  types.
+- Contextual current-function pictograms for the oak habitat room type.
 - Contents and final art polish for the individual variants inside each room
   category.

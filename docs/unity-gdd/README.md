@@ -11,4 +11,4 @@ Unity version of **SYMBIOSIS: 49**.
 - The final section of the specification lists items that remain explicitly
   unconfirmed, so they cannot be mistaken for approved decisions.
 
-Last synchronized: 2026-09-20.
+Last synchronized: 2026-09-21.
