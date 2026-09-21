@@ -1797,12 +1797,36 @@ appear on hover.
 
 ### Garage rooms
 
+- Use `Images/garage-room-final-layout-sample-v02.webp` as the approved room
+  layout. The garage is one horizontal 2x1 module with exactly six open
+  pedestrian doorframes: two on the top, two on the bottom, one on the left and
+  one on the right.
+- Treat the room as a vehicle-access passage rather than a parking bay or
+  maintenance workshop. A single straight vehicle lane runs through the centre
+  of the room. It supports traffic approaching from either end, but only one
+  runtime vehicle may traverse the lane at a time.
+- Show one wide, low rectangular tunnel portal recessed into the upper inner
+  wall and aligned exactly with the lane. The lower vehicle spawn and exit stay
+  concealed behind the flat lower wall, so a second portal is not visible in
+  the normal straight-down camera.
+- Use a smooth, matte, low-contrast grey road surface with no centre line,
+  arrows, parking marks, crossing or side pavement. The surrounding floor uses
+  neat neutral-grey rectangular brick paving with shallow joints and restrained
+  low-poly relief; do not use rough realistic cobblestone.
+- Keep all six pedestrian doorway landings and their connecting routes clear.
+  The vehicle portal and lane are not pedestrian doorways and must not replace
+  or obstruct any part of the shared six-door topology.
+- The static room contains no car, resident, repair tool, spare tyre, furniture
+  or traffic-warning prop. Vehicles appear only as runtime traffic. Suspend
+  vehicle entry while a resident is occupying or crossing the garage room.
 - The room pictogram represents parking and vehicle access, not a maintenance
   workshop. Use one stationary compact car beneath a short garage portal; do
   not add tools, spare tyres, traffic warnings or movement effects.
 - The car in the pictogram is a category identifier only. Live traffic and
   animal-collision risk use separate in-world animation and warning overlays.
 - Approved visual reference: `Images/garage-room-lowpoly-concept-v01.webp`.
+- Approved final room-layout reference:
+  `Images/garage-room-final-layout-sample-v02.webp`.
 - Approved frameless room pictogram: `Images/UI/room-icon-garage-v01.webp`.
 
 ### Resident relocation pressure
@@ -1845,5 +1869,4 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the garage and waste-room
-  variants.
+- Contents and final art polish for the waste-room variants.
