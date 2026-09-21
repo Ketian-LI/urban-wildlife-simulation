@@ -1528,8 +1528,17 @@ appear on hover.
   long top and bottom side, plus one on each short left and right side. The
   complete doorway topology and all interaction anchors rotate with the room.
 - Use the shared cream threshold and frame inset without a visible door leaf.
-  Keep an unobstructed clearance zone immediately inside every doorway so
-  furniture, plants and runtime objects never hide or block it.
+  Reserve a 0.84-unit-wide by 0.85-unit-deep unobstructed landing immediately
+  inside every 0.72-unit doorway. Furniture, shelves, counters, plants,
+  habitat props and runtime-spawned objects may not overlap this landing.
+- Every active doorway landing must connect to the room's internal circulation
+  area and to every other active doorway. A room prefab is not complete until
+  both the human navigation agent and the largest ground-animal navigation
+  agent can enter, leave and cross it without intersecting static furnishings.
+- Run the clearance validator whenever a room prefab or its contents change.
+  Room rotation, board-edge covers and cosmetic variants must not weaken this
+  rule. Flying animals use the same clear doorway/landing for take-off and
+  landing even when their airborne route passes above low furniture.
 - Doorframe geometry is authored in the room prefab. Navigation links become
   active only where an adjacent room connection exists; inactive links do not
   change the visible doorway count.
