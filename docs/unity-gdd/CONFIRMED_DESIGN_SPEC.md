@@ -1621,13 +1621,25 @@ appear on hover.
 - Each oak habitat uses one mature oak as the primary squirrel climbing,
   shelter and natural-food structure. Apply the shared tree visual language to
   its trunk and crown.
+- Use `Images/oak-habitat-variants-sample-v01.webp` as the approved comparison
+  for the 1x1 footprint and the rotatable 1x2 footprint used by the four oak
+  habitats.
 - Keep a readable cache hollow at the trunk base, a low climbable branch, a few
-  acorns, one short fallen twig, sparse grass and one small stone. Preserve an
-  open route around the tree and between every available room opening.
+  authored climbing anchors, one short fallen twig, sparse grass and one small
+  stone. Preserve an open route around the tree and between every available
+  room opening.
+- Keep the cache hollow visibly empty in the static room art. The squirrel's
+  zero-to-three cached portions and the mature tree's maximum one uncollected
+  daily nut are runtime objects and must not be baked into the room texture or
+  prefab.
 - Moving the room fells its tree under the confirmed layout rules. Replacement
   sapling, young and mature states reuse the same polygon material language.
-- The 1x2 and 2x1 variants expand open ground rather than adding a second tree
-  or a hidden gameplay benefit.
+- The 1x2 and 2x1 variants reuse exactly one tree anchor and the same functional
+  props, expanding open grass and movement space rather than adding a second
+  tree, hollow, food source or hidden gameplay benefit. Rotate the complete
+  module and its anchor positions together.
+- Felled, sapling, young and mature visuals replace the tree at that one anchor
+  without moving the surrounding props or blocking the preserved route.
 - Approved visual reference: `Images/oak-habitat-lowpoly-concept-v06.webp`.
 - Approved frameless room pictogram:
   `Images/UI/room-icon-oak-habitat-v01.webp`. The two acorns are fixed category
@@ -1741,5 +1753,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the oak habitat, residence, office, food
-  shop, supermarket, garage and waste-room variants.
+- Contents and final art polish for the residence, office, food shop,
+  supermarket, garage and waste-room variants.
