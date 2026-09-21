@@ -1528,6 +1528,25 @@ appear on hover.
   active only where an adjacent room connection exists; inactive links do not
   change the visible doorway count.
 
+### Fixed board foundation and room layers
+
+- Build the board as three visual and logical layers rather than authoring a
+  separate room variant for every possible grid position.
+- The fixed foundation contains the 7x7 cell sockets, subtle alternating slot
+  tones, the outside rim and all board-edge dressing. It never moves when the
+  player rearranges rooms and provides a stable visual coordinate system for
+  camera recognition.
+- Each room module has a reusable shell layer for its floor, segmented walls
+  and four- or six-door topology, plus a reusable content layer for furniture,
+  habitat props and interaction anchors. Both layers move and rotate together.
+- A fixed boundary-cover layer sits immediately outside all 28 perimeter cell
+  edges. It visually closes outward-facing doorframes and prevents people or
+  animals from leaving the 7x7 board without changing the room prefab or its
+  visible doorway count.
+- Do not create corner, edge and interior copies of the complete room art.
+  Small kerb, planting, shadow or wear variations may come from the fixed
+  foundation only and must not change room mechanics or furniture placement.
+
 ### Shared tree visual language
 
 - Every tree in the game uses the same stylised low-poly construction shown in
@@ -1622,10 +1641,11 @@ appear on hover.
 - Keep a concealed route between the resting area and the room opening so both
   foxes can leave without overlapping. The entrance remains visibly open and
   readable from the 45-degree game camera.
-- The den is fixed at the board's bottom-right corner. Provide open cream
-  doorframe connections only toward the board-facing top and left sides; keep
-  the bottom and right outer-border walls continuous. The central dirt route
-  must remain clear between both connections and the concealed den routes.
+- The den is fixed at the board's bottom-right corner and retains the universal
+  four-door 1x1 shell. The fixed foundation's bottom and right boundary covers
+  close the two outward-facing doorframes and leave their navigation links
+  inactive. The central dirt route must remain clear between the board-facing
+  top and left connections and the concealed den routes.
 - Runtime fox models enter and leave the room; do not bake a fox into the room
   art. Foliage, stones and leaf litter may soften the abandoned urban edge but
   may not obstruct either movement route.
