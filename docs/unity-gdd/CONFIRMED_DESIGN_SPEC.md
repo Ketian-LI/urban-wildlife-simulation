@@ -1596,12 +1596,23 @@ appear on hover.
 - Treat the fixed fox den as an urban retaining wall with an underground
   drainage culvert, rather than a pet kennel or a natural woodland cave. The
   permanent below-ground structure explains why the room cannot be moved.
+- Use `Images/fox-den-final-layout-sample-v01.webp` as the approved final 1x1
+  room layout. The rear structure combines faceted stone, weathered brick,
+  restrained ivy and one main circular drainage-pipe entrance with a smaller
+  sheltered side recess.
 - Include one main round pipe entrance, a smaller sheltered side recess,
   weeds and low shrubs around the concrete edge, and two distinct resting
   hollows lined with leaves and discarded cardboard for the two foxes.
 - Keep a concealed route between the resting area and the room opening so both
   foxes can leave without overlapping. The entrance remains visibly open and
   readable from the 45-degree game camera.
+- The den is fixed at the board's bottom-right corner. Provide open cream
+  doorframe connections only toward the board-facing top and left sides; keep
+  the bottom and right outer-border walls continuous. The central dirt route
+  must remain clear between both connections and the concealed den routes.
+- Runtime fox models enter and leave the room; do not bake a fox into the room
+  art. Foliage, stones and leaf litter may soften the abandoned urban edge but
+  may not obstruct either movement route.
 - Approved visual reference: `Images/fox-den-lowpoly-concept-v01.webp`.
 - Approved frameless room pictogram: `Images/UI/room-icon-fox-den-v01.webp`.
 
@@ -1730,5 +1741,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the fox den, oak habitat, residence, office,
-  food shop, supermarket, garage and waste-room variants.
+- Contents and final art polish for the oak habitat, residence, office, food
+  shop, supermarket, garage and waste-room variants.
