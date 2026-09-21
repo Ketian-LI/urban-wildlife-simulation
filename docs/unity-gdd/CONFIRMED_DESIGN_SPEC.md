@@ -564,6 +564,30 @@ appear on hover.
   visibly through the room or elsewhere on the board do not fill a position.
   Show the occupancy chip only while the fox den is selected.
 
+### Oak-habitat tree growth status
+
+- Use `Images/oak-habitat-growth-status-sample-v01.webp` as the approved
+  selected-room comparison for the oak habitat's four tree stages.
+- The first contextual chip remains the oak-habitat room type. The second chip
+  shows the room's live tree stage without numerals, progress bars or countdown
+  rings.
+- The four states are: a felled empty plot with disturbed earth and no permanent
+  stump; a newly planted small sapling; a half-height young tree with a compact
+  faceted crown; and the full mature oak with its readable root hollow and one
+  small acorn accent.
+- Use the separate transparent pictograms
+  `Images/UI/status-oak-felled-v01.webp`,
+  `Images/UI/status-oak-sapling-v01.webp`,
+  `Images/UI/status-oak-young-v01.webp` and
+  `Images/UI/status-oak-mature-v01.webp` over the shared circular chip backing.
+- Planting costs six resource points. The planted sapling becomes a young tree
+  after one complete game day and mature after two complete days. Only the
+  mature state restores squirrel climbing, caching, safe-habitat use and daily
+  nut production.
+- Show the growth chip only while the oak habitat is selected. Keep the same
+  surrounding room props and open route across stages so the changing tree is
+  the only gameplay-bearing visual difference.
+
 ## Animal selection
 
 ![Approved animal-follow selection](Images/animal-follow-selection-sample-v01.webp)
@@ -1681,6 +1705,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contextual current-function pictograms for the oak habitat room type.
 - Contents and final art polish for the individual variants inside each room
   category.
