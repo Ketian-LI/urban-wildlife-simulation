@@ -1795,6 +1795,41 @@ appear on hover.
 - Approved visual reference: `Images/supermarket-room-lowpoly-concept-v01.webp`.
 - Approved frameless room pictogram: `Images/UI/room-icon-supermarket-v01.webp`.
 
+### Waste rooms
+
+- Use `Images/waste-room-fill-states-sample-v01.webp` as the approved comparison
+  for the four normal in-world load states: empty, low, medium and full. Overflow
+  is a separate fifth feedback state shown in
+  `Images/waste-room-overflow-sample-v01.webp`.
+- Each waste room is one 1x1 module with exactly four centred open pedestrian
+  doorframes, one on each side. A pale warm-grey rectangular-brick cross route
+  connects all four openings over a neutral-grey tiled floor, with one dark
+  square drain at the exact centre.
+- Keep the complete brick cross route and all four doorway landings clear in
+  every load state. Bins, tied bags, edible scraps and feedback effects may use
+  only the four non-route corner areas.
+- Empty shows exactly four closed bins, one in each corner. Low shows nine
+  closed bins in deliberately unequal corner groups and no loose bags. Medium
+  increases the number, size variation and disorder of bins and introduces a
+  few tied bags. Full densely fills all four corner storage areas with mixed
+  closed bins and tied bags while preserving the cross route.
+- Overflow retains the full state and adds several bags just beyond the corner
+  clusters, two or three small groups of edible discarded-food scraps, a few
+  tiny flies and short muted olive-brown odour ripples. One or two lids may
+  bulge or sit slightly open, but do not use a giant open skip or scatter litter
+  across the whole room.
+- The room shell uses the shared cobalt-blue modular walls and cream doorway
+  insets. Use the same straight-down low-poly material language as the other
+  rooms; do not add labels, capacity numbers, floating penalties, residents,
+  animals or a rubbish truck to the static room art.
+- The drain, bins and base bags are prefab content. Overflow scraps, flies and
+  odour ripples are runtime state layers so municipal or emergency collection
+  can remove them without replacing the room shell.
+- Approved normal-state comparison:
+  `Images/waste-room-fill-states-sample-v01.webp`.
+- Approved overflow reference: `Images/waste-room-overflow-sample-v01.webp`.
+- Approved frameless room pictogram: `Images/UI/room-icon-waste-v01.webp`.
+
 ### Garage rooms
 
 - Use `Images/garage-room-final-layout-sample-v02.webp` as the approved room
@@ -1866,7 +1901,3 @@ appear on hover.
   encounters between traffic and wildlife. Population growth is therefore a
   source of both income and increasing systemic pressure rather than a pure
   reward.
-
-## Still to confirm
-
-- Contents and final art polish for the waste-room variants.
