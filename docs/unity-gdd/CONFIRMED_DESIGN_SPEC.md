@@ -42,9 +42,10 @@ baked into a single screenshot.
 - Use a fixed orthographic straight-down view for the complete-board gameplay
   overview so the physical and on-screen 7x7 board both read as a true square.
   Do not stretch the board geometry to compensate for camera projection.
-- Double-clicking a room or following an animal smoothly changes to an
-  approximately 45-degree elevated detail view so room walls, furniture,
-  people and animals retain their 2.5D volume.
+- Double-clicking a room or following an animal keeps the same orthographic
+  straight-down angle and changes only camera position and zoom. Preserve the
+  2.5D visual character through modelling, materials, lighting and shadows,
+  not through a tilted camera.
 - Do not allow free camera rotation.
 - Allow zoom with the mouse wheel and limited panning while holding the middle
   mouse button.
@@ -60,7 +61,7 @@ baked into a single screenshot.
 
 - Show the `SYMBIOSIS: 49` title only on the desktop/main menu.
 - Use the modular city itself as a live, softly blurred background, viewed from
-  an approximately 45-degree elevated top-down angle.
+  the same straight-down angle as gameplay.
 - The no-camera build presents Sandbox as the primary mode entrance and
   Research as the secondary entrance.
 - The camera build contains Sandbox only. Replace the two mode entrances with a
@@ -82,7 +83,7 @@ baked into a single screenshot.
   uses unscaled time so the 1.8-second motion still runs while the menu pauses
   simulation, and restores the exact card positions before the next visit.
 - Returning to the desktop reverses the transition: fade out the HUD, zoom the
-  camera back to the 45-degree menu view, soften the scene into blur, and fade
+  camera back to the wider top-down menu view, soften the scene into blur, and fade
   the title and mode entrances in from the upper and lower edges.
 
 ## Build and input variants
@@ -1018,7 +1019,7 @@ appear on hover.
 
 - Create a production-feasible concept sheet before building or rebuilding any
   subsequent 3D character, animal, room prop or environment model.
-- Show one 45-degree gameplay view plus the orthographic views and key poses
+- Show one straight-down gameplay view plus the orthographic views and key poses
   needed to judge silhouette, proportion and articulation.
 - Do not begin the Blender production model or replace the Unity asset until
   the user confirms the concept direction.
@@ -1026,7 +1027,7 @@ appear on hover.
   avoid details that only work as painted illustration.
 - Preserve rejected and superseded source versions with versioned filenames.
 - After approval, validate the finished model against the concept, real-world
-  scale and the 45-degree Unity gameplay camera before treating it as final.
+  scale and the straight-down Unity gameplay camera before treating it as final.
 
 - Treat one Unity world unit as approximately one metre and one board cell as
   3.1 metres across.
@@ -1043,7 +1044,7 @@ appear on hover.
 - Use the pigeon as the first production benchmark; the squirrel now confirms
   that the same rig, import-axis and world-scale system transfers to a second species.
 - Animate animals with stepped 12 fps posing while keeping world-space travel
-  smooth enough to read clearly from the 45-degree game camera.
+  smooth enough to read clearly from the straight-down game camera.
 - The pigeon baseline includes breathing idle, head-bob walk, peck, short
   flutter and settle.
 - The squirrel v02 baseline includes breathing idle, grounded hop-run, forage,
@@ -1071,7 +1072,7 @@ appear on hover.
   canvas tote and white shoes as the first human animation benchmark.
 - The citizen baseline includes breathing idle, full-body walk, a brief
   hand-to-face observation gesture and a relaxed weight-shift stop.
-- Keep human and animal scale comparable in the same 45-degree gameplay view;
+- Keep human and animal scale comparable in the same straight-down gameplay view;
   people should remain visually secondary to the room ecology rather than read
   as oversized player avatars.
 
@@ -1645,7 +1646,7 @@ appear on hover.
   hollows lined with leaves and discarded cardboard for the two foxes.
 - Keep a concealed route between the resting area and the room opening so both
   foxes can leave without overlapping. The entrance remains visibly open and
-  readable from the 45-degree game camera.
+  readable from the straight-down game camera.
 - The den is fixed at the board's bottom-right corner and retains the universal
   four-door 1x1 shell. The fixed foundation's bottom and right boundary covers
   close the two outward-facing doorframes and leave their navigation links
@@ -1733,6 +1734,12 @@ appear on hover.
 
 ### Food shop rooms
 
+- Use `Images/food-shop-variants-sample-v02.webp` as the approved comparison for
+  the vertical 1x2 shop and horizontal 2x1 shop. They are rotations of one
+  generic food-shop category rather than separate cuisine or business types.
+- Both footprints use exactly six open doorframes under the shared topology:
+  the 1x2 shop has one on each short side and two on each long side; the 2x1
+  shop rotates that complete arrangement by 90 degrees.
 - Treat each food shop as a small neighbourhood restaurant rather than a
   cafeteria line or a kitchen-only fast-food counter. The dining room is the
   visual focus and occupies roughly two thirds of the module.
@@ -1748,6 +1755,9 @@ appear on hover.
 - Both shops use the same mechanical room type and reusable furniture kit.
   Colour accents and small food props may vary without creating cuisine
   subtypes or rule differences.
+- Keep residents, served-food portions and the nightly discarded-food object as
+  runtime layers. The static room contains only generic table settings and an
+  empty closed bin.
 - Approved visual reference: `Images/food-shop-room-lowpoly-concept-v02.webp`.
 - Approved frameless room pictogram: `Images/UI/room-icon-food-shop-v01.webp`.
 
@@ -1812,5 +1822,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the food shop, supermarket, garage and
-  waste-room variants.
+- Contents and final art polish for the supermarket, garage and waste-room
+  variants.
