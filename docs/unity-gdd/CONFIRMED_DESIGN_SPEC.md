@@ -39,7 +39,12 @@ baked into a single screenshot.
 
 ### Gameplay camera
 
-- Use a fixed elevated top-down viewing angle during normal play.
+- Use a fixed orthographic straight-down view for the complete-board gameplay
+  overview so the physical and on-screen 7x7 board both read as a true square.
+  Do not stretch the board geometry to compensate for camera projection.
+- Double-clicking a room or following an animal smoothly changes to an
+  approximately 45-degree elevated detail view so room walls, furniture,
+  people and animals retain their 2.5D volume.
 - Do not allow free camera rotation.
 - Allow zoom with the mouse wheel and limited panning while holding the middle
   mouse button.
