@@ -1512,6 +1512,22 @@ appear on hover.
 
 ## Room contents and art direction
 
+### Shared modular doorway layout
+
+- Every 1x1 room prefab has exactly four open doorframes: one centred on each
+  side.
+- Every 1x2 room prefab has exactly six open doorframes: one on each short top
+  and bottom side, plus two evenly spaced on each long left and right side.
+- Rotating the same prefab to 2x1 preserves exactly six doorframes: two on each
+  long top and bottom side, plus one on each short left and right side. The
+  complete doorway topology and all interaction anchors rotate with the room.
+- Use the shared cream threshold and frame inset without a visible door leaf.
+  Keep an unobstructed clearance zone immediately inside every doorway so
+  furniture, plants and runtime objects never hide or block it.
+- Doorframe geometry is authored in the room prefab. Navigation links become
+  active only where an adjacent room connection exists; inactive links do not
+  change the visible doorway count.
+
 ### Shared tree visual language
 
 - Every tree in the game uses the same stylised low-poly construction shown in
@@ -1559,9 +1575,9 @@ appear on hover.
   capacity, spreading the two perches farther apart and using the additional
   cell primarily as open landing floor. It does not duplicate the loft,
   ventilation core, dishes, daily seed output or any hidden benefit.
-- Architectural connections use open cream doorframes with no door leaves,
-  handles or panels. Their live positions follow actual neighbouring-room
-  connections rather than being permanently baked into the room artwork.
+- Architectural connections use the shared fixed doorway topology, with open
+  cream frames and no door leaves, handles or panels. Only the navigation links
+  respond to actual neighbouring-room connections.
 - Approved visual reference: `Images/pigeon-habitat-lowpoly-concept-v02.webp`.
 - Approved frameless room pictogram:
   `Images/UI/room-icon-pigeon-habitat-v01.webp`.
@@ -1583,9 +1599,9 @@ appear on hover.
 - Keep total cover, route width, insect-spawn probability and habitat value
   mechanically equal across all three variants. Layout variation is visual
   only and never grants extra food, capacity or safety.
-- Architectural connections use the shared open cream doorframe treatment and
-  follow live neighbouring-room connections rather than fixed illustrated
-  positions.
+- Architectural connections use the shared fixed open cream doorframe
+  topology. Only the navigation links respond to actual neighbouring-room
+  connections.
 - Keep the habitat pictogram independent of the hedgehog model, insect-food
   spawn and day-night state. Its three white flowers are fixed category details.
 - Approved frameless room pictogram:
