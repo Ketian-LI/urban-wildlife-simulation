@@ -1673,6 +1673,9 @@ appear on hover.
 - Each office has exactly two visible workstations, matching the confirmed
   capacity of two residents. Each workstation contains one desk, one chair,
   one monitor and one keyboard.
+- Use `Images/office-variants-sample-v01.webp` as the approved comparison for
+  the four 1x1 offices. All four share identical wall geometry, furniture
+  counts, interaction anchors, two-resident capacity and resource production.
 - Add one shared low filing cabinet, compact printer, waste-paper basket and
   potted plant. These objects communicate office use without introducing
   additional simulation functions.
@@ -1680,6 +1683,10 @@ appear on hover.
   route between every available opening for residents and ground animals.
 - Use a restrained teal, grey, warm-wood and cream palette so offices remain
   distinct from residences at the normal board-camera distance.
+- Variations in desk wood, chair upholstery and carpet tone are decorative
+  only. Resident models, working animations and daily production feedback are
+  runtime layers and must not be baked into the room art.
+- Use open doorframes without visible door leaves at all available openings.
 - Approved visual reference: `Images/office-room-lowpoly-concept-v01.webp`.
 - Approved frameless room pictogram: `Images/UI/room-icon-office-v01.webp`.
 
@@ -1764,5 +1771,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the office, food shop, supermarket, garage
-  and waste-room variants.
+- Contents and final art polish for the food shop, supermarket, garage and
+  waste-room variants.
