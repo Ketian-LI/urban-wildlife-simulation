@@ -1571,6 +1571,21 @@ appear on hover.
 - Use dense low shrubs as the primary hedgehog cover. Overlapping foliage may
   form a small shaded route at ground level, but it must not read as a dug cave
   or a second fox den.
+- Use `Images/shrub-habitat-variants-sample-v01.webp` as the approved comparison
+  for the three 1x1 rooms Shrub A, Shrub B and Shrub C.
+- Variant A uses a broad rear-and-left crescent of shrubs with a diagonal
+  ground route; Variant B splits the cover into two unequal islands around a
+  gentle S-shaped route; Variant C uses a denser L-shaped rear-and-right shrub
+  belt with a more open lower entry.
+- Every variant includes one continuous readable ground route, a partly
+  sheltered dry-leaf resting patch, two or three smooth stones, sparse grass
+  and one discreet leaf-litter point for a possible nightly insect portion.
+- Keep total cover, route width, insect-spawn probability and habitat value
+  mechanically equal across all three variants. Layout variation is visual
+  only and never grants extra food, capacity or safety.
+- Architectural connections use the shared open cream doorframe treatment and
+  follow live neighbouring-room connections rather than fixed illustrated
+  positions.
 - Keep the habitat pictogram independent of the hedgehog model, insect-food
   spawn and day-night state. Its three white flowers are fixed category details.
 - Approved frameless room pictogram:
@@ -1715,5 +1730,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the shrub habitat, fox den, oak habitat,
-  residence, office, food shop, supermarket, garage and waste-room variants.
+- Contents and final art polish for the fox den, oak habitat, residence, office,
+  food shop, supermarket, garage and waste-room variants.
