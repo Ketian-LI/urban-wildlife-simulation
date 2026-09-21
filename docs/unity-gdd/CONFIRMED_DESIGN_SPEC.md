@@ -1650,10 +1650,21 @@ appear on hover.
 - A residence represents a compact single-resident home. Its reusable furniture
   kit contains one single bed, bedside cabinet and lamp, narrow wardrobe, tiny
   round table with one chair, small oval rug and one potted plant.
+- Use `Images/residence-variants-sample-v01.webp` as the approved comparison for
+  the six 1x1 residences and two 2x1 residences. Every residence continues to
+  hold exactly one resident regardless of footprint.
 - Place furniture around the perimeter so a continuous route remains between
   every available room opening for residents and ground animals.
 - The 2x1 variant reuses the same furniture kit and adds free floor area. It
-  does not add resident capacity or a hidden simulation bonus.
+  does not add a second bed, chair or resident capacity, and provides no hidden
+  simulation bonus.
+- Dusty rose, sage green, muted ochre, soft blue and neutral rug or bedding
+  combinations are decorative variants only. Keep the wall geometry, furniture
+  count, interaction anchors and simulation values identical within each
+  footprint class.
+- Use open doorframes without visible door leaves. Resident models and the
+  occupied or vacant opening-light state remain runtime layers and must not be
+  baked into the room art.
 - Approved visual reference: `Images/residence-room-lowpoly-concept-v01.webp`.
 - Approved frameless room pictogram: `Images/UI/room-icon-residence-v01.webp`.
 
@@ -1753,5 +1764,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the residence, office, food shop,
-  supermarket, garage and waste-room variants.
+- Contents and final art polish for the office, food shop, supermarket, garage
+  and waste-room variants.
