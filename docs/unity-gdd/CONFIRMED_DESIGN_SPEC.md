@@ -1772,10 +1772,24 @@ appear on hover.
 
 ### Supermarket rooms
 
+- Use `Images/supermarket-room-layout-sample-v01.webp` as the approved room
+  layout. The supermarket is one horizontal 2x1 module with exactly six open
+  doorframes: two on the top, two on the bottom, one on the left and one on the
+  right.
 - Present the supermarket as a compact neighbourhood grocery shop rather than
   a restaurant or warehouse. Low stocked gondola shelves are its primary
   visual identifier; chilled goods, produce and a small checkout remain
   secondary room details.
+- Use exactly two low central gondola islands, one wall-mounted chilled case,
+  one produce display, one checkout with register and card terminal, one basket
+  stack, one closed waste container, one small plant and one compact carton
+  stack. These are visual fixtures and add no hidden simulation functions.
+- Keep all six 0.84-by-0.85 doorway landings clear and preserve a continuous
+  route around both shelf islands for residents and ground animals. No stock,
+  trolley, carton, basket or runtime waste object may spawn in those routes.
+- The closed waste container is the supermarket's waste anchor. Accumulated
+  rubbish, flies, smell feedback and the blocked-collection warning are runtime
+  layers and must not be baked into the static room art.
 - Keep packaging generic and unbranded. Product colours may vary, but no label
   or food image should imply a real company or a cuisine subtype.
 - Approved visual reference: `Images/supermarket-room-lowpoly-concept-v01.webp`.
@@ -1831,5 +1845,5 @@ appear on hover.
 
 ## Still to confirm
 
-- Contents and final art polish for the supermarket, garage and waste-room
+- Contents and final art polish for the garage and waste-room
   variants.
