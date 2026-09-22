@@ -69,10 +69,11 @@ This file records what is actually implemented. It deliberately distinguishes a 
 
 ## Verification
 
-- Edit Mode automated suite: **196 passed, 0 failed**.
+- Edit Mode automated suite: **196 passed, 0 failed, 0 skipped**; the final compile contains no C# warnings.
 - Windows no-camera build completed successfully: `Builds/Windows-NoCamera/SYMBIOSIS49-NoCamera.exe`.
 - Windows camera build completed successfully: `Builds/Windows-Camera/SYMBIOSIS49-Camera.exe`.
 - The camera-only compiler symbol is removed again after packaging, so the Unity working project returns to the no-camera development baseline.
+- Both packaged players completed a ten-second Windows startup smoke test without logged gameplay exceptions.
 - Main menu/layout preview renders successfully at 1920 × 1080.
 - Research setup preview renders successfully at 1920 × 1080.
-- Latest post-build XML report: `urban-wildlife-rooms-unity/TestResults/delivery-final.xml`.
+- Latest post-build XML report: `urban-wildlife-rooms-unity/TestResults/inspection-final.xml`.
